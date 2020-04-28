@@ -25,3 +25,7 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
 endif()
 
 target_include_directories(andromeda PRIVATE "include")
+
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+	target_compile_definitions(andromeda PUBLIC ANDROMEDA_DEBUG=1)
+endif()
