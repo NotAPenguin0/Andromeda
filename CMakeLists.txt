@@ -23,3 +23,5 @@ endif()
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
 	target_compile_options(andromeda PRIVATE -W3 -Werror)
 endif()
+
+target_include_directories(andromeda PRIVATE "include")
