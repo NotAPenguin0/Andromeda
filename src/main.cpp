@@ -1,11 +1,8 @@
-#include <andromeda/wsi/window.hpp>
-
-#include <andromeda/renderer/renderer.hpp>
+#include <andromeda/wsi/application.hpp>
 
 int main() {
-	andromeda::wsi::Window window(1280, 720, "Andromeda Editor");
-	andromeda::renderer::Renderer renderer(window);
-	while (window.is_open()) {
-		window.poll_events();
-	}
+	using namespace andromeda;
+
+	wsi::Application app(1280, 710, "Andromeda Editor");
+	app.run();
 }

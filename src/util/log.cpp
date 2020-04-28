@@ -5,30 +5,31 @@
 
 namespace safe_io {
 
-	template<typename Stream>
-	struct LockedStream {
-		std::lock_guard<std::mutex> _lock;
-		Stream& stream;
-	};
+// If you get this struct from a ProtectedStream::acquire(), access to the contained stream object is guaranteed to be thread safe.
+template<typename Stream>
+struct LockedStream {
+	std::lock_guard<std::mutex> _lock;
+	Stream& stream;
+};
 
-	template<typename Stream>
-	class ProtectedStream {
-	public:
-		ProtectedStream(Stream& s) : stream(s) {
+// Holds an input/output stream so it can be used concurrently. To get access to the stream, call acquire(). 
+template<typename Stream>
+class ProtectedStream {
+public:
+	ProtectedStream(Stream& s) : stream(s) {}
 
-		}
+	LockedStream<Stream> acquire() {
+		return { ._lock = std::lock_guard(mut), .stream = stream };
+	}
 
-		LockedStream<Stream> acquire() {
-			return { ._lock = std::lock_guard(mut), .stream = stream };
-		}
+private:
+	std::mutex mut;
+	Stream& stream;
+};
 
-	private:
-		std::mutex mut;
-		Stream& stream;
-	};
+static ProtectedStream cout(std::cout);
+static ProtectedStream cerr(std::cerr);
 
-	static ProtectedStream cout(std::cout);
-	static ProtectedStream cerr(std::cerr);
 }
 
 namespace andromeda::io {
@@ -47,7 +48,6 @@ static std::string_view severity_string(ph::log::Severity sev) {
 		return "[FATAL ERROR]";
 	}
 }
-
 
 void ConsoleLogger::write(ph::log::Severity sev, std::string_view str) {
 	auto [_, out] = safe_io::cout.acquire();

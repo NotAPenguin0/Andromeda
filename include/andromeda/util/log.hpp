@@ -17,12 +17,12 @@ ConsoleLogger& get_console_logger();
 
 template<typename... Ts>
 void log(ph::log::Severity sev, std::string_view fmt, Ts&&... args) {
-	get_console_logger().write_fmt(sev, fmt, std::forward<Args>(args)...);
+	get_console_logger().write_fmt(sev, fmt, std::forward<Ts>(args)...);
 }
 
 template<typename... Ts>
 void log(std::string_view fmt, Ts&&... args) {
-	log(ph::log::Severity::Debug, fmt, std::forward<Args>(args) ...);
+	log(ph::log::Severity::Debug, fmt, std::forward<Ts>(args) ...);
 }
 
 }
