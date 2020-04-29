@@ -1,6 +1,7 @@
 #ifndef ANDROMEDA_ASSETS_HPP_
 #define ANDROMEDA_ASSETS_HPP_
 
+#include <andromeda/core/context.hpp>
 #include <andromeda/util/handle.hpp>
 
 #include <unordered_map>
@@ -16,7 +17,7 @@ std::unordered_map<uint64_t, T> data;
 }
 
 template<typename T>
-Handle<T> load(std::string_view path);
+Handle<T> load(Context& ctx, std::string_view path);
 
 template<typename T>
 Handle<T> take(T&& asset) {

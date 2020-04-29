@@ -36,8 +36,7 @@ Application::~Application() {
 }
 
 void Application::run() {
-	unsigned char data[] { 255, 0, 255, 255 };
-	Handle<Texture> tex = context.request_texture(1, 1, vk::Format::eR8G8B8A8Srgb, data);
+	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/test.png");
 
 	while (window.is_open()) {
 		window.poll_events();

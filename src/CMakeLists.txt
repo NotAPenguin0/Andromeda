@@ -2,6 +2,8 @@ target_sources(andromeda PRIVATE
 	"main.cpp"
 
 	"assets/assets.cpp"
+	"assets/importers/importers.cpp"
+	"assets/importers/png.cpp"
 
 	"core/context.cpp"
 
