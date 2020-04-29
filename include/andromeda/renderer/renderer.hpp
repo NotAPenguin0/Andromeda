@@ -3,25 +3,20 @@
 
 #include <andromeda/wsi/window.hpp>
 
-#include <phobos/forward.hpp>
-#include <memory>
+#include <andromeda/core/context.hpp>
 
-namespace andromeda::world {
-class World;
-}
 
 namespace andromeda::renderer {
 
 class Renderer {
 public:
-	Renderer(wsi::Window& window);
+	Renderer(Context& ctx);
 	~Renderer();
 
 	// Renders the world (and UI) to the screen. Before calling this, you are not allowed to directly modify in-use GPU resources.
-	void render(world::World const& world);
+	void render(Context& ctx);
 
 private:
-	ph::VulkanContext* vk_context;
 	std::unique_ptr<ph::Renderer> vk_renderer;
 	std::unique_ptr<ph::PresentManager> vk_present;
 };

@@ -11,33 +11,21 @@
 
 namespace andromeda::renderer {
 
-Renderer::Renderer(wsi::Window& window) {
-	ph::AppSettings settings;
-#if ANDROMEDA_DEBUG
-	settings.enable_validation_layers = true;
-#else
-	settings.enabe_validation_layers = false;
-#endif
-	constexpr Version v = ANDROMEDA_VERSION;
-	settings.version = { v.major, v.minor, v.patch };
-	vk_context = ph::create_vulkan_context(*window.handle(), &io::get_console_logger(), settings);
-
-	vk_present = std::make_unique<ph::PresentManager>(*vk_context);
-	vk_renderer = std::make_unique<ph::Renderer>(*vk_context);
+Renderer::Renderer(Context& ctx) {
+	vk_present = std::make_unique<ph::PresentManager>(*ctx.vulkan);
+	vk_renderer = std::make_unique<ph::Renderer>(*ctx.vulkan);
 }
 
 Renderer::~Renderer() {
-	vk_context->device.waitIdle();
 	vk_renderer->destroy();
 	vk_present->destroy();
-	ph::destroy_vulkan_context(vk_context);
 }
 
-void Renderer::render(world::World const& world) {
+void Renderer::render(Context& ctx) {
 	vk_present->wait_for_available_frame();
 
 	ph::FrameInfo& frame = vk_present->get_frame_info();
-	ph::RenderGraph graph{ vk_context };
+	ph::RenderGraph graph{ ctx.vulkan.get() };
 
 	// This renderpass is temporary, we will improve on this system when adding ImGui
 

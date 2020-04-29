@@ -1,6 +1,8 @@
 target_sources(andromeda PRIVATE 
 	"main.cpp"
 
+	"core/context.cpp"
+
 	"ecs/registry.cpp"
 
 	"renderer/renderer.cpp"
