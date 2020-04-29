@@ -6,6 +6,8 @@
 
 #include <phobos/core/vulkan_context.hpp>
 
+#include <andromeda/assets/assets.hpp>
+
 namespace andromeda::wsi {
 
 Application::Application(size_t width, size_t height, std::string_view title)
@@ -34,6 +36,9 @@ Application::~Application() {
 }
 
 void Application::run() {
+	unsigned char data[] { 255, 0, 255, 255 };
+	Handle<Texture> tex = context.request_texture(1, 1, vk::Format::eR8G8B8A8Srgb, data);
+
 	while (window.is_open()) {
 		window.poll_events();
 

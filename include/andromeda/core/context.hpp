@@ -4,7 +4,12 @@
 #include <phobos/forward.hpp>
 #include <memory>
 
+#include <andromeda/util/handle.hpp>
+#include <andromeda/util/vk_forward.hpp>
+
 namespace andromeda {
+
+class Texture;
 
 namespace world {
 class World;
@@ -16,6 +21,8 @@ public:
 	~Context();
 	std::unique_ptr<ph::VulkanContext> vulkan;
 	std::unique_ptr<world::World> world;
+
+	Handle<Texture> request_texture(uint32_t width, uint32_t height, vk::Format format, void* data);
 };
 
 }
