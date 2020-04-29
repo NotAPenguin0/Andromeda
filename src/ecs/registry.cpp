@@ -22,16 +22,14 @@ registry::registry() {
 
 }
 
-entity_t registry::create_entity(entity_t parent) {
+entity_t registry::create_entity() {
     entity_t id = id_generator.next();
-    auto parent_it = std::find(entities.begin(), entities.end(), parent);
-    assert(parent_it != entities.end() && "invalid parent entity");
-    entities.insert(parent_it, id);
+    entities.push_back(id);
     return id;
 }
 
-entity_t registry::create_blueprint_entity(entity_t parent) {
-    entity_t entity = create_entity(parent);
+entity_t registry::create_blueprint_entity() {
+    entity_t entity = create_entity();
     // TODO: Implement blueprint entities
 //    add_component<components::Blueprint>(entity, entity);
     return entity;

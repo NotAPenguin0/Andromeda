@@ -7,6 +7,8 @@ target_sources(andromeda PRIVATE
 
 	"util/log.cpp"
 
+	"world/world.cpp"
+
 	"wsi/application.cpp"
 	"wsi/window.cpp"
 )

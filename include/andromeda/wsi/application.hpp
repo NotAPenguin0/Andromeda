@@ -2,7 +2,9 @@
 #define ANDROMEDA_APPLICATION_HPP_
 
 #include <andromeda/renderer/renderer.hpp>
+#include <andromeda/world/world.hpp>
 #include <andromeda/wsi/window.hpp>
+
 
 namespace andromeda::wsi {
 
@@ -16,6 +18,8 @@ public:
 private:
 	wsi::Window window;
 	renderer::Renderer renderer;
+	
+	world::World world;
 };
 
 }

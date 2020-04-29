@@ -6,12 +6,19 @@
 #include <phobos/forward.hpp>
 #include <memory>
 
+namespace andromeda::world {
+class World;
+}
+
 namespace andromeda::renderer {
 
 class Renderer {
 public:
 	Renderer(wsi::Window& window);
 	~Renderer();
+
+	// Renders the world (and UI) to the screen. Before calling this, you are not allowed to directly modify in-use GPU resources.
+	void render(world::World const& world);
 
 private:
 	ph::VulkanContext* vk_context;

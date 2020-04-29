@@ -23,16 +23,17 @@ public:
 
     ~registry() = default;
 
-    entity_t create_entity(entity_t parent = 0);
-    entity_t create_blueprint_entity(entity_t parent = 0);
+    entity_t create_entity();
+    entity_t create_blueprint_entity();
 
     // 'Imports' an entity from registry [source] to this registry. Effectively makes a copy of all entity data
  //   entity_t import_blueprint(registry& source, entity_t other);
 
     template<typename T, typename... Args>
-    void add_component(entity_t entity, Args&&... args) {
+    T& add_component(entity_t entity, Args&&... args) {
         component_storage<T>& storage = get_or_emplace_storage<T>();
-        storage.construct(entity, std::forward<Args>(args) ...);
+        auto it = storage.construct(entity, std::forward<Args>(args) ...);
+        return *it;
     }
 
     template<typename T>
@@ -78,7 +79,7 @@ private:
 
     template<typename T>
     component_storage<T>& get_or_emplace_storage() {
-        stl::uint64_t const index = get_component_type_id<T>();
+        uint64_t const index = get_component_type_id<T>();
 
         // If the index is not found, we have to register the new component
         if (index >= storages.size()) {
@@ -98,7 +99,7 @@ private:
 
     template<typename T>
     component_storage<T> const& get_or_emplace_storage() const {
-        stl::uint64_t const index = get_component_type_id<T>();
+        uint64_t const index = get_component_type_id<T>();
 
         // If the index is not found, we have to register the new component
         if (index >= storages.size()) {
