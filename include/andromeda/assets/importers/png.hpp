@@ -11,8 +11,8 @@ namespace importers {
 namespace png {
 
 OpenTexture open_file(std::string_view path);
-uint32_t get_byte_size(OpenTexture const& tex);
-void load_texture(OpenTexture tex, byte* data);
+uint32_t get_required_size(OpenTexture const& tex);
+bool load_texture(OpenTexture tex, byte* data);
 
 }
 }

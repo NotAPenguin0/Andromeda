@@ -1,3 +1,6 @@
 [submodule "external/phobos"]
 	path = external/phobos
 	url = https://github.com/NotAPenguin0/Phobos
+[submodule "external/zlib"]
+	path = external/zlib
+	url = https://github.com/madler/zlib

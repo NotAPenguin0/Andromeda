@@ -25,6 +25,7 @@ enum class ColorSpace {
 struct TextureInfo {
 	uint32_t width = 0;
 	uint32_t height = 0;
+	uint32_t byte_width = 0;
 	TextureFormat format = TextureFormat::rgb;
 	ColorSpace color_space = ColorSpace::Linear;
 };

@@ -1,8 +1,9 @@
 #include <andromeda/assets/importers/png.hpp>
 
 #include <stdio.h>
-
 #include <unordered_map>
+
+#include <zlib.h>
 
 namespace andromeda {
 namespace assets {
@@ -21,6 +22,7 @@ enum class ChunkType {
 	PLTE, // Palette
 	IDAT, // Data
 	IEND, // End
+	// These chunks are optional
 	sRGB, // srgb information
 	gAma, // gamma information
 	pHYs, // Intended pixel size/aspect ratio. Ignored when parsing
@@ -60,13 +62,16 @@ static bool read_byte(FILE* file, byte& val) {
 	return true;
 }
 
-// Ignores count bytes from the file
-static bool ignore_bytes(FILE* file, size_t count) {
-	byte ignored;
-	for (size_t i = 0; i < count; ++i) {
-		if (!read_byte(file, ignored)) { return false; }
+static bool read_bytes(FILE* file, byte* values, uint32_t count) {
+	if (fread(values, 1, count, file) < count) {
+		return false;
 	}
 	return true;
+}
+
+// Ignores count bytes from the file
+static bool ignore_bytes(FILE* file, size_t count) {
+	return fseek(file, count, SEEK_CUR) == 0;
 }
 
 // Reads a u32 from a FILE* and converts it to big endian (since that's what PNG uses)
@@ -136,6 +141,16 @@ static TextureFormat to_texture_format(byte color_type) {
 	}
 }
 
+static uint32_t bytes_per_pixel(TextureFormat fmt) {
+	switch (fmt) {
+	case TextureFormat::rgb: return 3;
+	case TextureFormat::rgba: return 4;
+	case TextureFormat::greyscale:
+	case TextureFormat::grayscale_alpha:
+		throw "unsupported";
+	}
+}
+
 // At the end of each chunk there is a CRC section to do validation. We don't do this, se we skip this section in the file.
 // See also https://www.w3.org/TR/2003/REC-PNG-20031110/#table51
 static void skip_crc(FILE* file) {
@@ -157,7 +172,9 @@ static void process_header_chunk(OpenTexture& tex, FILE* file) {
 	read_byte(file, color_type);
 
 	tex.info.format = to_texture_format(color_type);
+	tex.info.byte_width = tex.info.width * bytes_per_pixel(tex.info.format);
 	ignore_bytes(file, 3);
+
 }
 
 static void process_srgb_chunk(OpenTexture& tex, FILE* file, ChunkInfo const& info) {
@@ -219,7 +236,7 @@ OpenTexture open_file(std::string_view path) {
 	return tex;
 }
 
-uint32_t get_byte_size(OpenTexture const& tex) {
+uint32_t get_required_size(OpenTexture const& tex) {
 	switch (tex.info.format) {
 	case TextureFormat::rgb:
 		return tex.info.width * tex.info.height * 3;
@@ -231,12 +248,248 @@ uint32_t get_byte_size(OpenTexture const& tex) {
 	}
 }
 
-void load_texture(OpenTexture tex, byte* data) {
+class DecompressionStream {
+public:
+	DecompressionStream(FILE* file, byte* dst_buffer, uint32_t dst_buffer_size) 
+		: file(file), dst_buffer_size(dst_buffer_size), dst_buffer(dst_buffer) {
+		working_memory_size = find_largest_chunk(file);
+		working_memory = new byte[working_memory_size];
+	}
 
+	~DecompressionStream() {
+		delete working_memory;
+	}
 
-	// Cleanup
-	delete reinterpret_cast<InternalLoadData*>(tex.internal_data);
-	fclose(reinterpret_cast<FILE*>(tex.file));
+	bool decompress() {
+		z_stream decompress_job{};
+		decompress_job.next_out = dst_buffer;
+		decompress_job.avail_out = dst_buffer_size;
+		if (inflateInit(&decompress_job) != Z_OK) {
+			inflateEnd(&decompress_job);
+			return false;
+		}
+
+		ChunkInfo chunk = next_chunk_info(file);
+		while (chunk.type == ChunkType::IDAT) {
+
+			if (chunk.size > working_memory_size) {
+				// Not enough memory to decompress chunk
+				inflateEnd(&decompress_job);
+				return false;
+			}
+
+			// Read compressed data into memroy
+			if (!read_bytes(file, working_memory, chunk.size)) {
+				// Data could not be read
+				inflateEnd(&decompress_job);
+				return false;
+			}
+
+			// Decompress
+			decompress_job.next_in = working_memory;
+			decompress_job.avail_in = chunk.size;
+			int err_code = inflate(&decompress_job, 0);
+			if (err_code == Z_DATA_ERROR) {
+				inflateEnd(&decompress_job);
+				return false;
+			}
+			// Note that inflate() automatically updates next_out and avail_out, so we don't need any extra logic to update these
+
+			skip_crc(file);
+			chunk = next_chunk_info(file);
+		}
+
+		inflateEnd(&decompress_job);
+		// Seek slightly back to avoid the file pointer already being inside the next chunk
+		fseek(file, -(long)ChunkInfo::file_bytes, SEEK_CUR);
+		
+		return true;
+	}
+
+private:
+	FILE* file;
+	uint32_t dst_buffer_size;
+	byte* dst_buffer;
+	uint32_t working_memory_size = 0;
+	byte* working_memory = nullptr;
+
+	uint32_t find_largest_chunk(FILE* file) {
+		auto first_idat_pos = ftell(file);
+
+		uint32_t size = 0;
+		ChunkInfo info = next_chunk_info(file);
+		while (info.type == ChunkType::IDAT) {
+			if (info.size > size) { size = info.size; }
+			skip_chunk_contents(file, info);
+			skip_crc(file);
+			info = next_chunk_info(file);
+		}
+
+		// Seek back to beginning of the data chunks
+		fseek(file, first_idat_pos, SEEK_SET);
+
+		return size;
+	}
+};
+
+enum class FilterType {
+	None = 0,
+	Sub = 1,
+	Up = 2,
+	Average = 3,
+	Paeth = 4
+};
+
+static byte& access_filtered_2d(OpenTexture const& tex, byte* data, uint32_t x, uint32_t y) {
+	// In the filtered array, the pixel data is offset by one because of the leading filter type byte
+	return data[y * tex.info.byte_width + x + 1];
+}
+
+static byte& access_defiltered_2d(OpenTexture const& tex, byte* data, uint32_t x, uint32_t y) {
+	return data[y * tex.info.byte_width + x];
+}
+
+// Returns a pointer to the first pixel in the row
+static byte* get_filtered_row_pointer(OpenTexture const& tex, byte* data, uint32_t row) {
+	return data + (size_t)row * ((size_t)tex.info.byte_width + 1) + 1;
+}
+
+// Returns a pointer to the first pixel in the row
+static byte* get_defiltered_row_pointer(OpenTexture const& tex, byte* data, uint32_t row) {
+	return data + (size_t)row * tex.info.byte_width;
+}
+
+static FilterType get_filter_type(OpenTexture const& tex, byte* data, uint32_t row) {
+	// The first value in a filtered row is the filter type
+	return static_cast<FilterType>(data[row * (tex.info.byte_width + 1)]);
+}
+
+static byte filter_add(byte lhs, byte rhs) {
+	uint16_t result = (uint16_t)(lhs)+(uint16_t)(rhs);
+	result %= 256;
+	return static_cast<byte>(result);
+}
+
+// Defilter row using the 'up' method. src must point to the first byte in the filtered row, and dst must point to the first byte for this
+// row in the defiltered buffer
+static void defilter_up(OpenTexture const& tex, byte* src, byte* dst, uint32_t row) {
+	// Get previous row
+	byte const* up = dst - tex.info.byte_width;
+	for (byte const* p = src; p != src + tex.info.byte_width; ++p) {
+		// Add values together
+		*dst = filter_add(*p, *up);
+		// Increment destination and up pointer to the next byte
+		++up;
+		++dst;
+	}
+}
+
+// Defilter row using the 'sub' method. src must point to the first byte in the filtered row, and dst must point to the first byte for this
+// row in the defiltered buffer
+static void defilter_sub(OpenTexture const& tex, byte* src, byte* dst, uint32_t row) {
+	// To revert the sub filter, we take the previous byte and add it to this byte. For the first byte, the previous byte is defined to be 0.
+	byte a = 0;
+	for (byte const* p = src; p != src + tex.info.byte_width; ++p) {
+		*dst = filter_add(*p, a);
+		a = *dst;
+		++dst;
+	}
+}
+// Defilter row using the 'average' method. src must point to the first byte in the filtered row, and dst must point to the first byte for this
+// row in the defiltered buffer
+static void defilter_average(OpenTexture const& tex, byte* src, byte* dst, uint32_t row) {
+
+}
+
+static bool defilter_first_row(OpenTexture const& tex, byte* src, byte* dst) {
+	// Start by defiltering the first row, as this top row is slightly different.
+	// Defiltering requires access to the defiltered values of the previous row, and of the previous pixel.
+	// Since the top row has no rows above it, it is treated as if there was a row with zeros above it.
+	FilterType type = get_filter_type(tex, src, 0);
+	byte* src_ptr = get_filtered_row_pointer(tex, src, 0);
+	byte* dst_ptr = get_defiltered_row_pointer(tex, dst, 0);
+	switch (type) {
+	case FilterType::None: {
+		// No filtering needs to be applied, so we just need to get rid of the leading filter byte
+		memcpy(dst_ptr, src_ptr, tex.info.byte_width);
+	} break;
+	case FilterType::Up: {
+		// For the Up filter, we have to defilter by adding the corresponding values from the previous row. 
+		// Since this is the first row, we pretend there is a row of zeros above it, and this operation is translated into a single memcpy
+		memcpy(dst_ptr, src_ptr, tex.info.byte_width);
+	} break;
+	case FilterType::Sub: {
+		defilter_sub(tex, src_ptr, dst_ptr, 0);
+	} break;
+	case FilterType::Average: {
+		int j = 0;
+	} break;
+	case FilterType::Paeth: {
+		int i = 0;
+	} break;
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+static bool defilter_data(OpenTexture const& tex, byte* src, byte* dst) {
+	// Filtering documentation can be found at https://www.w3.org/TR/2003/REC-PNG-20031110/#9Filters
+	if (!defilter_first_row(tex, src, dst)) { return false; }
+	// Defilter other rows
+	for (uint32_t row = 1; row < tex.info.height; ++row) {
+		FilterType type = get_filter_type(tex, src, row);
+		byte* src_ptr = get_filtered_row_pointer(tex, src, row);
+		byte* dst_ptr = get_defiltered_row_pointer(tex, dst, row);
+		switch (type) {
+		case FilterType::None: {
+			// No filtering needs to be applied, so we just need to get rid of the leading filter byte
+			memcpy(dst_ptr, src_ptr, tex.info.byte_width);
+		} break;
+		case FilterType::Up: {
+			// For the Up filter, we have to defilter by adding the corresponding values from the previous row. 
+			defilter_up(tex, src_ptr, dst_ptr, row);
+		} break;
+		case FilterType::Sub: {
+			defilter_sub(tex, src_ptr, dst_ptr, row);
+		} break;
+		case FilterType::Average: {
+			int j = 0;
+		} break;
+		case FilterType::Paeth: {
+			int i = 0;
+		} break;
+		default:
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool load_texture(OpenTexture tex, byte* data) {
+	FILE* file = reinterpret_cast<FILE*>(tex.file);
+	InternalLoadData* internal_data = reinterpret_cast<InternalLoadData*>(tex.internal_data);
+
+	uint32_t filtered_size = get_required_size(tex) + tex.info.height;
+	byte* filtered = new byte[filtered_size];
+	DecompressionStream stream(file, filtered, filtered_size);
+	if (!stream.decompress()) {
+		delete[] filtered;
+		delete internal_data;
+		fclose(file);
+		return false;
+	}
+
+	// Now that the data is decompressed, we have to defilter it. After this operation, exactly height bytes will be unused
+	// in the final image data, since defiltering removes the leading filter method bytes.
+	defilter_data(tex, filtered, data);
+
+	delete[] filtered;
+	delete internal_data;
+	fclose(file);
+	return true;
 }
 
 
