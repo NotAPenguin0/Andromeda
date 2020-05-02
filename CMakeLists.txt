@@ -14,6 +14,7 @@ cmake_policy(SET CMP0079 NEW)
 add_executable(andromeda "")
 add_subdirectory("src")
 add_subdirectory("external")
+add_subdirectory("shaders")
 
 if (WIN32 AND ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 	# Currently, clang on windows does not support concepts, so we have to silence this warning/error

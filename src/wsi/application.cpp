@@ -7,6 +7,8 @@
 #include <phobos/core/vulkan_context.hpp>
 
 #include <andromeda/assets/assets.hpp>
+#include <andromeda/assets/texture.hpp>
+#include <andromeda/components/dbg_quad.hpp>
 
 namespace andromeda::wsi {
 
@@ -36,7 +38,12 @@ Application::~Application() {
 }
 
 void Application::run() {
+	using namespace components;
+
 	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/test.png");
+	ecs::entity_t ent = context.world->create_entity();
+	auto& quad = context.world->ecs().add_component<DbgQuad>(ent);
+	quad.texture = tex;
 
 	while (window.is_open()) {
 		window.poll_events();

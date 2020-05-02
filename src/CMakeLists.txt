@@ -3,6 +3,7 @@ target_sources(andromeda PRIVATE
 
 	"assets/assets.cpp"
 	"assets/importers/importers.cpp"
+	"assets/importers/stb_image.cpp"
 	"assets/importers/png.cpp"
 
 	"core/context.cpp"

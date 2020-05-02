@@ -370,6 +370,18 @@ static byte filter_add(byte lhs, byte rhs) {
 	return static_cast<byte>(result);
 }
 
+static int16_t safe_sub(byte lhs, byte rhs) {
+	return (int16_t)(lhs)-(int16_t)(rhs);
+}
+
+static int16_t safe_sub(int16_t lhs, int16_t rhs) {
+	return lhs - rhs;
+}
+
+static byte filter_abs(int16_t x) {
+	return std::abs(x) % 256;
+}
+
 // Defilter row using the 'up' method. src must point to the first byte in the filtered row, and dst must point to the first byte for this
 // row in the defiltered buffer
 static void defilter_up(OpenTexture const& tex, byte* src, byte* dst, uint32_t row) {
@@ -398,7 +410,39 @@ static void defilter_sub(OpenTexture const& tex, byte* src, byte* dst, uint32_t 
 // Defilter row using the 'average' method. src must point to the first byte in the filtered row, and dst must point to the first byte for this
 // row in the defiltered buffer
 static void defilter_average(OpenTexture const& tex, byte* src, byte* dst, uint32_t row) {
+	// To defilter this, we need two values: the byte before this the current byte, and the byte above the current byte.
+	// It's essentially a combination of the up and the sub filter
+	byte a = 0;
+	byte const* up = dst - tex.info.byte_width;
+	for (byte const* p = src; p != src + tex.info.byte_width; ++p) {
+		*dst = filter_add(*p, filter_add(a, *up) / 2); // Integer division does flooring
+		a = *dst;
+		++up;
+		++dst;
+	}
+}
 
+static byte paeth(byte a, byte b, byte c) {
+	int32_t p = (int32_t)a + (int32_t)b - (int32_t)c;
+	int32_t pa = std::abs(p - (int32_t)a);
+	int32_t pb = std::abs(p - (int32_t)b);
+	int32_t pc = std::abs(p - (int32_t)c);
+	if (pa <= pb && pa <= pc) { return a; }
+	if (pb <= pc) { return b; }
+	return c;
+}
+
+static void defilter_paeth(OpenTexture const& tex, byte* src, byte* dst, uint32_t row) {
+	byte a = 0;
+	byte const* b = dst - tex.info.byte_width;
+	byte c = 0;
+	for (byte const* p = src; p != src + tex.info.byte_width; ++p) {
+		*dst = filter_add(*p, paeth(a, *b, c));
+		a = *dst;
+		c = *b;
+		++b;
+		++dst;
+	}
 }
 
 static bool defilter_first_row(OpenTexture const& tex, byte* src, byte* dst) {
@@ -422,10 +466,23 @@ static bool defilter_first_row(OpenTexture const& tex, byte* src, byte* dst) {
 		defilter_sub(tex, src_ptr, dst_ptr, 0);
 	} break;
 	case FilterType::Average: {
-		int j = 0;
+		// The bytes above the average filter are 0, so this becomes essentially a sub filter divided by two (since it's still an average)
+		byte a = 0;
+		byte* dest = dst_ptr;
+		for (byte const* p = src_ptr; p != src_ptr + tex.info.byte_width; ++p) {
+			*dest = filter_add(*p, a / 2); // Integer division takes care of the required floor() here
+			a = *dest;
+			++dest;
+		}
 	} break;
 	case FilterType::Paeth: {
-		int i = 0;
+		byte a = 0;
+		byte* dest = dst_ptr;
+		for (byte const* p = src_ptr; p != src_ptr + tex.info.byte_width; ++p) {
+			*dest = filter_add(*p, a);
+			a = *dest;
+			++dest;
+		}
 	} break;
 	default:
 		return false;
@@ -455,10 +512,10 @@ static bool defilter_data(OpenTexture const& tex, byte* src, byte* dst) {
 			defilter_sub(tex, src_ptr, dst_ptr, row);
 		} break;
 		case FilterType::Average: {
-			int j = 0;
+			defilter_average(tex, src_ptr, dst_ptr, row);
 		} break;
 		case FilterType::Paeth: {
-			int i = 0;
+			defilter_paeth(tex, src_ptr, dst_ptr, row);
 		} break;
 		default:
 			return false;

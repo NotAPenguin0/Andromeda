@@ -1,7 +1,14 @@
 #include <andromeda/assets/assets.hpp>
 
 #include <andromeda/assets/importers/png.hpp>
-#include <vector>
+#include <andromeda/assets/importers/stb_image.h>
+#include <chrono>
+namespace ch = std::chrono;
+
+#include <vulkan/vulkan.hpp>
+
+#include <andromeda/util/log.hpp>
+#include <fmt/chrono.h>
 
 namespace andromeda {
 
@@ -11,15 +18,19 @@ namespace assets {
 
 template<>
 Handle<Texture> load(Context& ctx, std::string_view path) {
-	importers::OpenTexture texture = importers::png::open_file(path);
-	uint32_t const size = importers::png::get_required_size(texture);
+	auto start = ch::system_clock::now();
+	
+	int width, height, channels;
+	// Always load image as rgba
+	importers::byte* data = stbi_load(path.data(), &width, &height, &channels, 4);
 
-	std::vector<importers::byte> data(size);
-	importers::png::load_texture(texture, data.data());
+	auto end = ch::system_clock::now();
+	io::log("PNG with size {}x{} loaded in {} ms", width, height, 
+		ch::duration_cast<ch::milliseconds>(end - start).count());
 
-	vk::Format const format = importers::get_vk_format(texture.info);
-
-	return ctx.request_texture(texture.info.width, texture.info.height, format, data.data());
+	auto handle = ctx.request_texture(width, height, vk::Format::eR8G8B8A8Srgb, data);
+	stbi_image_free(data);
+	return handle;
 }
 
 }
