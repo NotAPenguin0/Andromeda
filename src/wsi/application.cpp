@@ -9,6 +9,9 @@
 #include <andromeda/assets/assets.hpp>
 #include <andromeda/assets/texture.hpp>
 #include <andromeda/components/dbg_quad.hpp>
+#include <andromeda/components/camera.hpp>
+#include <andromeda/components/transform.hpp>
+#include <andromeda/components/mesh_renderer.hpp>
 
 namespace andromeda::wsi {
 
@@ -41,9 +44,18 @@ void Application::run() {
 	using namespace components;
 
 	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/test.png");
+	Handle<Material> mat = assets::take<Material>({ .diffuse = tex });
 	ecs::entity_t ent = context.world->create_entity();
 	auto& quad = context.world->ecs().add_component<DbgQuad>(ent);
-	quad.texture = tex;
+	auto& trans = context.world->ecs().get_component<Transform>(ent);
+	auto& material = context.world->ecs().add_component<MeshRenderer>(ent);
+	trans.position.x = 5.0f;
+	trans.position.y = 0.0f;
+	trans.rotation.y = 90.0f;
+	material.material = mat;
+
+	ecs::entity_t cam = context.world->create_entity();
+	context.world->ecs().add_component<Camera>(cam);
 
 	while (window.is_open()) {
 		window.poll_events();

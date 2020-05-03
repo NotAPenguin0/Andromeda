@@ -9,8 +9,9 @@ class Texture;
 
 namespace andromeda::components {
 
+// Tag component. Renders a quad (temporary)
 struct [[component]] DbgQuad {
-	Handle<Texture> texture;
+
 };
 
 }

@@ -11,6 +11,7 @@ target_sources(andromeda PRIVATE
 	"ecs/registry.cpp"
 
 	"renderer/renderer.cpp"
+	"renderer/render_database.cpp"
 
 	"util/log.cpp"
 

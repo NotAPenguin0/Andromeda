@@ -54,6 +54,22 @@ public:
         component_storage<T> const& storage = get_or_emplace_storage<T>();
         return *storage.find(entity);
     }
+
+    // Counts all entities that have a specific set of components. Complexity is O(N) where N is size of the smallest container of all components
+    // specified in the type list. Complexity is O(1) when sizeof...(Ts) == 1 or sizeof...(Ts) == 0
+    template<typename... Ts>
+    size_t count() const {
+        if constexpr (sizeof...(Ts) == 0) { return 0; }
+        if constexpr (sizeof...(Ts) == 1) { return get_or_emplace_storage<Ts...>().size(); } // sizeof...(Ts) == 1, so this instantiation is valid
+
+        // Is this UB?
+        auto view = component_view<Ts...>{ const_cast<registry*>(this)->get_or_emplace_storage<Ts>() ... };
+        size_t n = 0;
+        for (auto const& _ : view) {
+            ++n;
+        }
+        return n;
+    }
     
 
     template<typename... Ts>

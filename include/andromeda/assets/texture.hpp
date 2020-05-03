@@ -8,6 +8,7 @@ namespace andromeda {
 
 namespace renderer {
 class Renderer;
+class RenderDatabase;
 }
 
 
@@ -17,6 +18,7 @@ public:
 private:
 	friend class Context;
 	friend class renderer::Renderer;
+	friend class renderer::RenderDatabase;
 
 	ph::RawImage image;
 	ph::ImageView view;
