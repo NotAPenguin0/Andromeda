@@ -8,7 +8,7 @@
 
 #include <andromeda/assets/assets.hpp>
 #include <andromeda/assets/texture.hpp>
-#include <andromeda/components/dbg_quad.hpp>
+#include <andromeda/components/static_mesh.hpp>
 #include <andromeda/components/camera.hpp>
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/mesh_renderer.hpp>
@@ -59,10 +59,10 @@ void Application::run() {
 	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/test.png");
 	Handle<Material> mat = assets::take<Material>({ .diffuse = tex });
 	ecs::entity_t ent = context.world->create_entity();
-	auto& quad = context.world->ecs().add_component<DbgQuad>(ent);
+	auto& mesh = context.world->ecs().add_component<StaticMesh>(ent);
 	auto& trans = context.world->ecs().get_component<Transform>(ent);
 	auto& material = context.world->ecs().add_component<MeshRenderer>(ent);
-	quad.mesh = context.request_mesh(quad_verts, sizeof(quad_verts) / sizeof(float), quad_indices, 6);
+	mesh.mesh = context.request_mesh(quad_verts, sizeof(quad_verts) / sizeof(float), quad_indices, 6);
 	trans.position.x = 5.0f;
 	trans.position.y = 0.0f;
 	trans.rotation.y = 90.0f;

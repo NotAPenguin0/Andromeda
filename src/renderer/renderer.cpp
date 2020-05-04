@@ -13,7 +13,7 @@
 #include <andromeda/assets/texture.hpp>
 #include <andromeda/world/world.hpp>
 
-#include <andromeda/components/dbg_quad.hpp>
+#include <andromeda/components/static_mesh.hpp>
 #include <andromeda/components/camera.hpp>
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/mesh_renderer.hpp>
@@ -95,14 +95,14 @@ void Renderer::render(Context& ctx) {
 		database.add_material(Handle<Material>{ id });
 	}
 
-	for (auto const& [transform, rend, quad] : ctx.world->ecs().view<Transform, MeshRenderer, DbgQuad>()) {
+	for (auto const& [transform, rend, mesh] : ctx.world->ecs().view<Transform, MeshRenderer, StaticMesh>()) {
 		// Calculate model matrix from transformation
 		glm::mat4 model = glm::translate(glm::mat4(1.0), transform.position);
 		model = glm::rotate(model, { glm::radians(transform.rotation.x),
 								glm::radians(transform.rotation.y),
 								glm::radians(transform.rotation.z) });
 		model = glm::scale(model, transform.scale);
-		database.add_draw(renderer::Draw{ .mesh = quad.mesh, .material = rend.material, .transform = model });
+		database.add_draw(renderer::Draw{ .mesh = mesh.mesh, .material = rend.material, .transform = model });
 	}
 
 	// This renderpass is temporary, we will improve on this system when adding ImGui
