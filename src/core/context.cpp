@@ -8,6 +8,7 @@
 #include <andromeda/assets/assets.hpp>
 #include <andromeda/world/world.hpp>
 
+#include <andromeda/util/types.hpp>
 
 namespace andromeda {
 

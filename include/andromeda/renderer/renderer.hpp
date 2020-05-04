@@ -5,6 +5,7 @@
 #include <andromeda/core/context.hpp>
 #include <andromeda/renderer/render_database.hpp>
 
+#include <phobos/renderer/render_attachment.hpp>
 #include <phobos/pipeline/pipeline.hpp>
 
 namespace andromeda::renderer {
@@ -17,6 +18,8 @@ public:
 	// Renders the world (and UI) to the screen. Before calling this, you are not allowed to directly modify in-use GPU resources.
 	void render(Context& ctx);
 
+	ph::ImageView scene_texture() { return color->image_view(); }
+
 private:
 	std::unique_ptr<ph::Renderer> vk_renderer;
 	std::unique_ptr<ph::PresentManager> vk_present;
@@ -24,6 +27,9 @@ private:
 	ph::ShaderInfo::BindingInfo cam_binding;
 	ph::ShaderInfo::BindingInfo transform_binding;
 	ph::ShaderInfo::BindingInfo tex_binding;
+
+	ph::RenderAttachment* color;
+	ph::RenderAttachment* depth;
 
 	RenderDatabase database;
 };

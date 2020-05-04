@@ -23,6 +23,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <imgui/imgui_impl_phobos.h>
+
 namespace andromeda::renderer {
 
 Renderer::Renderer(Context& ctx) {
@@ -69,6 +71,12 @@ Renderer::Renderer(Context& ctx) {
 	tex_binding = pci.shader_info["textures"];
 
 	ctx.vulkan->pipelines.create_named_pipeline("generic", std::move(pci));
+
+	// Create attachments
+	color = &vk_present->add_color_attachment("color");
+	depth = &vk_present->add_depth_attachment("depth");
+	color->resize(1280, 720);
+	depth->resize(1280, 720);
 }
 
 Renderer::~Renderer() {
@@ -105,23 +113,23 @@ void Renderer::render(Context& ctx) {
 		database.add_draw(renderer::Draw{ .mesh = mesh.mesh, .material = rend.material, .transform = model });
 	}
 
-	// This renderpass is temporary, we will improve on this system when adding ImGui
-
 	ph::RenderPass present_pass;
 #if ANDROMEDA_DEBUG
-	present_pass.debug_name = "present_pass";
+	present_pass.debug_name = "scene_pass";
 #endif
-	present_pass.clear_values = { vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} } };
+	present_pass.clear_values = { 
+		vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} },
+		vk::ClearDepthStencilValue{1.0f, 0}
+	};
 	
-	ph::RenderAttachment swapchain = vk_present->get_swapchain_attachment(frame);
-	present_pass.outputs = { swapchain };
-	present_pass.callback = [this, &ctx, &frame, &swapchain](ph::CommandBuffer& cmd_buf) {
+	present_pass.outputs = { *color, *depth };
+	present_pass.callback = [this, &ctx, &frame](ph::CommandBuffer& cmd_buf) {
 		ph::Pipeline pipeline = cmd_buf.get_pipeline("generic");
 		cmd_buf.bind_pipeline(pipeline);
 
 		ph::BufferSlice cam_buffer = cmd_buf.allocate_scratch_ubo(sizeof(glm::mat4));
 		for (auto const&[trans, cam] : ctx.world->ecs().view<Transform, Camera>()) {
-			glm::mat4 projection = glm::perspective(cam.fov, (float)swapchain.get_width() / (float)swapchain.get_height(), 0.1f, 100.0f);
+			glm::mat4 projection = glm::perspective(cam.fov, (float)color->get_width() / (float)color->get_height(), 0.1f, 100.0f);
 			projection[1][1] *= -1; // Vulkan has upside down projection
 			glm::mat4 view = glm::lookAt(trans.position, trans.position + cam.front, cam.up);
 			glm::mat4 projection_view = projection * view;
@@ -149,14 +157,14 @@ void Renderer::render(Context& ctx) {
 		vk::Viewport vp;
 		vp.x = 0;
 		vp.y = 0;
-		vp.width = swapchain.get_width();
-		vp.height = swapchain.get_height();
+		vp.width = color->get_width();
+		vp.height = color->get_height();
 		vp.minDepth = 0.0f;
 		vp.maxDepth = 1.0f;
 		cmd_buf.set_viewport(vp);
 		vk::Rect2D scissor;
 		scissor.offset = vk::Offset2D{ 0, 0 };
-		scissor.extent = vk::Extent2D{ swapchain.get_width(), swapchain.get_height() };
+		scissor.extent = vk::Extent2D{ color->get_width(), color->get_height() };
 		cmd_buf.set_scissor(scissor);
 
 		for (uint32_t i = 0; i < database.draws.size(); ++i) {
@@ -177,6 +185,9 @@ void Renderer::render(Context& ctx) {
 	};
 
 	graph.add_pass(std::move(present_pass));
+
+	ImGui::Render();
+	ImGui_ImplPhobos_RenderDrawData(ImGui::GetDrawData(), &frame, &graph, vk_renderer.get());
 
 	graph.build();
 
