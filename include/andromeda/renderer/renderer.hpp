@@ -18,6 +18,8 @@ public:
 	// Renders the world (and UI) to the screen. Before calling this, you are not allowed to directly modify in-use GPU resources.
 	void render(Context& ctx);
 
+	void resize_attachments(uint32_t width, uint32_t height);
+
 	ph::ImageView scene_texture() { return color->image_view(); }
 
 private:

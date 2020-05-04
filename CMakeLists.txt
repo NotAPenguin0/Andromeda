@@ -11,6 +11,8 @@ cmake_policy(SET CMP0076 NEW)
 # Allow calling target_link_libraries on targets not built in the same directory
 cmake_policy(SET CMP0079 NEW)
 
+set(BUILD_SHARED_LIBS OFF)
+
 add_executable(andromeda "")
 add_subdirectory("src")
 add_subdirectory("external")

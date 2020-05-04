@@ -4,3 +4,6 @@
 [submodule "external/zlib"]
 	path = external/zlib
 	url = https://github.com/madler/zlib
+[submodule "external/assimp"]
+	path = external/assimp
+	url = https://github.com/assimp/assimp

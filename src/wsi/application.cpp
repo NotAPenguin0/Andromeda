@@ -103,16 +103,15 @@ static constexpr uint32_t quad_indices[] = {
 void Application::run() {
 	using namespace components;
 
-	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/test.png");
+	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/blank.png");
 	Handle<Material> mat = assets::take<Material>({ .diffuse = tex });
 	ecs::entity_t ent = context.world->create_entity();
 	auto& mesh = context.world->ecs().add_component<StaticMesh>(ent);
 	auto& trans = context.world->ecs().get_component<Transform>(ent);
 	auto& material = context.world->ecs().add_component<MeshRenderer>(ent);
-	mesh.mesh = context.request_mesh(quad_verts, sizeof(quad_verts) / sizeof(float), quad_indices, 6);
+	mesh.mesh = assets::load<Mesh>(context, "data/meshes/dragon.glb");
 	trans.position.x = 5.0f;
 	trans.position.y = 0.0f;
-	trans.rotation.y = 90.0f;
 	material.material = mat;
 
 	ecs::entity_t cam = context.world->create_entity();
@@ -148,7 +147,9 @@ void Application::run() {
 		}
 
 		if (ImGui::Begin("Scene view", nullptr)) {
-			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_texture()), ImVec2(1280, 720));
+			auto size = ImGui::GetContentRegionAvail();
+			renderer->resize_attachments(size.x, size.y);
+			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_texture()), size);
 		}
 		ImGui::End();
 

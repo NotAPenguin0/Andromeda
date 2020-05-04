@@ -196,4 +196,9 @@ void Renderer::render(Context& ctx) {
 	vk_present->present_frame(frame);
 }
 
+void Renderer::resize_attachments(uint32_t width, uint32_t height) {
+	color->resize(width, height);
+	depth->resize(width, height);
+}
+
 }
