@@ -13,7 +13,7 @@ void RenderDatabase::add_material(Handle<Material> handle) {
 }
 
 void RenderDatabase::add_draw(Draw const& draw) {
-	draws.push_back(InternalDraw{ .material = draw.material });
+	draws.push_back(InternalDraw{ .mesh = draw.mesh, .material = draw.material });
 	transforms.push_back(draw.transform);
 }
 
@@ -24,7 +24,7 @@ void RenderDatabase::add_texture(Handle<Texture> handle) {
 	// Specifying an invalid texture handle is an error though
 	STL_ASSERT(texture, "Invalid texture handle");
 	// Register this texture
-	texture_views.push_back(texture->view);
+	texture_views.push_back(texture->get_view());
 	texture_map.emplace(handle.id, texture_views.size() - 1);
 }
 

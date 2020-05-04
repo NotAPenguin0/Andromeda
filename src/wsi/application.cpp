@@ -40,6 +40,19 @@ Application::~Application() {
 	context.vulkan.reset(nullptr);
 }
 
+static constexpr float quad_verts[] = {
+	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+	-1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+	1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+	1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+	1.0f, 1.0f, 0.0f, 1.0f, 1.0f
+};
+
+static constexpr uint32_t quad_indices[] = {
+	0, 1, 2, 3, 4, 5
+};
+
 void Application::run() {
 	using namespace components;
 
@@ -49,10 +62,12 @@ void Application::run() {
 	auto& quad = context.world->ecs().add_component<DbgQuad>(ent);
 	auto& trans = context.world->ecs().get_component<Transform>(ent);
 	auto& material = context.world->ecs().add_component<MeshRenderer>(ent);
+	quad.mesh = context.request_mesh(quad_verts, sizeof(quad_verts) / sizeof(float), quad_indices, 6);
 	trans.position.x = 5.0f;
 	trans.position.y = 0.0f;
 	trans.rotation.y = 90.0f;
 	material.material = mat;
+
 
 	ecs::entity_t cam = context.world->create_entity();
 	context.world->ecs().add_component<Camera>(cam);

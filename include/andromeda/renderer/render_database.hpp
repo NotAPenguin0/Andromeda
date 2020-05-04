@@ -4,6 +4,7 @@
 #include <andromeda/util/handle.hpp>
 #include <andromeda/assets/material.hpp>
 #include <andromeda/assets/texture.hpp>
+#include <andromeda/assets/mesh.hpp>
 
 #include <phobos/util/image_util.hpp>
 #include <phobos/renderer/meta.hpp>
@@ -17,9 +18,9 @@ namespace andromeda {
 namespace renderer {
 
 struct Draw {
+	Handle<Mesh> mesh;
 	Handle<Material> material;
 	glm::mat4 transform;
-	// Handle<assets::Mesh> mesh
 };
 
 // This class stores all data to render in a format that is easier to use by the renderer
@@ -49,8 +50,8 @@ public:
 	// the only real way to get around this while still guaranteeing contiguous storage for the ImageViews
 	std::unordered_map<uint32_t, uint32_t> texture_map;
 	struct InternalDraw {
+		Handle<Mesh> mesh;
 		Handle<Material> material;
-		// Handle<Mesh> mesh
 	};
 	std::vector<InternalDraw> draws;
 	std::vector<glm::mat4> transforms;

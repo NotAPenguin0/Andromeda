@@ -4,14 +4,14 @@
 #include <andromeda/util/handle.hpp>
 
 namespace andromeda {
-class Texture;
+class Mesh;
 }
 
 namespace andromeda::components {
 
 // Tag component. Renders a quad (temporary)
 struct [[component]] DbgQuad {
-
+	Handle<Mesh> mesh;
 };
 
 }

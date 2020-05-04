@@ -76,14 +76,6 @@ Renderer::~Renderer() {
 	vk_present->destroy();
 }
 
-static constexpr float quad_verts[] = {
-	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	-1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-	1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-	1.0f, 1.0f, 0.0f, 1.0f, 1.0f
-};
 
 void Renderer::render(Context& ctx) {
 	using namespace components;
@@ -103,15 +95,14 @@ void Renderer::render(Context& ctx) {
 		database.add_material(Handle<Material>{ id });
 	}
 
-	for (auto const& [transform, rend, _] : ctx.world->ecs().view<Transform, MeshRenderer, DbgQuad>()) {
+	for (auto const& [transform, rend, quad] : ctx.world->ecs().view<Transform, MeshRenderer, DbgQuad>()) {
 		// Calculate model matrix from transformation
 		glm::mat4 model = glm::translate(glm::mat4(1.0), transform.position);
 		model = glm::rotate(model, { glm::radians(transform.rotation.x),
 								glm::radians(transform.rotation.y),
 								glm::radians(transform.rotation.z) });
 		model = glm::scale(model, transform.scale);
-		// Temporary default material
-		database.add_draw(renderer::Draw{ .material = rend.material, .transform = model });
+		database.add_draw(renderer::Draw{ .mesh = quad.mesh, .material = rend.material, .transform = model });
 	}
 
 	// This renderpass is temporary, we will improve on this system when adding ImGui
@@ -125,6 +116,9 @@ void Renderer::render(Context& ctx) {
 	ph::RenderAttachment swapchain = vk_present->get_swapchain_attachment(frame);
 	present_pass.outputs = { swapchain };
 	present_pass.callback = [this, &ctx, &frame, &swapchain](ph::CommandBuffer& cmd_buf) {
+		ph::Pipeline pipeline = cmd_buf.get_pipeline("generic");
+		cmd_buf.bind_pipeline(pipeline);
+
 		ph::BufferSlice cam_buffer = cmd_buf.allocate_scratch_ubo(sizeof(glm::mat4));
 		for (auto const&[trans, cam] : ctx.world->ecs().view<Transform, Camera>()) {
 			glm::mat4 projection = glm::perspective(cam.fov, (float)swapchain.get_width() / (float)swapchain.get_height(), 0.1f, 100.0f);
@@ -149,6 +143,9 @@ void Renderer::render(Context& ctx) {
 		variable_count_info.descriptorSetCount = 1;
 		variable_count_info.pDescriptorCounts = counts;
 
+		vk::DescriptorSet set = cmd_buf.get_descriptor(set_binding, &variable_count_info);
+		cmd_buf.bind_descriptor_set(0, set);
+
 		vk::Viewport vp;
 		vp.x = 0;
 		vp.y = 0;
@@ -162,17 +159,6 @@ void Renderer::render(Context& ctx) {
 		scissor.extent = vk::Extent2D{ swapchain.get_width(), swapchain.get_height() };
 		cmd_buf.set_scissor(scissor);
 
-		ph::RenderPass& pass = *cmd_buf.get_active_renderpass();
-		ph::Pipeline pipeline = vk_renderer->get_pipeline("generic", pass);
-		cmd_buf.bind_pipeline(pipeline);
-
-		vk::DescriptorSet set = vk_renderer->get_descriptor(frame, pass, set_binding, &variable_count_info);
-		cmd_buf.bind_descriptor_set(0, set);
-
-		ph::BufferSlice mesh = cmd_buf.allocate_scratch_vbo(sizeof(quad_verts));
-		std::memcpy(mesh.data, quad_verts, sizeof(quad_verts));
-		cmd_buf.bind_vertex_buffer(0, mesh);
-
 		for (uint32_t i = 0; i < database.draws.size(); ++i) {
 			auto const& draw = database.draws[i];
 			auto texture_indices = database.get_material_textures(draw.material);
@@ -180,8 +166,13 @@ void Renderer::render(Context& ctx) {
 			uint32_t const tex_idx = texture_indices.diffuse;
 			cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &transform_idx);
 			cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), sizeof(uint32_t), &tex_idx);
-			// Draw quads for now
-			cmd_buf.draw(6, 1, 0, 0);
+
+			Mesh* mesh = assets::get(draw.mesh);
+			if (!mesh) { continue; }
+
+			cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, mesh->get_vertices()));
+			cmd_buf.bind_index_buffer(ph::whole_buffer_slice(*ctx.vulkan, mesh->get_indices()), vk::IndexType::eUint32);
+			cmd_buf.draw_indexed(mesh->index_count(), 1, 0, 0, 0);
 		}
 	};
 

@@ -10,6 +10,7 @@
 namespace andromeda {
 
 class Texture;
+class Mesh;
 
 namespace world {
 class World;
@@ -25,6 +26,8 @@ public:
 	std::unique_ptr<world::World> world;
 
 	Handle<Texture> request_texture(uint32_t width, uint32_t height, vk::Format format, void* data);
+	// size is the amount of values in the vertices array
+	Handle<Mesh> request_mesh(float const* vertices, uint32_t size, uint32_t const* indices, uint32_t index_count);
 };
 
 }
