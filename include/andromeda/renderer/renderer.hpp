@@ -4,6 +4,7 @@
 #include <andromeda/wsi/window.hpp>
 #include <andromeda/core/context.hpp>
 #include <andromeda/renderer/render_database.hpp>
+#include <andromeda/renderer/geometry_pass.hpp>
 
 #include <phobos/renderer/render_attachment.hpp>
 #include <phobos/pipeline/pipeline.hpp>
@@ -18,22 +19,13 @@ public:
 	// Renders the world (and UI) to the screen. Before calling this, you are not allowed to directly modify in-use GPU resources.
 	void render(Context& ctx);
 
-	void resize_attachments(uint32_t width, uint32_t height);
-
-	ph::ImageView scene_texture() { return color->image_view(); }
-
 private:
 	std::unique_ptr<ph::Renderer> vk_renderer;
 	std::unique_ptr<ph::PresentManager> vk_present;
 
-	ph::ShaderInfo::BindingInfo cam_binding;
-	ph::ShaderInfo::BindingInfo transform_binding;
-	ph::ShaderInfo::BindingInfo tex_binding;
-
-	ph::RenderAttachment* color;
-	ph::RenderAttachment* depth;
-
 	RenderDatabase database;
+
+	std::unique_ptr<GeometryPass> geometry_pass;
 };
 
 } // namespace andromeda::renderer

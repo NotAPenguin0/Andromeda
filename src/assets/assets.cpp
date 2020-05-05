@@ -39,7 +39,7 @@ Handle<Texture> load(Context& ctx, std::string_view path) {
 }
 
 static Handle<Mesh> load_mesh_data(Context& ctx, aiMesh* mesh) {
-    constexpr size_t vtx_size = 5;
+    constexpr size_t vtx_size = 3 + 3 + 3 + 2;
     std::vector<float> verts(mesh->mNumVertices * vtx_size);
     for (size_t i = 0; i < mesh->mNumVertices; ++i) {
         size_t const index = i * vtx_size;
@@ -47,9 +47,17 @@ static Handle<Mesh> load_mesh_data(Context& ctx, aiMesh* mesh) {
         verts[index] = mesh->mVertices[i].x;
         verts[index + 1] = mesh->mVertices[i].y;
         verts[index + 2] = mesh->mVertices[i].z;
-
-        verts[index + 3] = mesh->mTextureCoords[0][i].x;
-        verts[index + 4] = mesh->mTextureCoords[0][i].y;
+        // Normal
+        verts[index + 3] = mesh->mNormals[i].x;
+        verts[index + 4] = mesh->mNormals[i].y;
+        verts[index + 5] = mesh->mNormals[i].z;
+        // Tangent
+        verts[index + 6] = mesh->mTangents[i].x;
+        verts[index + 7] = mesh->mTangents[i].y;
+        verts[index + 8] = mesh->mTangents[i].z;
+        // TexCoord
+        verts[index + 9] = mesh->mTextureCoords[0][i].x;
+        verts[index + 10] = mesh->mTextureCoords[0][i].y;
     }
     
     std::vector<uint32_t> indices;
@@ -67,7 +75,7 @@ static Handle<Mesh> load_mesh_data(Context& ctx, aiMesh* mesh) {
 template<>
 Handle<Mesh> load(Context& ctx, std::string_view path) {
     Assimp::Importer importer;
-    constexpr int postprocess = aiProcess_Triangulate | aiProcess_FlipUVs;
+    constexpr int postprocess = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_CalcTangentSpace;
     aiScene const* scene = importer.ReadFile(std::string(path), postprocess);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||

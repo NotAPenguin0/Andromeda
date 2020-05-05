@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 #include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 namespace andromeda {
 namespace renderer {
@@ -55,6 +56,11 @@ public:
 	};
 	std::vector<InternalDraw> draws;
 	std::vector<glm::mat4> transforms;
+
+	glm::mat4 projection;
+	glm::mat4 view;
+	glm::mat4 projection_view;
+	glm::vec3 camera_position;
 
 private:
 	void add_texture(Handle<Texture> handle);

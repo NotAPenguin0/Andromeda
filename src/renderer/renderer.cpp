@@ -33,50 +33,7 @@ Renderer::Renderer(Context& ctx) {
 	vk_present = std::make_unique<ph::PresentManager>(*ctx.vulkan);
 	vk_renderer = std::make_unique<ph::Renderer>(*ctx.vulkan);
 
-	// Create fullscreen quad pipeline (for debugging, but might be useful later)s
-	ph::PipelineCreateInfo pci;
-	vk::PipelineColorBlendAttachmentState blend;
-	blend.blendEnable = false;
-	blend.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-	pci.blend_attachments.push_back(blend);
-	pci.blend_logic_op_enable = false;
-#if ANDROMEDA_DEBUG
-	pci.debug_name = "generic_pipeline";
-#endif
-	pci.dynamic_states.push_back(vk::DynamicState::eViewport);
-	pci.dynamic_states.push_back(vk::DynamicState::eScissor);
-	
-	pci.viewports.emplace_back();
-	pci.scissors.emplace_back();
-
-	ph::ShaderHandle vert = ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/generic.vert.spv"), "main", vk::ShaderStageFlagBits::eVertex);
-	ph::ShaderHandle frag = ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/generic.frag.spv"), "main", vk::ShaderStageFlagBits::eFragment);
-
-	pci.shaders.push_back(vert);
-	pci.shaders.push_back(frag);
-
-	pci.vertex_input_binding.binding = 0;
-	pci.vertex_input_binding.stride = 5 * sizeof(float);
-	pci.vertex_input_binding.inputRate = vk::VertexInputRate::eVertex;
-
-	pci.vertex_attributes.emplace_back(0_u32, 0_u32, vk::Format::eR32G32B32Sfloat, 0_u32);
-	pci.vertex_attributes.emplace_back(1_u32, 0_u32, vk::Format::eR32G32Sfloat, (uint32_t)(3 * sizeof(float)));
-
-	pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
-
-	ph::reflect_shaders(*ctx.vulkan, pci);
-
-	cam_binding = pci.shader_info["camera"];
-	transform_binding = pci.shader_info["transforms"];
-	tex_binding = pci.shader_info["textures"];
-
-	ctx.vulkan->pipelines.create_named_pipeline("generic", std::move(pci));
-
-	// Create attachments
-	color = &vk_present->add_color_attachment("color");
-	depth = &vk_present->add_depth_attachment("depth");
-	color->resize(1280, 720);
-	depth->resize(1280, 720);
+	geometry_pass = std::make_unique<GeometryPass>(ctx, *vk_present);
 }
 
 Renderer::~Renderer() {
@@ -113,78 +70,17 @@ void Renderer::render(Context& ctx) {
 		database.add_draw(renderer::Draw{ .mesh = mesh.mesh, .material = rend.material, .transform = model });
 	}
 
-	ph::RenderPass present_pass;
-#if ANDROMEDA_DEBUG
-	present_pass.debug_name = "scene_pass";
-#endif
-	present_pass.clear_values = { 
-		vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} },
-		vk::ClearDepthStencilValue{1.0f, 0}
-	};
-	
-	present_pass.outputs = { *color, *depth };
-	present_pass.callback = [this, &ctx, &frame](ph::CommandBuffer& cmd_buf) {
-		ph::Pipeline pipeline = cmd_buf.get_pipeline("generic");
-		cmd_buf.bind_pipeline(pipeline);
+	for (auto const& [trans, cam] : ctx.world->ecs().view<Transform, Camera>()) {
+		// TODO: Attachment resolution
+		database.projection = glm::perspective(cam.fov, 1280.0f / 720.0f, 0.1f, 100.0f);
+		database.projection[1][1] *= -1; // Vulkan has upside down projection
+		database.view = glm::lookAt(trans.position, trans.position + cam.front, cam.up);
+		database.projection_view = database.projection * database.view;
+		database.camera_position = trans.position;
+		break;
+	}
 
-		ph::BufferSlice cam_buffer = cmd_buf.allocate_scratch_ubo(sizeof(glm::mat4));
-		for (auto const&[trans, cam] : ctx.world->ecs().view<Transform, Camera>()) {
-			glm::mat4 projection = glm::perspective(cam.fov, (float)color->get_width() / (float)color->get_height(), 0.1f, 100.0f);
-			projection[1][1] *= -1; // Vulkan has upside down projection
-			glm::mat4 view = glm::lookAt(trans.position, trans.position + cam.front, cam.up);
-			glm::mat4 projection_view = projection * view;
-			std::memcpy(cam_buffer.data, glm::value_ptr(projection_view), sizeof(glm::mat4));
-			break;
-		}
-
-		size_t transforms_size = database.transforms.size();
-		ph::BufferSlice transforms = cmd_buf.allocate_scratch_ssbo(transforms_size * sizeof(glm::mat4));
-		std::memcpy(transforms.data, database.transforms.data(), transforms_size * sizeof(glm::mat4));
-
-		ph::DescriptorSetBinding set_binding;
-		set_binding.add(ph::make_descriptor(tex_binding, database.texture_views, frame.default_sampler));
-		set_binding.add(ph::make_descriptor(transform_binding, transforms));
-		set_binding.add(ph::make_descriptor(cam_binding, cam_buffer));
-		
-		vk::DescriptorSetVariableDescriptorCountAllocateInfo variable_count_info;
-		uint32_t counts[1]{ ph::meta::max_unbounded_array_size };
-		variable_count_info.descriptorSetCount = 1;
-		variable_count_info.pDescriptorCounts = counts;
-
-		vk::DescriptorSet set = cmd_buf.get_descriptor(set_binding, &variable_count_info);
-		cmd_buf.bind_descriptor_set(0, set);
-
-		vk::Viewport vp;
-		vp.x = 0;
-		vp.y = 0;
-		vp.width = color->get_width();
-		vp.height = color->get_height();
-		vp.minDepth = 0.0f;
-		vp.maxDepth = 1.0f;
-		cmd_buf.set_viewport(vp);
-		vk::Rect2D scissor;
-		scissor.offset = vk::Offset2D{ 0, 0 };
-		scissor.extent = vk::Extent2D{ color->get_width(), color->get_height() };
-		cmd_buf.set_scissor(scissor);
-
-		for (uint32_t i = 0; i < database.draws.size(); ++i) {
-			auto const& draw = database.draws[i];
-			auto texture_indices = database.get_material_textures(draw.material);
-			uint32_t const transform_idx = i;
-			uint32_t const tex_idx = texture_indices.diffuse;
-			cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &transform_idx);
-			cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), sizeof(uint32_t), &tex_idx);
-
-			Mesh* mesh = assets::get(draw.mesh);
-			if (!mesh) { continue; }
-
-			cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, mesh->get_vertices()));
-			cmd_buf.bind_index_buffer(ph::whole_buffer_slice(*ctx.vulkan, mesh->get_indices()), vk::IndexType::eUint32);
-			cmd_buf.draw_indexed(mesh->index_count(), 1, 0, 0, 0);
-		}
-	};
-
-	graph.add_pass(std::move(present_pass));
+	geometry_pass->build(ctx, frame, graph, database);;
 
 	ImGui::Render();
 	ImGui_ImplPhobos_RenderDrawData(ImGui::GetDrawData(), &frame, &graph, vk_renderer.get());
@@ -194,11 +90,6 @@ void Renderer::render(Context& ctx) {
 	frame.render_graph = &graph;
 	vk_renderer->render_frame(frame);
 	vk_present->present_frame(frame);
-}
-
-void Renderer::resize_attachments(uint32_t width, uint32_t height) {
-	color->resize(width, height);
-	depth->resize(width, height);
 }
 
 }

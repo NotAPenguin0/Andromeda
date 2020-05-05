@@ -148,8 +148,8 @@ void Application::run() {
 
 		if (ImGui::Begin("Scene view", nullptr)) {
 			auto size = ImGui::GetContentRegionAvail();
-			renderer->resize_attachments(size.x, size.y);
-			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_texture()), size);
+//			renderer->resize_attachments(size.x, size.y);
+//			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_texture()), size);
 		}
 		ImGui::End();
 

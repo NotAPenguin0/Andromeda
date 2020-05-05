@@ -10,8 +10,10 @@ target_sources(andromeda PRIVATE
 
 	"ecs/registry.cpp"
 
+	"renderer/geometry_pass.cpp"
 	"renderer/renderer.cpp"
 	"renderer/render_database.cpp"
+	"renderer/util.cpp"
 
 	"util/log.cpp"
 
