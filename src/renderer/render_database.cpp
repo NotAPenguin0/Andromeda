@@ -10,11 +10,21 @@ void RenderDatabase::add_material(Handle<Material> handle) {
 	Material* material = assets::get(handle);
 	STL_ASSERT(material, "Invalid material handle");
 	add_texture(material->diffuse);
+	add_texture(material->normal);
 }
 
 void RenderDatabase::add_draw(Draw const& draw) {
 	draws.push_back(InternalDraw{ .mesh = draw.mesh, .material = draw.material });
 	transforms.push_back(draw.transform);
+}
+
+void RenderDatabase::add_point_light(glm::vec3 const& position, float radius, glm::vec3 const& color, float intensity) {
+	point_lights.push_back(InternalPointLight{
+		.position = position,
+		.radius = radius,
+		.color = color,
+		.intensity = intensity
+	});
 }
 
 void RenderDatabase::add_texture(Handle<Texture> handle) {
@@ -33,13 +43,15 @@ void RenderDatabase::reset() {
 	draws.clear();
 	transforms.clear();
 	texture_map.clear();
+	point_lights.clear();
 }
 
 RenderDatabase::TextureIndices RenderDatabase::get_material_textures(Handle<Material> handle) {
 	Material* material = assets::get(handle);
 	STL_ASSERT(material, "Invalid material handle");
 	return TextureIndices{
-		.diffuse = texture_map[material->diffuse.id]
+		.diffuse = texture_map[material->diffuse.id],
+		.normal = texture_map[material->normal.id]
 	};
 }
 

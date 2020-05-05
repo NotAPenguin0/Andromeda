@@ -8,6 +8,7 @@ namespace andromeda {
 
 struct Material {
 	Handle<Texture> diffuse;
+	Handle<Texture> normal;
 };
 
 

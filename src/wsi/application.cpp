@@ -12,6 +12,7 @@
 #include <andromeda/components/camera.hpp>
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/mesh_renderer.hpp>
+#include <andromeda/components/point_light.hpp>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_phobos.h>
@@ -103,19 +104,29 @@ static constexpr uint32_t quad_indices[] = {
 void Application::run() {
 	using namespace components;
 
-	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/blank.png");
-	Handle<Material> mat = assets::take<Material>({ .diffuse = tex });
+	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/dragon_texture_color.png", true);
+	Handle<Texture> normal_map = assets::load<Texture>(context, "data/textures/dragon_texture_normal.png", false);
+	Handle<Material> mat = assets::take<Material>({ .diffuse = tex, .normal = normal_map });
 	ecs::entity_t ent = context.world->create_entity();
 	auto& mesh = context.world->ecs().add_component<StaticMesh>(ent);
 	auto& trans = context.world->ecs().get_component<Transform>(ent);
 	auto& material = context.world->ecs().add_component<MeshRenderer>(ent);
 	mesh.mesh = assets::load<Mesh>(context, "data/meshes/dragon.glb");
-	trans.position.x = 5.0f;
+	trans.position.x = 0.0f;
 	trans.position.y = 0.0f;
 	material.material = mat;
 
 	ecs::entity_t cam = context.world->create_entity();
-	context.world->ecs().add_component<Camera>(cam);
+	// Make camera look at the center of the scene
+	auto& cam_data = context.world->ecs().add_component<Camera>(cam);
+	cam_data.front = glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f));
+	cam_data.up = glm::normalize(glm::vec3(-1.0f, 1.0f, -1.0f));
+	context.world->ecs().get_component<Transform>(cam).position = glm::vec3(4.0f, 4.0f, 4.0f);
+
+	ecs::entity_t light_entity = context.world->create_entity();
+	auto& light = context.world->ecs().add_component<PointLight>(light_entity);
+	light.radius = 4.0f;
+	context.world->ecs().get_component<Transform>(light_entity).position = glm::vec3(2.0f, 2.0f, 2.0f);
 
 	while (window.is_open()) {
 		window.poll_events();
@@ -149,7 +160,7 @@ void Application::run() {
 		if (ImGui::Begin("Scene view", nullptr)) {
 			auto size = ImGui::GetContentRegionAvail();
 //			renderer->resize_attachments(size.x, size.y);
-//			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_texture()), size);
+			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_image()), { 1280, 720 });
 		}
 		ImGui::End();
 

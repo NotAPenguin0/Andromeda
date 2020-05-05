@@ -15,6 +15,7 @@
 
 #include <andromeda/components/static_mesh.hpp>
 #include <andromeda/components/camera.hpp>
+#include <andromeda/components/point_light.hpp>
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/mesh_renderer.hpp>
 
@@ -34,6 +35,9 @@ Renderer::Renderer(Context& ctx) {
 	vk_renderer = std::make_unique<ph::Renderer>(*ctx.vulkan);
 
 	geometry_pass = std::make_unique<GeometryPass>(ctx, *vk_present);
+	lighting_pass = std::make_unique<LightingPass>(ctx);
+
+	scene_color = &vk_present->add_color_attachment("scene_color", { 1280, 720 });
 }
 
 Renderer::~Renderer() {
@@ -70,9 +74,12 @@ void Renderer::render(Context& ctx) {
 		database.add_draw(renderer::Draw{ .mesh = mesh.mesh, .material = rend.material, .transform = model });
 	}
 
+	for (auto const& [trans, light] : ctx.world->ecs().view<Transform, PointLight>()) {
+		database.add_point_light(trans.position, light.radius, light.color, light.intensity);
+	}
+
 	for (auto const& [trans, cam] : ctx.world->ecs().view<Transform, Camera>()) {
-		// TODO: Attachment resolution
-		database.projection = glm::perspective(cam.fov, 1280.0f / 720.0f, 0.1f, 100.0f);
+		database.projection = glm::perspective(cam.fov, (float)scene_color->get_width() / (float)scene_color->get_height(), 0.1f, 100.0f);
 		database.projection[1][1] *= -1; // Vulkan has upside down projection
 		database.view = glm::lookAt(trans.position, trans.position + cam.front, cam.up);
 		database.projection_view = database.projection * database.view;
@@ -80,7 +87,13 @@ void Renderer::render(Context& ctx) {
 		break;
 	}
 
-	geometry_pass->build(ctx, frame, graph, database);;
+	geometry_pass->build(ctx, frame, graph, database);
+	lighting_pass->build(ctx, {
+			.output = *scene_color,
+			.depth = geometry_pass->get_depth(),
+			.albedo_spec = geometry_pass->get_albedo_spec(),
+			.normal = geometry_pass->get_normal()
+		}, frame, graph, database);
 
 	ImGui::Render();
 	ImGui_ImplPhobos_RenderDrawData(ImGui::GetDrawData(), &frame, &graph, vk_renderer.get());

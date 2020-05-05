@@ -31,11 +31,13 @@ public:
 	// Not registering a material may result in wrong textures being used, or even application crashes.
 	void add_material(Handle<Material> handle);
 	void add_draw(Draw const& draw);
+	void add_point_light(glm::vec3 const& position, float radius, glm::vec3 const& color, float intensity);
 
 	void reset();
 
 	struct TextureIndices {
 		uint32_t diffuse = 0;
+		uint32_t normal = 0; // TODO: Abuse these default values to handle default textures?
 	};
 
 	TextureIndices get_material_textures(Handle<Material> handle);
@@ -61,6 +63,15 @@ public:
 	glm::mat4 view;
 	glm::mat4 projection_view;
 	glm::vec3 camera_position;
+
+	// Stores point lights in a format ready to send to the shader (all data packed together)
+	struct alignas(2 * sizeof(glm::vec4)) InternalPointLight {
+		glm::vec3 position;
+		float radius;
+		glm::vec3 color;
+		float intensity;
+	};
+	std::vector<InternalPointLight> point_lights;
 
 private:
 	void add_texture(Handle<Texture> handle);

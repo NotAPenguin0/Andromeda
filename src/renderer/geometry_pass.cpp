@@ -64,11 +64,10 @@ void GeometryPass::build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& gr
 			cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &transform_index);
 			// First texture is diffuse, second is specular, third is normal. See also get_fixed_descriptor_set() where we fill the textures array
 			auto indices = database.get_material_textures(draw.material);
-			uint32_t texture_indices[]{ indices.diffuse };
+			uint32_t texture_indices[]{ indices.diffuse, indices.normal };
 			cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), sizeof(texture_indices), &texture_indices);
 			// Execute drawcall
 			cmd_buf.draw_indexed(mesh->index_count(), 1, 0, 0, 0);
-			frame.draw_calls++;
 		}
 	};
 

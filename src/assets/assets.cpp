@@ -22,7 +22,7 @@ class Mesh;
 namespace assets {
 
 template<>
-Handle<Texture> load(Context& ctx, std::string_view path) {
+Handle<Texture> load(Context& ctx, std::string_view path, bool srgb) {
 	auto start = ch::system_clock::now();
 	
 	int width, height, channels;
@@ -33,7 +33,7 @@ Handle<Texture> load(Context& ctx, std::string_view path) {
 	io::log("PNG with size {}x{} loaded in {} ms", width, height, 
 		ch::duration_cast<ch::milliseconds>(end - start).count());
 
-	auto handle = ctx.request_texture(width, height, vk::Format::eR8G8B8A8Srgb, data);
+	auto handle = ctx.request_texture(width, height, srgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm, data);
 	stbi_image_free(data);
 	return handle;
 }

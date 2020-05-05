@@ -6,8 +6,7 @@ layout(location = 2) in vec3 iTangent;
 layout(location = 3) in vec2 iTexCoords;
 
 layout(location = 0) out vec2 UV;
-layout(location = 1) out vec3 Normal;
-layout(location = 2) out mat3 TBN;
+layout(location = 1) out mat3 TBN;
 
 layout(set = 0, binding = 0) uniform CameraData {
     mat4 projection_view;
@@ -21,6 +20,7 @@ layout(std430, set = 0, binding = 1) buffer readonly TransformData {
 layout(push_constant) uniform PC {
     uint transform_idx;
     uint diffuse_idx;
+    uint normal_idx;
 } pc;
 
 void main() {
@@ -32,7 +32,6 @@ void main() {
     vec3 B = cross(N, T);
     TBN = mat3(T, B, N);
     UV = iTexCoords;
-    Normal = iNormal;
 
     gl_Position = camera.projection_view * model * vec4(iPos, 1.0);
 }

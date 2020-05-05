@@ -13,6 +13,7 @@ target_sources(andromeda PRIVATE
 	"renderer/geometry_pass.cpp"
 	"renderer/renderer.cpp"
 	"renderer/render_database.cpp"
+	"renderer/lighting_pass.cpp"
 	"renderer/util.cpp"
 
 	"util/log.cpp"

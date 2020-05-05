@@ -20,6 +20,9 @@ template<typename T>
 Handle<T> load(Context& ctx, std::string_view path);
 
 template<typename T>
+Handle<T> load(Context& ctx, std::string_view path, bool);
+
+template<typename T>
 Handle<T> take(T&& asset) {
 	Handle<T> handle = Handle<T>::next();
 	storage::data<T>.emplace(handle.id, std::move(asset));

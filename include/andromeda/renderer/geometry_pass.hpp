@@ -15,6 +15,10 @@ public:
 
 	void build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& graph, RenderDatabase& database);
 
+	ph::RenderAttachment& get_depth() { return *depth; }
+	ph::RenderAttachment& get_albedo_spec() { return *albedo_spec; }
+	ph::RenderAttachment& get_normal() { return *normal; }
+
 private:
 	struct Bindings {
 		ph::ShaderInfo::BindingInfo camera;
