@@ -97,7 +97,7 @@ void LightingPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& f
     pass.debug_name = "deferred_lighting_pass";
 #endif
     pass.outputs = { attachments.output };
-    pass.sampled_attachments = { attachments.normal, attachments.depth, attachments.albedo_spec };
+    pass.sampled_attachments = { attachments.normal, attachments.depth, attachments.albedo_ao, attachments.metallic_roughness };
     pass.clear_values = { vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} } };
 
     pass.callback = [this, &ctx, &frame, &database, attachments] (ph::CommandBuffer& cmd_buf) {
@@ -190,7 +190,8 @@ void LightingPass::create_pipeline(Context& ctx) {
     // Store bindings so we don't need to look them up every frame
     bindings.depth = pci.shader_info["gDepth"];
     bindings.normal = pci.shader_info["gNormal"];
-    bindings.albedo_spec = pci.shader_info["gAlbedoSpec"];
+    bindings.albedo_ao = pci.shader_info["gAlbedoAO"];
+    bindings.metallic_roughness = pci.shader_info["gMetallicRoughness"];
     bindings.lights = pci.shader_info["lights"];
     bindings.camera = pci.shader_info["camera"];
 
@@ -225,8 +226,9 @@ vk::DescriptorSet LightingPass::get_descriptors(ph::CommandBuffer& cmd_buf, ph::
     set.add(ph::make_descriptor(bindings.camera, per_frame_buffers.camera));
     set.add(ph::make_descriptor(bindings.lights, per_frame_buffers.lights));
     set.add(ph::make_descriptor(bindings.depth, attachments.depth.image_view(), frame.default_sampler));
-    set.add(ph::make_descriptor(bindings.albedo_spec, attachments.albedo_spec.image_view(), frame.default_sampler));
+    set.add(ph::make_descriptor(bindings.albedo_ao, attachments.albedo_ao.image_view(), frame.default_sampler));
     set.add(ph::make_descriptor(bindings.normal, attachments.normal.image_view(), frame.default_sampler));
+    set.add(ph::make_descriptor(bindings.metallic_roughness, attachments.metallic_roughness.image_view(), frame.default_sampler));
     return cmd_buf.get_descriptor(set);
 }
 

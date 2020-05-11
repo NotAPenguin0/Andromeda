@@ -36,8 +36,11 @@ public:
 	void reset();
 
 	struct TextureIndices {
-		uint32_t diffuse = 0;
+		uint32_t color = 0;
 		uint32_t normal = 0; // TODO: Abuse these default values to handle default textures?
+		uint32_t metallic;
+		uint32_t roughness;
+		uint32_t ambient_occlusion;
 	};
 
 	TextureIndices get_material_textures(Handle<Material> handle);

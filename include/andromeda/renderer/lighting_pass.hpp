@@ -18,7 +18,8 @@ public:
 	struct Attachments {
 		ph::RenderAttachment& output;
 		ph::RenderAttachment& depth;
-		ph::RenderAttachment& albedo_spec;
+		ph::RenderAttachment& albedo_ao;
+		ph::RenderAttachment& metallic_roughness;
 		ph::RenderAttachment& normal;
 	};
 
@@ -31,7 +32,8 @@ private:
 
 	struct Bindings {
 		ph::ShaderInfo::BindingInfo depth;
-		ph::ShaderInfo::BindingInfo albedo_spec;
+		ph::ShaderInfo::BindingInfo albedo_ao;
+		ph::ShaderInfo::BindingInfo metallic_roughness;
 		ph::ShaderInfo::BindingInfo normal;
 		ph::ShaderInfo::BindingInfo camera;
 		ph::ShaderInfo::BindingInfo lights;

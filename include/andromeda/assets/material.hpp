@@ -7,8 +7,11 @@
 namespace andromeda {
 
 struct Material {
-	Handle<Texture> diffuse;
+	Handle<Texture> color;
 	Handle<Texture> normal;
+	Handle<Texture> metallic;
+	Handle<Texture> roughness;
+	Handle<Texture> ambient_occlusion;
 };
 
 

@@ -16,8 +16,9 @@ public:
 	void build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& graph, RenderDatabase& database);
 
 	ph::RenderAttachment& get_depth() { return *depth; }
-	ph::RenderAttachment& get_albedo_spec() { return *albedo_spec; }
+	ph::RenderAttachment& get_albedo_ao() { return *albedo_ao; }
 	ph::RenderAttachment& get_normal() { return *normal; }
+	ph::RenderAttachment& get_metallic_roughness() { return *metallic_roughness; }
 
 private:
 	struct Bindings {
@@ -27,8 +28,9 @@ private:
 	} bindings;
 
 	ph::RenderAttachment* depth;
-	ph::RenderAttachment* albedo_spec;
+	ph::RenderAttachment* albedo_ao;
 	ph::RenderAttachment* normal;
+	ph::RenderAttachment* metallic_roughness;
 
 	struct PerFrameBuffers {
 		ph::BufferSlice transforms;

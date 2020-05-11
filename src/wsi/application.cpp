@@ -103,7 +103,7 @@ static constexpr uint32_t quad_indices[] = {
 
 void Application::run() {
 	using namespace components;
-
+/*
 	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/dragon_texture_color.png", true);
 	Handle<Texture> normal_map = assets::load<Texture>(context, "data/textures/dragon_texture_normal.png", false);
 	Handle<Material> mat = assets::take<Material>({ .diffuse = tex, .normal = normal_map });
@@ -112,9 +112,21 @@ void Application::run() {
 	auto& trans = context.world->ecs().get_component<Transform>(ent);
 	auto& material = context.world->ecs().add_component<MeshRenderer>(ent);
 	mesh.mesh = assets::load<Mesh>(context, "data/meshes/dragon.glb");
-	trans.position.x = 0.0f;
-	trans.position.y = 0.0f;
+	trans.position = glm::vec3(0.3f, 1.3f, 0.1f);
+	trans.scale = glm::vec3(0.7f, 0.7f, 0.7f);
 	material.material = mat;
+
+	ecs::entity_t floor = context.world->create_entity();
+	context.world->ecs().add_component<StaticMesh>(floor).mesh =
+		assets::load<Mesh>(context, "data/meshes/plane.glb");
+	Handle<Texture> floor_color = assets::load<Texture>(context, "data/textures/plane_texture_color.png", true);
+	Handle<Texture> floor_normal = assets::load<Texture>(context, "data/textures/plane_texture_normal.png", false);
+	Handle<Material> floor_mat = assets::take<Material>({ .color = floor_color, .normal = floor_normal });
+	context.world->ecs().add_component<MeshRenderer>(floor).material = floor_mat;
+	auto& floor_trans = context.world->ecs().get_component<Transform>(floor);
+	floor_trans.position = glm::vec3(0.0f, 0.3f, 0.0f);
+	floor_trans.scale = glm::vec3(2, 1, 2);
+	*/
 
 	ecs::entity_t cam = context.world->create_entity();
 	// Make camera look at the center of the scene
@@ -125,8 +137,41 @@ void Application::run() {
 
 	ecs::entity_t light_entity = context.world->create_entity();
 	auto& light = context.world->ecs().add_component<PointLight>(light_entity);
-	light.radius = 4.0f;
-	context.world->ecs().get_component<Transform>(light_entity).position = glm::vec3(2.0f, 2.0f, 2.0f);
+	light.radius = 7.9f;
+	light.intensity = 15.8f;
+	auto& light_trans = context.world->ecs().get_component<Transform>(light_entity);
+	light_trans.position = glm::vec3(-0.3f, 0.4f, 1.0f);
+
+	Handle<Mesh> sphere = assets::load<Mesh>(context, "data/meshes/sphere.glb");
+
+	Handle<Texture> color = assets::load<Texture>(context, "data/textures/rustediron2_basecolor.png", true);
+	Handle<Texture> normal = assets::load<Texture>(context, "data/textures/rustediron2_normal.png", false);
+	Handle<Texture> metallic = assets::load<Texture>(context, "data/textures/rustediron2_metallic.png", false);
+	Handle<Texture> roughness = assets::load<Texture>(context, "data/textures/rustediron2_roughness.png", false);
+	Handle<Texture> ao = assets::load<Texture>(context, "data/textures/blank.png", false);
+
+	Handle<Material> pbr_mat = assets::take<Material>(Material{
+			.color = color,
+			.normal = normal,
+			.metallic = metallic,
+			.roughness = roughness,
+			.ambient_occlusion = ao
+		}
+	);
+
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			ecs::entity_t entt = context.world->create_entity();
+			auto& trans = context.world->ecs().get_component<Transform>(entt);
+			trans.position.x = -3.0f + j * 1.5f;
+			trans.position.y = -3.0f + i * 1.5f;
+			trans.position.z = -1.5f;
+			auto& mesh = context.world->ecs().add_component<StaticMesh>(entt);
+			mesh.mesh = sphere;
+			auto& rend = context.world->ecs().add_component<MeshRenderer>(entt);
+			rend.material = pbr_mat;
+		}
+	}
 
 	while (window.is_open()) {
 		window.poll_events();
@@ -161,6 +206,35 @@ void Application::run() {
 			auto size = ImGui::GetContentRegionAvail();
 //			renderer->resize_attachments(size.x, size.y);
 			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_image()), { 1280, 720 });
+		}
+		ImGui::End();
+
+		if (ImGui::Begin("Debug edit", nullptr)) {
+			auto display_transform = [&](const char* name, ecs::entity_t e) {
+				if (ImGui::CollapsingHeader(name)) {
+					auto& trans = context.world->ecs().get_component<Transform>(e);
+					ImGui::DragFloat3("position", &trans.position.x, 0.1f);
+					ImGui::DragFloat3("rotation", &trans.rotation.x, 1.0f);
+					ImGui::DragFloat3("scale", &trans.scale.x, 0.1f);
+				}
+			};
+
+			auto display_light = [&](const char* name, ecs::entity_t e) {
+				if (ImGui::CollapsingHeader(name)) {
+					auto& trans = context.world->ecs().get_component<Transform>(e);
+					ImGui::DragFloat3("position", &trans.position.x, 0.1f);
+					ImGui::DragFloat3("rotation", &trans.rotation.x, 1.0f);
+					ImGui::DragFloat3("scale", &trans.scale.x, 0.1f);
+					auto& light = context.world->ecs().get_component<PointLight>(e);
+					ImGui::ColorEdit3("color", &light.color.r);
+					ImGui::DragFloat("radius", &light.radius, 0.1f);
+					ImGui::DragFloat("intensity", &light.intensity, 0.1f);
+				}
+			};
+
+//			display_transform("dragon", ent);
+//			display_transform("floor", floor);
+			display_light("light", light_entity);
 		}
 		ImGui::End();
 

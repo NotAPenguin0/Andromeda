@@ -17,7 +17,8 @@ GeometryPass::GeometryPass(Context& ctx, ph::PresentManager& vk_present) {
 
 	depth = &vk_present.add_depth_attachment("depth", {1280, 720});
 	normal = &vk_present.add_color_attachment("normal", { 1280, 720 }, vk::Format::eR16G16B16A16Unorm);
-	albedo_spec = &vk_present.add_color_attachment("albedo_spec", { 1280, 720 }, vk::Format::eR8G8B8A8Unorm);
+	albedo_ao = &vk_present.add_color_attachment("albedo_ao", { 1280, 720 }, vk::Format::eR8G8B8A8Unorm);
+	metallic_roughness = &vk_present.add_color_attachment("metallic_roughness", { 1280, 720 }, vk::Format::eR8G8Unorm);
 }
 
 void GeometryPass::build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& graph, RenderDatabase& database) {
@@ -28,10 +29,10 @@ void GeometryPass::build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& gr
 #if ANDROMEDA_DEBUG
 	pass.debug_name = "deferred_geometry_pass";
 #endif
-	pass.outputs = { *normal, *albedo_spec, *depth };
+	pass.outputs = { *normal, *albedo_ao, *metallic_roughness, *depth };
 	vk::ClearValue clear_color = vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} };
 	vk::ClearValue clear_depth = vk::ClearDepthStencilValue{ 1.0f, 0 };
-	pass.clear_values = { clear_color, clear_color, clear_depth };
+	pass.clear_values = { clear_color, clear_color, clear_color, clear_depth };
 
 	pass.callback = [this, &frame, &database, &ctx](ph::CommandBuffer& cmd_buf) {
 		// Setup automatic viewport because we just want to cover the full output attachment
@@ -62,9 +63,8 @@ void GeometryPass::build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& gr
 			// update push constant ranges
 			stl::uint32_t const transform_index = draw_idx;
 			cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &transform_index);
-			// First texture is diffuse, second is specular, third is normal. See also get_fixed_descriptor_set() where we fill the textures array
 			auto indices = database.get_material_textures(draw.material);
-			uint32_t texture_indices[]{ indices.diffuse, indices.normal };
+			uint32_t texture_indices[]{ indices.color, indices.normal, indices.metallic, indices.roughness, indices.ambient_occlusion };
 			cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), sizeof(texture_indices), &texture_indices);
 			// Execute drawcall
 			cmd_buf.draw_indexed(mesh->index_count(), 1, 0, 0, 0);
@@ -83,6 +83,12 @@ void GeometryPass::create_pipeline(Context& ctx) {
 	blend.blendEnable = false;
 	blend.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
 	pci.blend_attachments.push_back(blend);
+	pci.blend_attachments.push_back(blend);
+
+	// These need a special blend state since only the R and G channels exist
+	vk::PipelineColorBlendAttachmentState blend_metallic_roughness;
+	blend.blendEnable = false;
+	blend.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG;
 	pci.blend_attachments.push_back(blend);
 
 #if ANDROMEDA_DEBUG

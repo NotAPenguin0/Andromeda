@@ -19,8 +19,11 @@ layout(std430, set = 0, binding = 1) buffer readonly TransformData {
 
 layout(push_constant) uniform PC {
     uint transform_idx;
-    uint diffuse_idx;
+    uint albedo_idx;
     uint normal_idx;
+    uint metallic_idx;
+    uint roughness_idx;
+    uint ambient_occlusion_idx;
 } pc;
 
 void main() {

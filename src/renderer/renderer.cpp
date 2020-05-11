@@ -91,7 +91,8 @@ void Renderer::render(Context& ctx) {
 	lighting_pass->build(ctx, {
 			.output = *scene_color,
 			.depth = geometry_pass->get_depth(),
-			.albedo_spec = geometry_pass->get_albedo_spec(),
+			.albedo_ao = geometry_pass->get_albedo_ao(),
+			.metallic_roughness = geometry_pass->get_metallic_roughness(),
 			.normal = geometry_pass->get_normal()
 		}, frame, graph, database);
 

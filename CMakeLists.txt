@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 project(andromeda)
 
@@ -32,3 +32,6 @@ target_include_directories(andromeda PRIVATE "include")
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 	target_compile_definitions(andromeda PUBLIC ANDROMEDA_DEBUG=1)
 endif()
+
+# Precompiled headers 
+target_precompile_headers(andromeda PUBLIC "${Vulkan_INCLUDE_DIR}/vulkan/vulkan.hpp")

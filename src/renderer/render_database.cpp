@@ -9,8 +9,11 @@ void RenderDatabase::add_material(Handle<Material> handle) {
 	// Add all textures for this material to the database
 	Material* material = assets::get(handle);
 	STL_ASSERT(material, "Invalid material handle");
-	add_texture(material->diffuse);
+	add_texture(material->color);
 	add_texture(material->normal);
+	add_texture(material->metallic);
+	add_texture(material->roughness);
+	add_texture(material->ambient_occlusion);
 }
 
 void RenderDatabase::add_draw(Draw const& draw) {
@@ -50,8 +53,11 @@ RenderDatabase::TextureIndices RenderDatabase::get_material_textures(Handle<Mate
 	Material* material = assets::get(handle);
 	STL_ASSERT(material, "Invalid material handle");
 	return TextureIndices{
-		.diffuse = texture_map[material->diffuse.id],
-		.normal = texture_map[material->normal.id]
+		.color = texture_map[material->color.id],
+		.normal = texture_map[material->normal.id],
+		.metallic = texture_map[material->metallic.id],
+		.roughness = texture_map[material->roughness.id],
+		.ambient_occlusion = texture_map[material->ambient_occlusion.id]
 	};
 }
 
