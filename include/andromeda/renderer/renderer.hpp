@@ -21,6 +21,8 @@ public:
 	void render(Context& ctx);
 
 	ph::ImageView scene_image() { return scene_color->image_view(); }
+	GeometryPass& get_geometry_pass() { return *geometry_pass; }
+	LightingPass& get_lighting_pass() { return *lighting_pass; }
 
 private:
 	std::unique_ptr<ph::Renderer> vk_renderer;

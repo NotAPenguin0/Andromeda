@@ -16,6 +16,7 @@ namespace andromeda::renderer {
 
 LightingPass::LightingPass(Context& ctx) {
     create_pipeline(ctx);
+    create_ambient_pipeline(ctx);
     create_light_mesh(ctx);
 }
 
@@ -106,27 +107,47 @@ void LightingPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& f
         // If there are no lights, skip all other work
         if (database.point_lights.empty()) { return; }
 
-        ph::Pipeline pipeline = cmd_buf.get_pipeline("deferred_lighting");
-        cmd_buf.bind_pipeline(pipeline);
+        // Lighting pass
+        {
+            ph::Pipeline pipeline = cmd_buf.get_pipeline("deferred_lighting");
+            cmd_buf.bind_pipeline(pipeline);
 
-        update_camera_data(cmd_buf, database);
-        update_lights(cmd_buf, database);
+            update_camera_data(cmd_buf, database);
+            update_lights(cmd_buf, database);
 
-        vk::DescriptorSet descr_set = get_descriptors(cmd_buf, frame, attachments);
-        cmd_buf.bind_descriptor_set(0, descr_set);
+            vk::DescriptorSet descr_set = get_descriptors(cmd_buf, frame, attachments);
+            cmd_buf.bind_descriptor_set(0, descr_set);
 
-        Mesh* light_mesh = assets::get(light_mesh_handle);
+            Mesh* light_mesh = assets::get(light_mesh_handle);
 
-        cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, light_mesh->get_vertices()));
-        cmd_buf.bind_index_buffer(ph::whole_buffer_slice(*ctx.vulkan, light_mesh->get_indices()));
+            cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, light_mesh->get_vertices()));
+            cmd_buf.bind_index_buffer(ph::whole_buffer_slice(*ctx.vulkan, light_mesh->get_indices()));
 
-        uint32_t screen_size[] = { attachments.output.get_width(), attachments.output.get_height() };
-        cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 2 * sizeof(uint32_t), 2 * sizeof(uint32_t), screen_size);
+            uint32_t screen_size[] = { attachments.output.get_width(), attachments.output.get_height() };
+            cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 2 * sizeof(uint32_t), 2 * sizeof(uint32_t), screen_size);
 
-        for (uint32_t i = 0; i < database.point_lights.size(); ++i) {
-            // Push light index
-            cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(uint32_t), &i);
-            cmd_buf.draw_indexed(light_mesh->index_count(), 1, 0, 0, 0);
+            for (uint32_t i = 0; i < database.point_lights.size(); ++i) {
+                // Push light index
+                cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(uint32_t), &i);
+                cmd_buf.draw_indexed(light_mesh->index_count(), 1, 0, 0, 0);
+            }
+        }
+
+        // Ambient lighting pass
+        if (enable_ambient) {
+            ph::Pipeline pipeline = cmd_buf.get_pipeline("deferred_ambient");
+            cmd_buf.bind_pipeline(pipeline);
+
+            ph::DescriptorSetBinding set_binding;
+            set_binding.add(ph::make_descriptor(bindings.ambient_albedo_ao, attachments.albedo_ao.image_view(), frame.default_sampler));
+            vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
+            cmd_buf.bind_descriptor_set(0, descr_set);
+
+            ph::BufferSlice quad = cmd_buf.allocate_scratch_vbo(sizeof(quad_geometry));
+            std::memcpy(quad.data, quad_geometry, sizeof(quad_geometry));
+            cmd_buf.bind_vertex_buffer(0, quad);
+
+            cmd_buf.draw(6, 1, 0, 0);
         }
     };
 
@@ -196,6 +217,59 @@ void LightingPass::create_pipeline(Context& ctx) {
     bindings.camera = pci.shader_info["camera"];
 
     ctx.vulkan->pipelines.create_named_pipeline("deferred_lighting", std::move(pci));
+}
+
+void LightingPass::create_ambient_pipeline(Context& ctx) {
+    using namespace stl::literals;
+
+    ph::PipelineCreateInfo pci;
+    // To avoid having to recreate the pipeline when the viewport is changed
+    pci.dynamic_states.push_back(vk::DynamicState::eViewport);
+    pci.dynamic_states.push_back(vk::DynamicState::eScissor);
+    // Even though they are dynamic states, viewportCount must be 1 if the multiple viewports feature is  not enabled. The pViewports field
+    // is ignored though, so the actual values don't matter. 
+    // See  also https://renderdoc.org/vkspec_chunked/chap25.html#VkPipelineViewportStateCreateInfo
+    pci.viewports.emplace_back();
+    pci.scissors.emplace_back();
+
+    // We need to blend the resulting light values together
+    vk::PipelineColorBlendAttachmentState blend;
+    blend.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    blend.blendEnable = true;
+    // Additive blending
+    blend.colorBlendOp = vk::BlendOp::eAdd;
+    blend.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+    blend.dstColorBlendFactor = vk::BlendFactor::eOne;
+    blend.alphaBlendOp = vk::BlendOp::eAdd;
+    blend.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+    blend.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+    pci.blend_attachments.push_back(blend);
+#if ANDROMEDA_DEBUG
+    pci.debug_name = "deferred_ambient_pipeline";
+#endif
+    constexpr size_t stride = 4 * sizeof(float);
+    pci.vertex_input_binding = vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex);
+    pci.vertex_attributes.emplace_back(0_u32, 0_u32, vk::Format::eR32G32Sfloat, 0_u32);
+    pci.vertex_attributes.emplace_back(1_u32, 0_u32, vk::Format::eR32G32Sfloat, 2 * (uint32_t)sizeof(float));
+
+    pci.depth_stencil.depthTestEnable = false;
+    pci.depth_stencil.depthWriteEnable = false;
+    // The ambient pipeline draws a fullscreen quad so we don't want any culling
+    pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+    std::vector<uint32_t> vert_code = ph::load_shader_code("data/shaders/ambient.vert.spv");
+    std::vector<uint32_t> frag_code = ph::load_shader_code("data/shaders/ambient.frag.spv");
+
+    ph::ShaderHandle vertex_shader = ph::create_shader(*ctx.vulkan, vert_code, "main", vk::ShaderStageFlagBits::eVertex);
+    ph::ShaderHandle fragment_shader = ph::create_shader(*ctx.vulkan, frag_code, "main", vk::ShaderStageFlagBits::eFragment);
+
+    pci.shaders.push_back(vertex_shader);
+    pci.shaders.push_back(fragment_shader);
+
+    ph::reflect_shaders(*ctx.vulkan, pci);
+    // Store bindings so we don't need to look them up every frame
+    bindings.ambient_albedo_ao = pci.shader_info["gAlbedoAO"];
+
+    ctx.vulkan->pipelines.create_named_pipeline("deferred_ambient", std::move(pci));
 }
 
 void LightingPass::create_light_mesh(Context& ctx) {

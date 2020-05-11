@@ -159,6 +159,38 @@ void Application::run() {
 		}
 	);
 
+	Handle<Texture> color2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-albedo.png", true);
+	Handle<Texture> normal2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-Normal-dx.png", false);
+	Handle<Texture> metallic2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-Metallic.png", false);
+	Handle<Texture> roughness2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-Roughness.png", false);
+	Handle<Texture> ao2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-ao.png", false);
+
+	Handle<Material> pbr_mat2 = assets::take<Material>(Material{
+		.color = color2,
+		.normal = normal2,
+		.metallic = metallic2,
+		.roughness = roughness2,
+		.ambient_occlusion = ao2
+		}
+	);
+
+	Handle<Texture> color3 = assets::load<Texture>(context, "data/textures/grimy-metal-albedo.png", true);
+	Handle<Texture> normal3 = assets::load<Texture>(context, "data/textures/grimy-metal-normal-dx.png", false);
+	Handle<Texture> metallic3 = assets::load<Texture>(context, "data/textures/grimy-metal-metallic.png", false);
+	Handle<Texture> roughness3 = assets::load<Texture>(context, "data/textures/grimy-metal-roughness.png", false);
+	Handle<Texture> ao3 = assets::load<Texture>(context, "data/textures/blank.png", false);
+
+	Handle<Material> pbr_mat3 = assets::take<Material>(Material{
+		.color = color3,
+		.normal = normal3,
+		.metallic = metallic3,
+		.roughness = roughness3,
+		.ambient_occlusion = ao3
+		}
+	);
+
+	Handle<Material> materials[]{ pbr_mat, pbr_mat2, pbr_mat3 };
+
 	for (int i = 0; i < 4; ++i) {
 		for (int j = 0; j < 4; ++j) {
 			ecs::entity_t entt = context.world->create_entity();
@@ -169,7 +201,8 @@ void Application::run() {
 			auto& mesh = context.world->ecs().add_component<StaticMesh>(entt);
 			mesh.mesh = sphere;
 			auto& rend = context.world->ecs().add_component<MeshRenderer>(entt);
-			rend.material = pbr_mat;
+			constexpr size_t amt = sizeof(materials) / sizeof(Handle<Material>);
+			rend.material = materials[(i + j) % amt];
 		}
 	}
 
@@ -235,6 +268,8 @@ void Application::run() {
 //			display_transform("dragon", ent);
 //			display_transform("floor", floor);
 			display_light("light", light_entity);
+
+			ImGui::Checkbox("Enable ambient lighting", &renderer->get_lighting_pass().enable_ambient);
 		}
 		ImGui::End();
 

@@ -24,6 +24,10 @@ public:
 	};
 
 	void build(Context& ctx, Attachments attachments, ph::FrameInfo& frame, ph::RenderGraph& graph, RenderDatabase& database);
+
+	// Temporary
+	bool enable_ambient = true;
+
 private:
 	struct PerFrameBuffers {
 		ph::BufferSlice camera;
@@ -37,11 +41,14 @@ private:
 		ph::ShaderInfo::BindingInfo normal;
 		ph::ShaderInfo::BindingInfo camera;
 		ph::ShaderInfo::BindingInfo lights;
+
+		ph::ShaderInfo::BindingInfo ambient_albedo_ao;
 	} bindings;
 
 	Handle<Mesh> light_mesh_handle;
 
 	void create_pipeline(Context& ctx);
+	void create_ambient_pipeline(Context& ctx);
 
 	void create_light_mesh(Context& ctx);
 
