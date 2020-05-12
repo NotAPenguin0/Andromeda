@@ -25,6 +25,54 @@
           "name": "SPIRV_CROSS_ENABLE_TESTS",
           "value": "False",
           "type": "BOOL"
+        },
+        {
+          "name": "FTL_BUILD_BENCHMARKS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "FTL_BUILD_TESTS",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
+      "name": "x64-RelWithDebInfo",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "CMAKE_CXX_FLAGS",
+          "value": "/DWIN32 /D_WINDOWS /GR /EHsc",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_C_FLAGS",
+          "value": "/DWIN32 /D_WINDOWS",
+          "type": "STRING"
+        },
+        {
+          "name": "SPIRV_CROSS_ENABLE_TESTS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "FTL_BUILD_BENCHMARKS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "FTL_BUILD_TESTS",
+          "value": "False",
+          "type": "BOOL"
         }
       ]
     }

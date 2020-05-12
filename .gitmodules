@@ -7,3 +7,6 @@
 [submodule "external/assimp"]
 	path = external/assimp
 	url = https://github.com/assimp/assimp
+[submodule "external/FiberTaskingLib"]
+	path = external/FiberTaskingLib
+	url = https://github.com/RichieSams/FiberTaskingLib

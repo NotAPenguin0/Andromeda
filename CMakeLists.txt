@@ -27,9 +27,14 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
 	target_compile_options(andromeda PRIVATE -W3 -Werror)
 endif()
 
+if (WIN32)
+    # Truly a classic
+	target_compile_definitions(andromeda PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 target_include_directories(andromeda PRIVATE "include")
 
-if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug" OR ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
 	target_compile_definitions(andromeda PUBLIC ANDROMEDA_DEBUG=1)
 endif()
 

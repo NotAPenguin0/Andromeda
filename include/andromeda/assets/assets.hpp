@@ -4,15 +4,48 @@
 #include <andromeda/core/context.hpp>
 #include <andromeda/util/handle.hpp>
 
+#include <stl/assert.hpp>
+
+#include <atomic>
 #include <unordered_map>
 
 namespace andromeda {
 namespace assets {
 
+enum class Status {
+	Pending,
+	Ready
+};
+
 namespace storage {
 
+// Thanks melak
 template<typename T>
-std::unordered_map<uint64_t, T> data;
+struct delay_storage_init {
+	delay_storage_init(Status status, T data) : status{ status }, data{ std::move(data) } {}
+
+	Status status;
+	T data;
+};
+
+template<typename T>
+struct storage_type {
+	storage_type(delay_storage_init<T>&& init) : status{ init.status }, data{ std::move(init.data) } {}
+
+	std::atomic<Status> status;
+	T data;
+};
+
+template<typename T>
+std::unordered_map<uint64_t, storage_type<T>> data;
+
+template<typename T>
+struct lazy_atomic_init {
+	T init;
+	operator std::atomic<T>() const {
+		return std::atomic<T>(init);
+	}
+};
 
 }
 
@@ -25,14 +58,17 @@ Handle<T> load(Context& ctx, std::string_view path, bool);
 template<typename T>
 Handle<T> take(T&& asset) {
 	Handle<T> handle = Handle<T>::next();
-	storage::data<T>.emplace(handle.id, std::move(asset));
+	storage::data<T>.emplace(handle.id, storage::delay_storage_init<T>{ Status::Ready, std::move(asset) });
 	return handle;
 }
 
 template<typename T>
 T* get(Handle<T> handle) {
 	auto it = storage::data<T>.find(handle.id);
-	if (it != storage::data<T>.end()) { return &it->second; }
+	if (it != storage::data<T>.end()) { 
+		STL_ASSERT(it->second.status == Status::Ready, "Cannot get asset if it is not in the Ready state");
+		return &it->second.data; 
+	}
 	return nullptr;
 }
 

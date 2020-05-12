@@ -7,6 +7,10 @@
 #include <andromeda/util/handle.hpp>
 #include <andromeda/util/vk_forward.hpp>
 
+#include <andromeda/core/task_manager.hpp>
+
+#include <andromeda/util/log.hpp>
+
 namespace andromeda {
 
 class Texture;
@@ -23,6 +27,7 @@ public:
 	~Context();
 	std::unique_ptr<ph::VulkanContext> vulkan;
 	std::unique_ptr<world::World> world;
+	std::unique_ptr<TaskManager> tasks;
 
 	Handle<Texture> request_texture(uint32_t width, uint32_t height, vk::Format format, void* data);
 	// size is the amount of values in the vertices array

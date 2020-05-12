@@ -7,6 +7,7 @@ target_sources(andromeda PRIVATE
 	"assets/importers/png.cpp"
 
 	"core/context.cpp"
+	"core/task_manager.cpp"
 
 	"ecs/registry.cpp"
 

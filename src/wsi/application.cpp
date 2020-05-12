@@ -58,6 +58,7 @@ Application::Application(size_t width, size_t height, std::string_view title)
 	settings.version = { v.major, v.minor, v.patch };
 	context.vulkan = std::unique_ptr<ph::VulkanContext>(ph::create_vulkan_context(*window.handle(), &io::get_console_logger(), settings));
 	context.world = std::make_unique<world::World>();
+	context.tasks = std::make_unique<TaskManager>();
 
 	// Initialize imgui
 	IMGUI_CHECKVERSION();

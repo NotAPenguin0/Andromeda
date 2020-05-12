@@ -28,6 +28,12 @@ static uint32_t format_byte_size(vk::Format format) {
 }
 
 Handle<Texture> Context::request_texture(uint32_t width, uint32_t height, vk::Format format, void* data) {
+	tasks->launch(
+		[](ftl::TaskScheduler* scheduler, void*) {
+			io::log("Hello task!");
+		}
+	);
+
 	Texture texture;
 
 	// Create texture
