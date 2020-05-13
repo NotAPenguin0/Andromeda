@@ -10,6 +10,9 @@
 #include <andromeda/util/types.hpp>
 
 #include <andromeda/assets/importers/stb_image.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 namespace andromeda {
 
@@ -71,12 +74,17 @@ static void do_texture_load(ftl::TaskScheduler* scheduler, void* arg) {
 	ph::transition_image_layout(cmd_buf, texture.image, vk::ImageLayout::eTransferDstOptimal);
 	ph::copy_buffer_to_image(cmd_buf, ph::whole_buffer_slice(vulkan, staging), texture.image);
 
+	// Submit queue ownership transfer
+	vulkan.transfer->release_ownership(cmd_buf, texture.image, *vulkan.graphics);
+
 	// 2. Submit to transfer queue
 	vk::Semaphore transfer_done = vulkan.device.createSemaphore({});
 	vulkan.transfer->end_single_time(cmd_buf, nullptr, {}, nullptr, transfer_done);
 
 	// 3. Record commands for layout transition
+	// First acquire ownership of the image, then exeucte transition
 	vk::CommandBuffer transition_cmd = vulkan.graphics->begin_single_time(thread_index);
+	vulkan.graphics->acquire_ownership(transition_cmd, texture.image, *vulkan.transfer);
 	ph::transition_image_layout(transition_cmd, texture.image, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	// 4. Submit to graphics queue
@@ -105,9 +113,119 @@ static void do_texture_load(ftl::TaskScheduler* scheduler, void* arg) {
 	delete load_info;
 }
 
+struct MeshLoadInfo {
+	Handle<Mesh> handle;
+	std::string_view path;
+	Context* ctx;
+};
+
+static void load_mesh_data(ftl::TaskScheduler* scheduler, MeshLoadInfo* load_info, aiMesh* mesh) {
+	constexpr size_t vtx_size = 3 + 3 + 3 + 2;
+	std::vector<float> verts(mesh->mNumVertices * vtx_size);
+	for (size_t i = 0; i < mesh->mNumVertices; ++i) {
+		size_t const index = i * vtx_size;
+		// Position
+		verts[index] = mesh->mVertices[i].x;
+		verts[index + 1] = mesh->mVertices[i].y;
+		verts[index + 2] = mesh->mVertices[i].z;
+		// Normal
+		verts[index + 3] = mesh->mNormals[i].x;
+		verts[index + 4] = mesh->mNormals[i].y;
+		verts[index + 5] = mesh->mNormals[i].z;
+		// Tangent
+		verts[index + 6] = mesh->mTangents[i].x;
+		verts[index + 7] = mesh->mTangents[i].y;
+		verts[index + 8] = mesh->mTangents[i].z;
+		// TexCoord
+		verts[index + 9] = mesh->mTextureCoords[0][i].x;
+		verts[index + 10] = mesh->mTextureCoords[0][i].y;
+	}
+
+	std::vector<uint32_t> indices;
+	indices.reserve(mesh->mNumFaces * 3);
+	for (size_t i = 0; i < mesh->mNumFaces; ++i) {
+		aiFace const& face = mesh->mFaces[i];
+		for (size_t j = 0; j < face.mNumIndices; ++j) {
+			indices.push_back(face.mIndices[j]);
+		}
+	}
+	
+	Mesh result;
+	ph::VulkanContext& vulkan = *load_info->ctx->vulkan;
+	result.vertices = ph::create_buffer(vulkan, verts.size() * sizeof(float), ph::BufferType::VertexBuffer);
+	result.indices = ph::create_buffer(vulkan, indices.size() * sizeof(uint32_t), ph::BufferType::IndexBuffer);
+	result.indices_size = indices.size();
+
+	auto fill_staging = [&vulkan](void* data, uint32_t size) -> ph::RawBuffer {
+		ph::RawBuffer staging = ph::create_buffer(vulkan, size, ph::BufferType::TransferBuffer);
+		std::byte* memory = ph::map_memory(vulkan, staging);
+		std::memcpy(memory, data, size);
+		ph::unmap_memory(vulkan, staging);
+		return staging;
+	};
+
+	ph::RawBuffer vertex_staging = fill_staging(verts.data(), verts.size() * sizeof(float));
+	ph::RawBuffer index_staging = fill_staging(indices.data(), indices.size() * sizeof(uint32_t));
+
+	// Issue buffer copy commands to transfer queue
+	uint32_t const thread_index = scheduler->GetCurrentThreadIndex();
+	vk::CommandBuffer cmd_buf = vulkan.transfer->begin_single_time(thread_index);
+	
+	ph::copy_buffer(vulkan, cmd_buf, vertex_staging, result.vertices, verts.size() * sizeof(float));
+	ph::copy_buffer(vulkan, cmd_buf, index_staging, result.indices, indices.size() * sizeof(uint32_t));
+
+	vulkan.transfer->release_ownership(cmd_buf, result.vertices, *vulkan.graphics);
+	vulkan.transfer->release_ownership(cmd_buf, result.indices, *vulkan.graphics);
+
+	vk::Semaphore copy_done = vulkan.device.createSemaphore({});
+	vulkan.transfer->end_single_time(cmd_buf, nullptr, {}, nullptr, copy_done);
+
+	vk::Fence ownership_done = vulkan.device.createFence({});
+	vk::CommandBuffer ownership_cbuf = vulkan.graphics->begin_single_time(thread_index);
+	vulkan.graphics->acquire_ownership(ownership_cbuf, result.vertices, *vulkan.transfer);
+	vulkan.graphics->acquire_ownership(ownership_cbuf, result.indices, *vulkan.transfer);
+	vulkan.graphics->end_single_time(ownership_cbuf, ownership_done, vk::PipelineStageFlagBits::eTransfer, copy_done);
+
+	vulkan.device.waitForFences(ownership_done, true, std::numeric_limits<uint64_t>::max());
+	// Cleanup, transfer operation complete
+	vulkan.device.destroyFence(ownership_done);
+	vulkan.device.destroySemaphore(copy_done);
+	ph::destroy_buffer(vulkan, vertex_staging);
+	ph::destroy_buffer(vulkan, index_staging);
+
+	assets::finalize_load(load_info->handle, std::move(result));
+}
+
+static void do_mesh_load(ftl::TaskScheduler* scheduler, void* arg) {
+	auto* load_info = reinterpret_cast<MeshLoadInfo*>(arg);
+
+	Assimp::Importer importer;
+	constexpr int postprocess = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_CalcTangentSpace;
+	aiScene const* scene = importer.ReadFile(std::string(load_info->path), postprocess);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+		!scene->mRootNode) {
+		throw std::runtime_error("Failed to load model");
+	}
+
+	for (size_t i = 0; i < scene->mNumMeshes; ++i) {
+		// Note that the assimp::Importer destructor takes care of freeing the aiScene
+		load_mesh_data(scheduler, load_info, scene->mMeshes[i]);
+		break;
+	}
+
+	delete load_info;
+}
+
 Handle<Texture> Context::request_texture(std::string_view path, bool srgb) {
 	Handle<Texture> handle = assets::insert_pending<Texture>();
 	tasks->launch(do_texture_load, new TextureLoadInfo{ handle, path, srgb, this });
+	return handle;
+}
+
+Handle<Mesh> Context::request_mesh(std::string_view path) {
+	Handle<Mesh> handle = assets::insert_pending<Mesh>();
+	tasks->launch(do_mesh_load, new MeshLoadInfo{ handle, path, this });
 	return handle;
 }
 
@@ -130,8 +248,8 @@ Handle<Mesh> Context::request_mesh(float const* vertices, uint32_t size, uint32_
 	ph::unmap_memory(*vulkan, index_staging);
 
 	vk::CommandBuffer cmd_buf = vulkan->graphics->begin_single_time();
-	ph::copy_buffer(*vulkan, staging, mesh.vertices, byte_size);
-	ph::copy_buffer(*vulkan, index_staging, mesh.indices, index_byte_size);
+	ph::copy_buffer(*vulkan, cmd_buf, staging, mesh.vertices, byte_size);
+	ph::copy_buffer(*vulkan, cmd_buf, index_staging, mesh.indices, index_byte_size);
 	vulkan->graphics->end_single_time(cmd_buf);
 	vulkan->device.waitIdle();
 

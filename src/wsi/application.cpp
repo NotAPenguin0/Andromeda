@@ -124,7 +124,7 @@ void Application::run() {
 	auto& light_trans = context.world->ecs().get_component<Transform>(light_entity);
 	light_trans.position = glm::vec3(-0.3f, 0.4f, 1.0f);
 
-	Handle<Mesh> sphere = assets::load<Mesh>(context, "data/meshes/sphere.glb");
+	Handle<Mesh> sphere = context.request_mesh("data/meshes/sphere.glb");
 
 	Handle<Texture> color = context.request_texture("data/textures/rustediron2_basecolor.png", true);
 	Handle<Texture> normal = context.request_texture("data/textures/rustediron2_normal.png", false);

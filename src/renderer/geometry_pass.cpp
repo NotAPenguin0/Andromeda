@@ -63,6 +63,11 @@ void GeometryPass::build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& gr
 				continue;
 			}
 
+			// Don't draw if the mesh isn't ready
+			if (!assets::is_ready(draw.mesh)) {
+				continue;
+			}
+
 			Mesh* mesh = assets::get(draw.mesh);
 			// Bind draw data
 			cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, mesh->get_vertices()));

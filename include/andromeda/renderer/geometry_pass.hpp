@@ -3,6 +3,7 @@
 
 #include <phobos/renderer/render_graph.hpp>
 #include <andromeda/renderer/render_database.hpp>
+#include <andromeda/core/context.hpp>
 
 #include <phobos/pipeline/shader_info.hpp>
 

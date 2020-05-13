@@ -8,6 +8,8 @@
 #include <andromeda/renderer/render_database.hpp>
 #include <andromeda/util/handle.hpp>
 
+#include <andromeda/core/context.hpp>
+
 namespace andromeda {
 namespace renderer {
 

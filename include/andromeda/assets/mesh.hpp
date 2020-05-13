@@ -10,8 +10,6 @@ public:
 	ph::RawBuffer get_vertices() { return vertices; }
 	ph::RawBuffer get_indices() { return indices; }
 	uint32_t index_count() { return indices_size; }
-private:
-	friend class Context;
 
 	ph::RawBuffer vertices;
 	ph::RawBuffer indices;

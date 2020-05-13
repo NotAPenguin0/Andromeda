@@ -31,6 +31,7 @@ public:
 
 	Handle<Texture> request_texture(std::string_view path, bool srgb); // TODO: srgb is annoying
 	// size is the amount of values in the vertices array
+	Handle<Mesh> request_mesh(std::string_view path); // TODO: full model
 	Handle<Mesh> request_mesh(float const* vertices, uint32_t size, uint32_t const* indices, uint32_t index_count);
 };
 
