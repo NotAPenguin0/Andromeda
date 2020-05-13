@@ -55,6 +55,14 @@ void GeometryPass::build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& gr
 
 		for (uint32_t draw_idx = 0; draw_idx < database.draws.size(); ++draw_idx) {
 			auto const& draw = database.draws[draw_idx];
+
+			// Skip this draw if the textures for it aren't loaded yet
+			Material* material = assets::get(draw.material);
+			if (!assets::is_ready(material->color) || !assets::is_ready(material->normal) || !assets::is_ready(material->metallic)
+				|| !assets::is_ready(material->roughness) || !assets::is_ready(material->ambient_occlusion)) {
+				continue;
+			}
+
 			Mesh* mesh = assets::get(draw.mesh);
 			// Bind draw data
 			cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, mesh->get_vertices()));

@@ -20,29 +20,14 @@
 
 namespace andromeda::wsi {
 
-static void load_imgui_fonts(ph::VulkanContext& ctx, vk::CommandPool command_pool) {
-	vk::CommandBufferAllocateInfo buf_info;
-	buf_info.commandBufferCount = 1;
-	buf_info.commandPool = command_pool;
-	buf_info.level = vk::CommandBufferLevel::ePrimary;
-	vk::CommandBuffer command_buffer = ctx.device.allocateCommandBuffers(buf_info)[0];
-
-	vk::CommandBufferBeginInfo begin_info = {};
-	begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-	command_buffer.begin(begin_info);
-
+static void load_imgui_fonts(ph::VulkanContext& ctx) {
+	vk::CommandBuffer command_buffer = ctx.graphics->begin_single_time();
 	ImGui_ImplPhobos_CreateFontsTexture(command_buffer);
-
-	vk::SubmitInfo end_info = {};
-	end_info.commandBufferCount = 1;
-	end_info.pCommandBuffers = &command_buffer;
-	command_buffer.end();
-
-	ctx.graphics_queue.submit(end_info, nullptr);
+	ctx.graphics->end_single_time(command_buffer);
 
 	ctx.device.waitIdle();
 	ImGui_ImplPhobos_DestroyFontUploadObjects();
-	ctx.device.freeCommandBuffers(command_pool, command_buffer);
+	ctx.graphics->free_single_time(command_buffer);
 }
 
 Application::Application(size_t width, size_t height, std::string_view title)
@@ -56,6 +41,7 @@ Application::Application(size_t width, size_t height, std::string_view title)
 #endif
 	constexpr Version v = ANDROMEDA_VERSION;
 	settings.version = { v.major, v.minor, v.patch };
+	settings.num_threads = ftl::GetNumHardwareThreads();
 	context.vulkan = std::unique_ptr<ph::VulkanContext>(ph::create_vulkan_context(*window.handle(), &io::get_console_logger(), settings));
 	context.world = std::make_unique<world::World>();
 	context.tasks = std::make_unique<TaskManager>();
@@ -72,12 +58,7 @@ Application::Application(size_t width, size_t height, std::string_view title)
 	init_info.context = context.vulkan.get();
 	ImGui_ImplPhobos_Init(&init_info);
 	io.Fonts->AddFontDefault();
-	vk::CommandPoolCreateInfo command_pool_info;
-	command_pool_info.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-	vk::CommandPool command_pool = context.vulkan->device.createCommandPool(command_pool_info);
-	load_imgui_fonts(*context.vulkan, command_pool);
-	context.vulkan->device.destroyCommandPool(command_pool);
-
+	load_imgui_fonts(*context.vulkan);
 	renderer = std::make_unique<renderer::Renderer>(context);
 }
 
@@ -145,11 +126,12 @@ void Application::run() {
 
 	Handle<Mesh> sphere = assets::load<Mesh>(context, "data/meshes/sphere.glb");
 
-	Handle<Texture> color = assets::load<Texture>(context, "data/textures/rustediron2_basecolor.png", true);
-	Handle<Texture> normal = assets::load<Texture>(context, "data/textures/rustediron2_normal.png", false);
-	Handle<Texture> metallic = assets::load<Texture>(context, "data/textures/rustediron2_metallic.png", false);
-	Handle<Texture> roughness = assets::load<Texture>(context, "data/textures/rustediron2_roughness.png", false);
-	Handle<Texture> ao = assets::load<Texture>(context, "data/textures/blank.png", false);
+	Handle<Texture> color = context.request_texture("data/textures/rustediron2_basecolor.png", true);
+	Handle<Texture> normal = context.request_texture("data/textures/rustediron2_normal.png", false);
+	Handle<Texture> metallic = context.request_texture("data/textures/rustediron2_metallic.png", false);
+	Handle<Texture> roughness = context.request_texture("data/textures/rustediron2_roughness.png", false);
+	Handle<Texture> ao = context.request_texture("data/textures/blank.png", false);
+
 
 	Handle<Material> pbr_mat = assets::take<Material>(Material{
 			.color = color,
@@ -160,11 +142,11 @@ void Application::run() {
 		}
 	);
 
-	Handle<Texture> color2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-albedo.png", true);
-	Handle<Texture> normal2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-Normal-dx.png", false);
-	Handle<Texture> metallic2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-Metallic.png", false);
-	Handle<Texture> roughness2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-Roughness.png", false);
-	Handle<Texture> ao2 = assets::load<Texture>(context, "data/textures/iced-over-ground7-ao.png", false);
+	Handle<Texture> color2 = context.request_texture("data/textures/iced-over-ground7-albedo.png", true);
+	Handle<Texture> normal2 = context.request_texture("data/textures/iced-over-ground7-Normal-dx.png", false);
+	Handle<Texture> metallic2 = context.request_texture("data/textures/iced-over-ground7-Metallic.png", false);
+	Handle<Texture> roughness2 = context.request_texture("data/textures/iced-over-ground7-Roughness.png", false);
+	Handle<Texture> ao2 = context.request_texture("data/textures/iced-over-ground7-ao.png", false);
 
 	Handle<Material> pbr_mat2 = assets::take<Material>(Material{
 		.color = color2,
@@ -175,11 +157,11 @@ void Application::run() {
 		}
 	);
 
-	Handle<Texture> color3 = assets::load<Texture>(context, "data/textures/grimy-metal-albedo.png", true);
-	Handle<Texture> normal3 = assets::load<Texture>(context, "data/textures/grimy-metal-normal-dx.png", false);
-	Handle<Texture> metallic3 = assets::load<Texture>(context, "data/textures/grimy-metal-metallic.png", false);
-	Handle<Texture> roughness3 = assets::load<Texture>(context, "data/textures/grimy-metal-roughness.png", false);
-	Handle<Texture> ao3 = assets::load<Texture>(context, "data/textures/blank.png", false);
+	Handle<Texture> color3 = context.request_texture("data/textures/grimy-metal-albedo.png", true);
+	Handle<Texture> normal3 = context.request_texture("data/textures/grimy-metal-normal-dx.png", false);
+	Handle<Texture> metallic3 = context.request_texture("data/textures/grimy-metal-metallic.png", false);
+	Handle<Texture> roughness3 = context.request_texture("data/textures/grimy-metal-roughness.png", false);
+	Handle<Texture> ao3 = context.request_texture("data/textures/blank.png", false);
 
 	Handle<Material> pbr_mat3 = assets::take<Material>(Material{
 		.color = color3,

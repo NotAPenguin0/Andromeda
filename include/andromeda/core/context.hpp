@@ -29,7 +29,7 @@ public:
 	std::unique_ptr<world::World> world;
 	std::unique_ptr<TaskManager> tasks;
 
-	Handle<Texture> request_texture(uint32_t width, uint32_t height, vk::Format format, void* data);
+	Handle<Texture> request_texture(std::string_view path, bool srgb); // TODO: srgb is annoying
 	// size is the amount of values in the vertices array
 	Handle<Mesh> request_mesh(float const* vertices, uint32_t size, uint32_t const* indices, uint32_t index_count);
 };

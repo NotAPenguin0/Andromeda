@@ -33,6 +33,7 @@ void RenderDatabase::add_point_light(glm::vec3 const& position, float radius, gl
 void RenderDatabase::add_texture(Handle<Texture> handle) {
 	// Skip empty texture handles, those are handled later using the default textures system
 	if (handle.id == Handle<Texture>::none) { return; }
+	if (!assets::is_ready(handle)) { return; }
 	Texture* texture = assets::get(handle);
 	// Specifying an invalid texture handle is an error though
 	STL_ASSERT(texture, "Invalid texture handle");

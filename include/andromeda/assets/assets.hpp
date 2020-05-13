@@ -7,6 +7,7 @@
 #include <stl/assert.hpp>
 
 #include <atomic>
+#include <mutex>
 #include <unordered_map>
 
 namespace andromeda {
@@ -40,6 +41,9 @@ template<typename T>
 std::unordered_map<uint64_t, storage_type<T>> data;
 
 template<typename T>
+std::mutex data_mutex;
+
+template<typename T>
 struct lazy_atomic_init {
 	T init;
 	operator std::atomic<T>() const {
@@ -57,9 +61,28 @@ Handle<T> load(Context& ctx, std::string_view path, bool);
 
 template<typename T>
 Handle<T> take(T&& asset) {
+	std::lock_guard lock(storage::data_mutex<T>);
 	Handle<T> handle = Handle<T>::next();
 	storage::data<T>.emplace(handle.id, storage::delay_storage_init<T>{ Status::Ready, std::move(asset) });
 	return handle;
+}
+
+template<typename T>
+Handle<T> insert_pending() {
+	Handle<T> handle = take(T{});
+	storage::data<T>.at(handle.id).status = Status::Pending;
+	return handle;
+}
+
+template<typename T>
+void finalize_load(Handle<T> handle, T&& asset) {
+	storage::data<T>.at(handle.id).status = Status::Ready;
+	storage::data<T>.at(handle.id).data = std::move(asset);
+}
+
+template<typename T>
+bool is_ready(Handle<T> handle) {
+	return storage::data<T>.at(handle.id).status == Status::Ready;
 }
 
 template<typename T>

@@ -9,8 +9,6 @@ class Texture {
 public:
 	ph::RawImage get_image() { return image; }
 	ph::ImageView get_view() { return view; }
-private:
-	friend class Context;
 
 	ph::RawImage image;
 	ph::ImageView view;
