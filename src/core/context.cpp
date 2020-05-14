@@ -190,6 +190,10 @@ static void load_mesh_data(ftl::TaskScheduler* scheduler, MeshLoadInfo* load_inf
 	// Cleanup, transfer operation complete
 	vulkan.device.destroyFence(ownership_done);
 	vulkan.device.destroySemaphore(copy_done);
+
+	vulkan.transfer->free_single_time(cmd_buf, thread_index);
+	vulkan.graphics->free_single_time(ownership_cbuf, thread_index);
+
 	ph::destroy_buffer(vulkan, vertex_staging);
 	ph::destroy_buffer(vulkan, index_staging);
 
@@ -247,11 +251,12 @@ Handle<Mesh> Context::request_mesh(float const* vertices, uint32_t size, uint32_
 	std::memcpy(staging_mem, indices, index_byte_size);
 	ph::unmap_memory(*vulkan, index_staging);
 
-	vk::CommandBuffer cmd_buf = vulkan->graphics->begin_single_time();
+	vk::CommandBuffer cmd_buf = vulkan->graphics->begin_single_time(0);
 	ph::copy_buffer(*vulkan, cmd_buf, staging, mesh.vertices, byte_size);
 	ph::copy_buffer(*vulkan, cmd_buf, index_staging, mesh.indices, index_byte_size);
 	vulkan->graphics->end_single_time(cmd_buf);
 	vulkan->device.waitIdle();
+	vulkan->graphics->free_single_time(cmd_buf, 0);
 
 	return assets::take(std::move(mesh));
 }

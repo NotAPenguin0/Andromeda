@@ -21,13 +21,13 @@
 namespace andromeda::wsi {
 
 static void load_imgui_fonts(ph::VulkanContext& ctx) {
-	vk::CommandBuffer command_buffer = ctx.graphics->begin_single_time();
+	vk::CommandBuffer command_buffer = ctx.graphics->begin_single_time(0);
 	ImGui_ImplPhobos_CreateFontsTexture(command_buffer);
 	ctx.graphics->end_single_time(command_buffer);
 
 	ctx.device.waitIdle();
 	ImGui_ImplPhobos_DestroyFontUploadObjects();
-	ctx.graphics->free_single_time(command_buffer);
+	ctx.graphics->free_single_time(command_buffer, 0);
 }
 
 Application::Application(size_t width, size_t height, std::string_view title)
@@ -147,6 +147,7 @@ void Application::run() {
 	Handle<Texture> metallic2 = context.request_texture("data/textures/iced-over-ground7-Metallic.png", false);
 	Handle<Texture> roughness2 = context.request_texture("data/textures/iced-over-ground7-Roughness.png", false);
 	Handle<Texture> ao2 = context.request_texture("data/textures/iced-over-ground7-ao.png", false);
+
 
 	Handle<Material> pbr_mat2 = assets::take<Material>(Material{
 		.color = color2,
