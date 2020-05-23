@@ -36,6 +36,7 @@ Renderer::Renderer(Context& ctx) {
 
 	geometry_pass = std::make_unique<GeometryPass>(ctx, *vk_present);
 	lighting_pass = std::make_unique<LightingPass>(ctx);
+	skybox_pass = std::make_unique<SkyboxPass>(ctx);
 
 	scene_color = &vk_present->add_color_attachment("scene_color", { 1280, 720 });
 }
@@ -52,31 +53,12 @@ void Renderer::render(Context& ctx) {
 	vk_present->wait_for_available_frame();
 
 	ph::FrameInfo& frame = vk_present->get_frame_info();
-	ph::RenderGraph graph{ ctx.vulkan.get() };
+	ph::RenderGraph graph{ ctx.vulkan.get(), &ctx.vulkan->thread_contexts[0] };
 
 	// Reset render database, we will fill this again each frame
 	database.reset();
 
 	// Fill render database
-
-	// For now, we populate the render database with all loaded materials. Later, we can improve this to only include used materials
-	for (auto const& [id, _] : assets::storage::data<Material>) {
-		database.add_material(Handle<Material>{ id });
-	}
-
-	for (auto const& [transform, rend, mesh] : ctx.world->ecs().view<Transform, MeshRenderer, StaticMesh>()) {
-		// Calculate model matrix from transformation
-		glm::mat4 model = glm::translate(glm::mat4(1.0), transform.position);
-		model = glm::rotate(model, { glm::radians(transform.rotation.x),
-								glm::radians(transform.rotation.y),
-								glm::radians(transform.rotation.z) });
-		model = glm::scale(model, transform.scale);
-		database.add_draw(renderer::Draw{ .mesh = mesh.mesh, .material = rend.material, .transform = model });
-	}
-
-	for (auto const& [trans, light] : ctx.world->ecs().view<Transform, PointLight>()) {
-		database.add_point_light(trans.position, light.radius, light.color, light.intensity);
-	}
 
 	for (auto const& [trans, cam] : ctx.world->ecs().view<Transform, Camera>()) {
 		database.projection = glm::perspective(cam.fov, (float)scene_color->get_width() / (float)scene_color->get_height(), 0.1f, 100.0f);
@@ -84,7 +66,30 @@ void Renderer::render(Context& ctx) {
 		database.view = glm::lookAt(trans.position, trans.position + cam.front, cam.up);
 		database.projection_view = database.projection * database.view;
 		database.camera_position = trans.position;
+		database.environment_map = cam.env_map;
 		break;
+	}
+
+	// Only populate render database with draws if there is an environment map ready to use (TODO: default envmap)
+	if (database.environment_map.id != Handle<EnvMap>::none && assets::is_ready(database.environment_map)) {
+		// For now, we populate the render database with all loaded materials. Later, we can improve this to only include used materials
+		for (auto const& [id, _] : assets::storage::data<Material>) {
+			database.add_material(Handle<Material>{ id });
+		}
+
+		for (auto const& [transform, rend, mesh] : ctx.world->ecs().view<Transform, MeshRenderer, StaticMesh>()) {
+			// Calculate model matrix from transformation
+			glm::mat4 model = glm::translate(glm::mat4(1.0), transform.position);
+			model = glm::rotate(model, { glm::radians(transform.rotation.x),
+									glm::radians(transform.rotation.y),
+									glm::radians(transform.rotation.z) });
+			model = glm::scale(model, transform.scale);
+			database.add_draw(renderer::Draw{ .mesh = mesh.mesh, .material = rend.material, .transform = model });
+		}
+
+		for (auto const& [trans, light] : ctx.world->ecs().view<Transform, PointLight>()) {
+			database.add_point_light(trans.position, light.radius, light.color, light.intensity);
+		}
 	}
 
 	geometry_pass->build(ctx, frame, graph, database);
@@ -94,6 +99,10 @@ void Renderer::render(Context& ctx) {
 			.albedo_ao = geometry_pass->get_albedo_ao(),
 			.metallic_roughness = geometry_pass->get_metallic_roughness(),
 			.normal = geometry_pass->get_normal()
+		}, frame, graph, database);
+	skybox_pass->build(ctx, {
+			.output = *scene_color,
+			.depth = geometry_pass->get_depth()
 		}, frame, graph, database);
 
 	ImGui::Render();

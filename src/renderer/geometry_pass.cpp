@@ -115,7 +115,7 @@ void GeometryPass::create_pipeline(Context& ctx) {
 	pci.scissors.emplace_back();
 
 	constexpr size_t stride = (3 + 3 + 3 + 2) * sizeof(float);
-	pci.vertex_input_binding = vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex);
+	pci.vertex_input_bindings.push_back(vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex));
 	// vec3 iPos;
 	pci.vertex_attributes.emplace_back(0_u32, 0_u32, vk::Format::eR32G32B32Sfloat, 0_u32);
 	// vec3 iNormal

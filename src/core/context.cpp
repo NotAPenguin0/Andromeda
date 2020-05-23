@@ -255,10 +255,28 @@ Handle<Mesh> Context::request_mesh(float const* vertices, uint32_t size, uint32_
 	ph::copy_buffer(*vulkan, cmd_buf, staging, mesh.vertices, byte_size);
 	ph::copy_buffer(*vulkan, cmd_buf, index_staging, mesh.indices, index_byte_size);
 	vulkan->graphics->end_single_time(cmd_buf);
-	vulkan->device.waitIdle();
+	vulkan->graphics->wait_idle();
 	vulkan->graphics->free_single_time(cmd_buf, 0);
 
 	return assets::take(std::move(mesh));
+}
+
+struct EnvMapLaunchStub {
+	EnvMapLoader* loader;
+	EnvMapLoadInfo* load_info;
+};
+
+static void do_envmap_load(ftl::TaskScheduler* scheduler, void* arg) {
+	auto* data = reinterpret_cast<EnvMapLaunchStub*>(arg);
+	data->loader->load(scheduler, data->load_info);
+	delete data;
+}
+
+Handle<EnvMap> Context::request_env_map(std::string_view path) {
+	Handle<EnvMap> handle = assets::insert_pending<EnvMap>();
+	auto* info = new EnvMapLoadInfo{ handle, this, std::string(path) };
+	tasks->launch(do_envmap_load, new EnvMapLaunchStub{ envmap_loader.get(), info });
+	return handle;
 }
 
 }

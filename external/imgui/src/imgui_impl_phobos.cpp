@@ -180,8 +180,7 @@ static void ImGui_ImplPhobos_CreatePipeline(ph::VulkanContext* ctx) {
     pci.vertex_attributes[2].binding = 0;
     pci.vertex_attributes[2].format = vk::Format::eR8G8B8A8Unorm;
     pci.vertex_attributes[2].offset = IM_OFFSETOF(ImDrawVert, col);
-    pci.vertex_input_binding.inputRate = vk::VertexInputRate::eVertex;
-    pci.vertex_input_binding.stride = sizeof(ImDrawVert);
+    pci.vertex_input_bindings.push_back(vk::VertexInputBindingDescription(0, sizeof(ImDrawVert), vk::VertexInputRate::eVertex));
 
     pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
 

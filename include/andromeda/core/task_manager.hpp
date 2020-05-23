@@ -11,6 +11,7 @@ public:
 	TaskManager();
 
 	void launch(ftl::TaskFunction func, void* arg = nullptr);
+	ftl::TaskScheduler& get_scheduler() { return scheduler; }
 private:
 	ftl::TaskScheduler scheduler;
 };

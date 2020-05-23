@@ -45,6 +45,11 @@ private:
 		ph::ShaderInfo::BindingInfo lights;
 
 		ph::ShaderInfo::BindingInfo ambient_albedo_ao;
+		ph::ShaderInfo::BindingInfo ambient_metallic_roughness;
+		ph::ShaderInfo::BindingInfo ambient_normal;
+		ph::ShaderInfo::BindingInfo ambient_depth;
+		ph::ShaderInfo::BindingInfo ambient_camera;
+		ph::ShaderInfo::BindingInfo ambient_irradiance_map;
 	} bindings;
 
 	Handle<Mesh> light_mesh_handle;

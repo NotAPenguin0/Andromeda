@@ -5,6 +5,7 @@
 #include <andromeda/assets/material.hpp>
 #include <andromeda/assets/texture.hpp>
 #include <andromeda/assets/mesh.hpp>
+#include <andromeda/assets/env_map.hpp>
 
 #include <phobos/util/image_util.hpp>
 #include <phobos/renderer/meta.hpp>
@@ -38,9 +39,9 @@ public:
 	struct TextureIndices {
 		uint32_t color = 0;
 		uint32_t normal = 0; // TODO: Abuse these default values to handle default textures?
-		uint32_t metallic;
-		uint32_t roughness;
-		uint32_t ambient_occlusion;
+		uint32_t metallic = 0;
+		uint32_t roughness = 0;
+		uint32_t ambient_occlusion = 0;
 	};
 
 	TextureIndices get_material_textures(Handle<Material> handle);
@@ -66,6 +67,8 @@ public:
 	glm::mat4 view;
 	glm::mat4 projection_view;
 	glm::vec3 camera_position;
+
+	Handle<EnvMap> environment_map;
 
 	// Stores point lights in a format ready to send to the shader (all data packed together)
 	struct alignas(2 * sizeof(glm::vec4)) InternalPointLight {

@@ -8,6 +8,7 @@ target_sources(andromeda PRIVATE
 
 	"core/context.cpp"
 	"core/task_manager.cpp"
+	"core/env_map_loader.cpp"
 
 	"ecs/registry.cpp"
 
@@ -16,6 +17,7 @@ target_sources(andromeda PRIVATE
 	"renderer/render_database.cpp"
 	"renderer/lighting_pass.cpp"
 	"renderer/util.cpp"
+	"renderer/skybox_pass.cpp"
 
 	"util/log.cpp"
 

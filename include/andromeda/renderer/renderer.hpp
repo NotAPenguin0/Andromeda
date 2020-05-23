@@ -6,6 +6,7 @@
 #include <andromeda/renderer/render_database.hpp>
 #include <andromeda/renderer/geometry_pass.hpp>
 #include <andromeda/renderer/lighting_pass.hpp>
+#include <andromeda/renderer/skybox_pass.hpp>
 
 #include <phobos/renderer/render_attachment.hpp>
 #include <phobos/pipeline/pipeline.hpp>
@@ -32,6 +33,7 @@ private:
 
 	std::unique_ptr<GeometryPass> geometry_pass;
 	std::unique_ptr<LightingPass> lighting_pass;
+	std::unique_ptr<SkyboxPass> skybox_pass;
 
 	ph::RenderAttachment* scene_color;
 };

@@ -3,6 +3,8 @@
 namespace andromeda {
 
 TaskManager::TaskManager() {
+	ftl::TaskSchedulerInitOptions options;
+	options.Behavior = ftl::EmptyQueueBehavior::Sleep;
 	scheduler.Init();
 }
 

@@ -124,29 +124,29 @@ void LightingPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& f
             cmd_buf.bind_index_buffer(ph::whole_buffer_slice(*ctx.vulkan, light_mesh->get_indices()));
 
             uint32_t screen_size[] = { attachments.output.get_width(), attachments.output.get_height() };
-            cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 2 * sizeof(uint32_t), 2 * sizeof(uint32_t), screen_size);
-
-            for (uint32_t i = 0; i < database.point_lights.size(); ++i) {
-                // Push light index
-                cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(uint32_t), &i);
-                cmd_buf.draw_indexed(light_mesh->index_count(), 1, 0, 0, 0);
-            }
+            cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 0, 2 * sizeof(uint32_t), screen_size);
+            cmd_buf.draw_indexed(light_mesh->index_count(), database.point_lights.size(), 0, 0, 0);
         }
 
         // Ambient lighting pass
-        if (enable_ambient) {
+        if (enable_ambient && assets::is_ready(database.environment_map)) {
             ph::Pipeline pipeline = cmd_buf.get_pipeline("deferred_ambient");
             cmd_buf.bind_pipeline(pipeline);
 
             ph::DescriptorSetBinding set_binding;
             set_binding.add(ph::make_descriptor(bindings.ambient_albedo_ao, attachments.albedo_ao.image_view(), frame.default_sampler));
+            set_binding.add(ph::make_descriptor(bindings.ambient_depth, attachments.depth.image_view(), frame.default_sampler));
+            set_binding.add(ph::make_descriptor(bindings.ambient_metallic_roughness, attachments.metallic_roughness.image_view(), frame.default_sampler));
+            set_binding.add(ph::make_descriptor(bindings.ambient_normal, attachments.normal.image_view(), frame.default_sampler));
+            EnvMap* envmap = assets::get(database.environment_map);
+            set_binding.add(ph::make_descriptor(bindings.ambient_irradiance_map, envmap->irradiance_map_view, frame.default_sampler));
+            set_binding.add(ph::make_descriptor(bindings.ambient_camera, per_frame_buffers.camera));
             vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
             cmd_buf.bind_descriptor_set(0, descr_set);
 
             ph::BufferSlice quad = cmd_buf.allocate_scratch_vbo(sizeof(quad_geometry));
             std::memcpy(quad.data, quad_geometry, sizeof(quad_geometry));
             cmd_buf.bind_vertex_buffer(0, quad);
-
             cmd_buf.draw(6, 1, 0, 0);
         }
     };
@@ -188,7 +188,7 @@ void LightingPass::create_pipeline(Context& ctx) {
     // The lighting pass will render light geometry. We don't need to shade this light geometry, so only a vec3 for the position is enough.
     // Note that we will calculate screenspace texture coordinates to sample the Gbuffer in the vertex shader.
     constexpr size_t stride = 3 * sizeof(float);
-    pci.vertex_input_binding = vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex);
+    pci.vertex_input_bindings.push_back(vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex));
     pci.vertex_attributes.emplace_back(0_u32, 0_u32, vk::Format::eR32G32B32Sfloat, 0_u32);
 
     pci.depth_stencil.depthTestEnable = false;
@@ -248,7 +248,7 @@ void LightingPass::create_ambient_pipeline(Context& ctx) {
     pci.debug_name = "deferred_ambient_pipeline";
 #endif
     constexpr size_t stride = 4 * sizeof(float);
-    pci.vertex_input_binding = vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex);
+    pci.vertex_input_bindings.push_back(vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex));
     pci.vertex_attributes.emplace_back(0_u32, 0_u32, vk::Format::eR32G32Sfloat, 0_u32);
     pci.vertex_attributes.emplace_back(1_u32, 0_u32, vk::Format::eR32G32Sfloat, 2 * (uint32_t)sizeof(float));
 
@@ -268,6 +268,11 @@ void LightingPass::create_ambient_pipeline(Context& ctx) {
     ph::reflect_shaders(*ctx.vulkan, pci);
     // Store bindings so we don't need to look them up every frame
     bindings.ambient_albedo_ao = pci.shader_info["gAlbedoAO"];
+    bindings.ambient_depth = pci.shader_info["gDepth"];
+    bindings.ambient_normal = pci.shader_info["gNormal"];
+    bindings.ambient_metallic_roughness = pci.shader_info["gMetallicRoughness"];
+    bindings.ambient_camera = pci.shader_info["camera"];
+    bindings.ambient_irradiance_map = pci.shader_info["irradiance_map"];
 
     ctx.vulkan->pipelines.create_named_pipeline("deferred_ambient", std::move(pci));
 }

@@ -2,6 +2,8 @@
 
 #define PI 3.12159265358979
 
+layout(location = 0) flat in uint light_index;
+
 layout(location = 0) out vec4 FragColor;
 
 layout(set = 0, binding = 0) uniform CameraData {
@@ -29,7 +31,6 @@ layout(set = 0, binding = 4) uniform sampler2D gAlbedoAO;
 layout(set = 0, binding = 5) uniform sampler2D gMetallicRoughness;
 
 layout(push_constant) uniform PC {
-    uint light_index;
     uvec2 screen_size;
 } pc;
 
@@ -143,7 +144,7 @@ void main() {
     vec3 color = diffuse;
     vec3 norm = Normal * 2.0 - 1.0;
     
-    color = apply_point_light(norm, color, lights.lights[pc.light_index], WorldPos, roughness, metallic);
+    color = apply_point_light(norm, color, lights.lights[light_index], WorldPos, roughness, metallic);
 
     FragColor = vec4(color, 1.0);
 }

@@ -2,6 +2,7 @@
 
 layout (location = 0) in vec3 iPos;
 
+layout(location = 0) flat out uint light_index;
 
 layout(set = 0, binding = 0) uniform CameraData {
     mat4 projection_view;
@@ -22,12 +23,12 @@ layout(set = 0, binding = 1) buffer readonly PointLights {
 } lights;
 
 layout(push_constant) uniform PC {
-    uint light_index;
     uvec2 screen_size;
 } pc;
 
 void main() {
-    PointLight light = lights.lights[pc.light_index];
+    light_index = gl_InstanceIndex;
+    PointLight light = lights.lights[gl_InstanceIndex];
     // Since we don't need rotations, we can get away with using simple math instead of transformation matrices for our lights
     vec4 light_world = vec4(light.transform.w * iPos + light.transform.xyz, 1.0);
     vec4 light_clip = camera.projection_view * light_world;
