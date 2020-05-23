@@ -13,6 +13,9 @@ public:
 	// Also a cube map
 	ph::RawImage irradiance_map;
 	ph::ImageView irradiance_map_view;
+	// Also a cube map
+	ph::RawImage specular_map;
+	ph::ImageView specular_map_view;
 };
 
 }

@@ -17,6 +17,7 @@ class Context;
 struct EnvMapProcessData {
 	static constexpr uint32_t cubemap_size = 2048;
 	static constexpr uint32_t irradiance_map_size = 32;
+	static constexpr uint32_t specular_map_base_size = 256;
 
 	// Resources
 	ph::RawImage raw_hdr;
@@ -25,6 +26,10 @@ struct EnvMapProcessData {
 	ph::ImageView cubemap_view;
 	ph::RawImage irradiance_map;
 	ph::ImageView irradiance_map_view;
+	ph::RawImage specular_map;
+	ph::ImageView specular_map_view;
+
+	std::vector<ph::ImageView> specular_map_mips;
 
 	ph::RawBuffer upload_staging;
 
@@ -50,6 +55,7 @@ public:
 private:
 	void create_projection_pipeline(ph::VulkanContext& vulkan);
 	void create_convolution_pipeline(ph::VulkanContext& vulkan);
+	void create_specular_prefilter_pipeline(ph::VulkanContext& vulkan);
 
 	// Creates rendergraph, command buffer and fake frame
 	void upload_hdr_image(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data,
@@ -57,6 +63,7 @@ private:
 	void begin_preprocess_commands(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void project_equirectangular_to_cubemap(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void create_irradiance_map(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
+	void create_specular_map(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void end_preprocess_commands(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void cleanup(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 
@@ -69,6 +76,11 @@ private:
 		ph::ShaderInfo::BindingInfo cube_map;
 		ph::ShaderInfo::BindingInfo irradiance_map;
 	} convolution_bindings;
+
+	struct SpecularPrefilterBindings {
+		ph::ShaderInfo::BindingInfo cube_map;
+		ph::ShaderInfo::BindingInfo specular_map;
+	} specular_prefiter_bindings;
 
 	vk::Sampler sampler;
 };

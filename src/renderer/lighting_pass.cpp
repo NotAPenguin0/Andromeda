@@ -18,6 +18,8 @@ LightingPass::LightingPass(Context& ctx) {
     create_pipeline(ctx);
     create_ambient_pipeline(ctx);
     create_light_mesh(ctx);
+
+    brdf_lookup = ctx.request_texture("data/textures/ibl_brdf_lut.png", false);
 }
 
 static constexpr float quad_geometry[] = {
@@ -129,7 +131,8 @@ void LightingPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& f
         }
 
         // Ambient lighting pass
-        if (enable_ambient && assets::is_ready(database.environment_map)) {
+        if (enable_ambient && assets::is_ready(database.environment_map) 
+            && assets::is_ready(brdf_lookup)) {
             ph::Pipeline pipeline = cmd_buf.get_pipeline("deferred_ambient");
             cmd_buf.bind_pipeline(pipeline);
 
@@ -141,6 +144,9 @@ void LightingPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& f
             EnvMap* envmap = assets::get(database.environment_map);
             set_binding.add(ph::make_descriptor(bindings.ambient_irradiance_map, envmap->irradiance_map_view, frame.default_sampler));
             set_binding.add(ph::make_descriptor(bindings.ambient_camera, per_frame_buffers.camera));
+            set_binding.add(ph::make_descriptor(bindings.ambient_specular_map, envmap->specular_map_view, frame.default_sampler));
+            Texture* lookup = assets::get(brdf_lookup);
+            set_binding.add(ph::make_descriptor(bindings.ambient_brdf_lookup, lookup->view, frame.default_sampler));
             vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
             cmd_buf.bind_descriptor_set(0, descr_set);
 
@@ -273,6 +279,8 @@ void LightingPass::create_ambient_pipeline(Context& ctx) {
     bindings.ambient_metallic_roughness = pci.shader_info["gMetallicRoughness"];
     bindings.ambient_camera = pci.shader_info["camera"];
     bindings.ambient_irradiance_map = pci.shader_info["irradiance_map"];
+    bindings.ambient_brdf_lookup = pci.shader_info["brdf_lookup"];
+    bindings.ambient_specular_map = pci.shader_info["specular_map"];
 
     ctx.vulkan->pipelines.create_named_pipeline("deferred_ambient", std::move(pci));
 }

@@ -15,6 +15,8 @@ layout(set = 0, binding = 4) uniform CameraData {
 } camera;
 
 layout(set = 0, binding = 5) uniform samplerCube irradiance_map;
+layout(set = 0, binding = 6) uniform samplerCube specular_map;
+layout(set = 0, binding = 7) uniform sampler2D brdf_lookup;
 
 layout(location = 0) out vec4 FragColor;
 
@@ -35,9 +37,10 @@ vec3 WorldPosFromDepth(float depth, vec2 TexCoords) {
     return worldSpacePosition.xyz;
 }
 
-vec3 fresnel_schlick(float cos_theta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(1.0 - cos_theta, 5.0);
-}
+
+vec3 fresnel_schlick_roughness(float cos_theta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cos_theta, 5.0);
+}   
 
 void main() {
 	vec4 albedo_ao = texture(gAlbedoAO, UV);
@@ -52,10 +55,20 @@ void main() {
 	float depth = texture(gDepth, UV).r;
 	vec3 WorldPos = WorldPosFromDepth(depth, UV);
 	vec3 view_dir = normalize(camera.position - WorldPos);
-	vec3 kS = fresnel_schlick(max(dot(normal, view_dir), 0.0), F0);
+
+	vec3 F = fresnel_schlick_roughness(max(dot(normal, view_dir), 0.0), F0, roughness);
+	vec3 kS = F;
 	vec3 kD = 1.0 - kS;
+	kD *= 1.0 - metallic;
 	vec3 irradiance = texture(irradiance_map, normal).rgb;
 	vec3 diffuse  = irradiance * albedo;
-	vec3 ambient = (kD * diffuse) * ao; 
+	
+	vec3 reflect_dir = reflect(-view_dir, normal);
+	const float MAX_REFLECTION_LOD = 7.0f; // Currently hardcoded, needs a better system
+	vec3 indirect_specular = textureLod(specular_map, reflect_dir, roughness * MAX_REFLECTION_LOD).rgb;
+	vec2 env_brdf  = texture(brdf_lookup, vec2(max(dot(normal, view_dir), 0.0), roughness)).rg;
+	vec3 specular = indirect_specular * (F * env_brdf.x + env_brdf.y);
+
+	vec3 ambient = (kD * diffuse + specular) * ao; 
 	FragColor = vec4(ambient, 1.0);
 }

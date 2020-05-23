@@ -138,13 +138,13 @@ void Application::run() {
 
 	auto initialize = [&env_maps, this] {
 		env_maps[0] = context.request_env_map("data/envmaps/birchwood_4k.hdr");
-		env_maps[1] = context.request_env_map("data/envmaps/moonless_golf_4k.hdr");
+//		env_maps[1] = context.request_env_map("data/envmaps/moonless_golf_4k.hdr");
 		Handle<Mesh> sphere = context.request_mesh("data/meshes/sphere.glb");
 
-		Handle<Texture> color = context.request_texture("data/textures/rustediron2_basecolor.png", true);
-		Handle<Texture> normal = context.request_texture("data/textures/rustediron2_normal.png", false);
-		Handle<Texture> metallic = context.request_texture("data/textures/rustediron2_metallic.png", false);
-		Handle<Texture> roughness = context.request_texture("data/textures/rustediron2_roughness.png", false);
+		Handle<Texture> color = context.request_texture("data/textures/gold-scuffed_basecolor.png", true);
+		Handle<Texture> normal = context.request_texture("data/textures/gold-scuffed_normal.png", false);
+		Handle<Texture> metallic = context.request_texture("data/textures/gold-scuffed_metallic.png", false);
+		Handle<Texture> roughness = context.request_texture("data/textures/gold-scuffed_roughness.png", false);
 		Handle<Texture> ao = context.request_texture("data/textures/blank.png", false);
 
 

@@ -137,7 +137,7 @@ void main() {
     vec2 MetallicRoughness = texture(gMetallicRoughness, GBufferTexCoords).rg;
     float metallic = MetallicRoughness.r;
     float roughness = MetallicRoughness.g;
-
+    
     float depth = texture(gDepth, GBufferTexCoords).r;
     vec3 WorldPos = WorldPosFromDepth(depth, GBufferTexCoords);
     

@@ -50,9 +50,12 @@ private:
 		ph::ShaderInfo::BindingInfo ambient_depth;
 		ph::ShaderInfo::BindingInfo ambient_camera;
 		ph::ShaderInfo::BindingInfo ambient_irradiance_map;
+		ph::ShaderInfo::BindingInfo ambient_brdf_lookup;
+		ph::ShaderInfo::BindingInfo ambient_specular_map;
 	} bindings;
 
 	Handle<Mesh> light_mesh_handle;
+	Handle<Texture> brdf_lookup;
 
 	void create_pipeline(Context& ctx);
 	void create_ambient_pipeline(Context& ctx);
