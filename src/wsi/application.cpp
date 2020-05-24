@@ -135,7 +135,7 @@ void Application::run() {
 	light.intensity = 15.8f;
 	auto& light_trans = context.world->ecs().get_component<Transform>(light_entity);
 	light_trans.position = glm::vec3(-0.3f, 0.4f, 1.0f);
-
+	env_maps[1] = context.request_env_map("data/envmaps/moonless_golf_4k.hdr");
 	auto initialize = [&env_maps, this] {
 		env_maps[0] = context.request_env_map("data/envmaps/birchwood_4k.hdr");
 //		env_maps[1] = context.request_env_map("data/envmaps/moonless_golf_4k.hdr");
