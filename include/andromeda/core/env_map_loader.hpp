@@ -51,7 +51,7 @@ struct EnvMapLoadInfo {
 class EnvMapLoader {
 public:
 	EnvMapLoader(ph::VulkanContext& vulkan);
-	void load(ftl::TaskScheduler* scheduler, void* arg);
+	void load(ftl::TaskScheduler* scheduler, EnvMapLoadInfo load_info);
 private:
 	void create_projection_pipeline(ph::VulkanContext& vulkan);
 	void create_convolution_pipeline(ph::VulkanContext& vulkan);

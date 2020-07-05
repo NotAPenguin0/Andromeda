@@ -91,30 +91,6 @@ static constexpr uint32_t quad_indices[] = {
 
 void Application::run() {
 	using namespace components;
-/*
-	Handle<Texture> tex = assets::load<Texture>(context, "data/textures/dragon_texture_color.png", true);
-	Handle<Texture> normal_map = assets::load<Texture>(context, "data/textures/dragon_texture_normal.png", false);
-	Handle<Material> mat = assets::take<Material>({ .diffuse = tex, .normal = normal_map });
-	ecs::entity_t ent = context.world->create_entity();
-	auto& mesh = context.world->ecs().add_component<StaticMesh>(ent);
-	auto& trans = context.world->ecs().get_component<Transform>(ent);
-	auto& material = context.world->ecs().add_component<MeshRenderer>(ent);
-	mesh.mesh = assets::load<Mesh>(context, "data/meshes/dragon.glb");
-	trans.position = glm::vec3(0.3f, 1.3f, 0.1f);
-	trans.scale = glm::vec3(0.7f, 0.7f, 0.7f);
-	material.material = mat;
-
-	ecs::entity_t floor = context.world->create_entity();
-	context.world->ecs().add_component<StaticMesh>(floor).mesh =
-		assets::load<Mesh>(context, "data/meshes/plane.glb");
-	Handle<Texture> floor_color = assets::load<Texture>(context, "data/textures/plane_texture_color.png", true);
-	Handle<Texture> floor_normal = assets::load<Texture>(context, "data/textures/plane_texture_normal.png", false);
-	Handle<Material> floor_mat = assets::take<Material>({ .color = floor_color, .normal = floor_normal });
-	context.world->ecs().add_component<MeshRenderer>(floor).material = floor_mat;
-	auto& floor_trans = context.world->ecs().get_component<Transform>(floor);
-	floor_trans.position = glm::vec3(0.0f, 0.3f, 0.0f);
-	floor_trans.scale = glm::vec3(2, 1, 2);
-	*/
 
 	ecs::entity_t cam = context.world->create_entity();
 	Handle<EnvMap> env_maps[2] = {
@@ -135,16 +111,14 @@ void Application::run() {
 	light.intensity = 15.8f;
 	auto& light_trans = context.world->ecs().get_component<Transform>(light_entity);
 	light_trans.position = glm::vec3(-0.3f, 0.4f, 1.0f);
-	env_maps[1] = context.request_env_map("data/envmaps/moonless_golf_4k.hdr");
 	auto initialize = [&env_maps, this] {
-		env_maps[0] = context.request_env_map("data/envmaps/birchwood_4k.hdr");
-//		env_maps[1] = context.request_env_map("data/envmaps/moonless_golf_4k.hdr");
+		env_maps[0] = context.request_env_map("data/envmaps/the_lost_city_4k.hdr");
 		Handle<Mesh> sphere = context.request_mesh("data/meshes/sphere.glb");
 
-		Handle<Texture> color = context.request_texture("data/textures/gold-scuffed_basecolor.png", true);
-		Handle<Texture> normal = context.request_texture("data/textures/gold-scuffed_normal.png", false);
-		Handle<Texture> metallic = context.request_texture("data/textures/gold-scuffed_metallic.png", false);
-		Handle<Texture> roughness = context.request_texture("data/textures/gold-scuffed_roughness.png", false);
+		Handle<Texture> color = context.request_texture("data/textures/lightgold_albedo.png", true);
+		Handle<Texture> normal = context.request_texture("data/textures/lightgold_normal-dx.png", false);
+		Handle<Texture> metallic = context.request_texture("data/textures/lightgold_metallic.png", false);
+		Handle<Texture> roughness = context.request_texture("data/textures/lightgold_roughness.png", false);
 		Handle<Texture> ao = context.request_texture("data/textures/blank.png", false);
 
 
@@ -163,7 +137,6 @@ void Application::run() {
 		Handle<Texture> roughness2 = context.request_texture("data/textures/iced-over-ground7-Roughness.png", false);
 		Handle<Texture> ao2 = context.request_texture("data/textures/iced-over-ground7-ao.png", false);
 
-
 		Handle<Material> pbr_mat2 = assets::take<Material>(Material{
 			.color = color2,
 			.normal = normal2,
@@ -173,11 +146,11 @@ void Application::run() {
 			}
 		);
 
-		Handle<Texture> color3 = context.request_texture("data/textures/grimy-metal-albedo.png", true);
-		Handle<Texture> normal3 = context.request_texture("data/textures/grimy-metal-normal-dx.png", false);
-		Handle<Texture> metallic3 = context.request_texture("data/textures/grimy-metal-metallic.png", false);
-		Handle<Texture> roughness3 = context.request_texture("data/textures/grimy-metal-roughness.png", false);
-		Handle<Texture> ao3 = context.request_texture("data/textures/blank.png", false);
+		Handle<Texture> color3 = context.request_texture("data/textures/metalgrid1_basecolor.png", true);
+		Handle<Texture> normal3 = context.request_texture("data/textures/metalgrid1_normal.png", false);
+		Handle<Texture> metallic3 = context.request_texture("data/textures/blank.png", false);
+		Handle<Texture> roughness3 = context.request_texture("data/textures/black.png", false);
+		Handle<Texture> ao3 = context.request_texture("data/textures/metalgrid1_AO.png", false);
 
 		Handle<Material> pbr_mat3 = assets::take<Material>(Material{
 			.color = color3,
@@ -211,6 +184,7 @@ void Application::run() {
 	double last_time = time;
 	while (window.is_open()) {
 		window.poll_events();
+		context.tasks->free_if_idle();
 
 		ImGui_ImplMimas_NewFrame();
 		ImGui::NewFrame();

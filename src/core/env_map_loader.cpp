@@ -39,15 +39,14 @@ EnvMapLoader::EnvMapLoader(ph::VulkanContext& ctx) {
 	sampler = ctx.device.createSampler(sampler_info);
 }
 
-void EnvMapLoader::load(ftl::TaskScheduler* scheduler, void* arg) {
-	EnvMapLoadInfo* load_info = reinterpret_cast<EnvMapLoadInfo*>(arg);
-	Context* ctx = load_info->context;
+void EnvMapLoader::load(ftl::TaskScheduler* scheduler, EnvMapLoadInfo load_info) {
+	Context* ctx = load_info.context;
 	ph::VulkanContext& vulkan = *ctx->vulkan;
 
 	EnvMapProcessData process_data;
 
 	int w, h, channels;
-	float* hdr_data = stbi_loadf(load_info->path.data(), &w, &h, &channels, 4);
+	float* hdr_data = stbi_loadf(load_info.path.data(), &w, &h, &channels, 4);
 	upload_hdr_image(scheduler, vulkan, process_data, hdr_data, w, h);
 	begin_preprocess_commands(scheduler, vulkan, process_data);
 	project_equirectangular_to_cubemap(scheduler, vulkan, process_data);
@@ -66,10 +65,8 @@ void EnvMapLoader::load(ftl::TaskScheduler* scheduler, void* arg) {
 	result.specular_map = process_data.specular_map;
 	result.specular_map_view = process_data.specular_map_view;
 
-	assets::finalize_load(load_info->handle, std::move(result));
-	io::log("Finished loading and preprocessing environment map {}", load_info->path);
-
-	delete load_info;
+	assets::finalize_load(load_info.handle, std::move(result));
+	io::log("Finished loading and preprocessing environment map {}", load_info.path);
 }
 
 void EnvMapLoader::upload_hdr_image(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data,

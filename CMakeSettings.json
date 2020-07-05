@@ -35,6 +35,51 @@
           "name": "FTL_BUILD_TESTS",
           "value": "False",
           "type": "BOOL"
+        },
+        {
+          "name": "ASSIMP_BUILD_ASSIMP_TOOLS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "ASSIMP_BUILD_TESTS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_SHARED_LIBS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "SPIRV_CROSS_ENABLE_HLSL",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "SPIRV_CROSS_ENABLE_MSL",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "SPIRV_CROSS_ENABLE_C_API",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "PHOBOS_NO_FIXED_PIPELINE",
+          "value": "True",
+          "type": "BOOL"
         }
       ]
     },

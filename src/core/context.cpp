@@ -38,17 +38,16 @@ struct TextureLoadInfo {
 	Context* ctx;
 };
 
-static void do_texture_load(ftl::TaskScheduler* scheduler, void* arg) {
-	TextureLoadInfo* load_info = reinterpret_cast<TextureLoadInfo*>(arg);
-	ph::VulkanContext& vulkan = *load_info->ctx->vulkan;
+static void do_texture_load(ftl::TaskScheduler* scheduler, TextureLoadInfo load_info) {
+	ph::VulkanContext& vulkan = *load_info.ctx->vulkan;
 
 	int width, height, channels;
 	// Always load image as rgba
-	uint8_t* data = stbi_load(load_info->path.data(), &width, &height, &channels, 4);
+	uint8_t* data = stbi_load(load_info.path.data(), &width, &height, &channels, 4);
 
 	Texture texture;
 
-	vk::Format format = load_info->srgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
+	vk::Format format = load_info.srgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
 
 	texture.image = ph::create_image(vulkan, width, height, ph::ImageType::Texture, format);
 	// Upload data
@@ -105,12 +104,11 @@ static void do_texture_load(ftl::TaskScheduler* scheduler, void* arg) {
 	texture.view = ph::create_image_view(vulkan.device, texture.image);
 
 	// Push texture to the asset system and set state to Ready
-	assets::finalize_load(load_info->handle, std::move(texture));
+	assets::finalize_load(load_info.handle, std::move(texture));
 
-	io::log("Finished load {}", load_info->path);
+	io::log("Finished load {}", load_info.path);
 	// Cleanup
 	stbi_image_free(data);
-	delete load_info;
 }
 
 struct MeshLoadInfo {
@@ -119,7 +117,7 @@ struct MeshLoadInfo {
 	Context* ctx;
 };
 
-static void load_mesh_data(ftl::TaskScheduler* scheduler, MeshLoadInfo* load_info, aiMesh* mesh) {
+static void load_mesh_data(ftl::TaskScheduler* scheduler, MeshLoadInfo& load_info, aiMesh* mesh) {
 	constexpr size_t vtx_size = 3 + 3 + 3 + 2;
 	std::vector<float> verts(mesh->mNumVertices * vtx_size);
 	for (size_t i = 0; i < mesh->mNumVertices; ++i) {
@@ -151,7 +149,7 @@ static void load_mesh_data(ftl::TaskScheduler* scheduler, MeshLoadInfo* load_inf
 	}
 	
 	Mesh result;
-	ph::VulkanContext& vulkan = *load_info->ctx->vulkan;
+	ph::VulkanContext& vulkan = *load_info.ctx->vulkan;
 	result.vertices = ph::create_buffer(vulkan, verts.size() * sizeof(float), ph::BufferType::VertexBuffer);
 	result.indices = ph::create_buffer(vulkan, indices.size() * sizeof(uint32_t), ph::BufferType::IndexBuffer);
 	result.indices_size = indices.size();
@@ -197,15 +195,13 @@ static void load_mesh_data(ftl::TaskScheduler* scheduler, MeshLoadInfo* load_inf
 	ph::destroy_buffer(vulkan, vertex_staging);
 	ph::destroy_buffer(vulkan, index_staging);
 
-	assets::finalize_load(load_info->handle, std::move(result));
+	assets::finalize_load(load_info.handle, std::move(result));
 }
 
-static void do_mesh_load(ftl::TaskScheduler* scheduler, void* arg) {
-	auto* load_info = reinterpret_cast<MeshLoadInfo*>(arg);
-
+static void do_mesh_load(ftl::TaskScheduler* scheduler, MeshLoadInfo load_info) {
 	Assimp::Importer importer;
 	constexpr int postprocess = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_CalcTangentSpace;
-	aiScene const* scene = importer.ReadFile(std::string(load_info->path), postprocess);
+	aiScene const* scene = importer.ReadFile(std::string(load_info.path), postprocess);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
 		!scene->mRootNode) {
@@ -217,19 +213,17 @@ static void do_mesh_load(ftl::TaskScheduler* scheduler, void* arg) {
 		load_mesh_data(scheduler, load_info, scene->mMeshes[i]);
 		break;
 	}
-
-	delete load_info;
 }
 
 Handle<Texture> Context::request_texture(std::string_view path, bool srgb) {
 	Handle<Texture> handle = assets::insert_pending<Texture>();
-	tasks->launch(do_texture_load, new TextureLoadInfo{ handle, path, srgb, this });
+	tasks->launch(do_texture_load, TextureLoadInfo{ handle, path, srgb, this });
 	return handle;
 }
 
 Handle<Mesh> Context::request_mesh(std::string_view path) {
 	Handle<Mesh> handle = assets::insert_pending<Mesh>();
-	tasks->launch(do_mesh_load, new MeshLoadInfo{ handle, path, this });
+	tasks->launch(do_mesh_load, MeshLoadInfo{ handle, path, this });
 	return handle;
 }
 
@@ -261,21 +255,13 @@ Handle<Mesh> Context::request_mesh(float const* vertices, uint32_t size, uint32_
 	return assets::take(std::move(mesh));
 }
 
-struct EnvMapLaunchStub {
-	EnvMapLoader* loader;
-	EnvMapLoadInfo* load_info;
-};
-
-static void do_envmap_load(ftl::TaskScheduler* scheduler, void* arg) {
-	auto* data = reinterpret_cast<EnvMapLaunchStub*>(arg);
-	data->loader->load(scheduler, data->load_info);
-	delete data;
-}
 
 Handle<EnvMap> Context::request_env_map(std::string_view path) {
 	Handle<EnvMap> handle = assets::insert_pending<EnvMap>();
-	auto* info = new EnvMapLoadInfo{ handle, this, std::string(path) };
-	tasks->launch(do_envmap_load, new EnvMapLaunchStub{ envmap_loader.get(), info });
+	EnvMapLoadInfo load_info{ handle, this, std::string(path) };
+	tasks->launch([this](ftl::TaskScheduler* scheduler, EnvMapLoadInfo load_info) -> void {
+		envmap_loader->load(scheduler, std::move(load_info));
+		}, std::move(load_info));
 	return handle;
 }
 
