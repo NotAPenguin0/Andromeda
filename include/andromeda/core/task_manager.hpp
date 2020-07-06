@@ -54,27 +54,13 @@ public:
 
 	template<typename T>
 	void launch(TaskFunction<T> func, T arg) {
-		if (idle) {
-			io::log("Resuming idle task manager because a new task was launched. Total idle time was {} ticks.", ticks_with_no_tasks);
-			idle = false;
-			init();
-		}
-
-		ticks_with_no_tasks = 0;
-
+		resume_if_idle();
 		detail::TaskLaunchStub<T>* launch_stub = new detail::TaskLaunchStub<T>{ std::move(func), std::move(arg), *this };
 		detail::do_launch(launch_stub);
 	}
 
 	void launch(TaskFunction<void> func) {
-		if (idle) {
-			io::log("Resuming idle task manager because a new task was launched. Total idle time was {} ticks.", ticks_with_no_tasks);
-			idle = false;
-			init();
-		}
-
-		ticks_with_no_tasks = 0;
-
+		resume_if_idle();
 		detail::TaskLaunchStub<void>* launch_stub = new detail::TaskLaunchStub<void>{ std::move(func), *this };
 		detail::do_launch(launch_stub);
 	}
@@ -89,6 +75,8 @@ private:
 
 	void on_task_start();
 	void on_task_end();
+
+	void resume_if_idle();
 
 	template<typename T>
 	friend void detail::task_func(ftl::TaskScheduler* scheduler, void* arg);
@@ -131,7 +119,7 @@ void do_launch(TaskLaunchStub<T>* launch_stub) {
 	launch_stub->manager.get_scheduler().AddTask(task);
 }
 
-}
+} // namespace detail
 
 }
 

@@ -14,10 +14,29 @@ namespace andromeda {
 
 class Context;
 
+// TODO: move to utility. Adapted from https://stackoverflow.com/questions/11376288/fast-computing-of-log2-for-64-bit-integers
+constexpr uint32_t fast_log2(uint32_t x) {
+#define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
+	constexpr char LogTable256[256] {
+		-1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+		LT(4), LT(5), LT(5), LT(6), LT(6), LT(6), LT(6),
+		LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)
+	};
+
+	uint32_t t = 0, tt = 0; // temporaries
+	if (tt = x >> 16) {
+		return (t = tt >> 8) ? 24 + LogTable256[t] : 16 + LogTable256[tt];
+	} else {
+		return (t = x >> 8) ? 8 + LogTable256[t] : LogTable256[x];
+	}
+#undef LT
+}
+
 struct EnvMapProcessData {
 	static constexpr uint32_t cubemap_size = 2048;
 	static constexpr uint32_t irradiance_map_size = 32;
 	static constexpr uint32_t specular_map_base_size = 256;
+	static constexpr uint32_t cubemap_mip_count = fast_log2(cubemap_size) + 1;
 
 	// Resources
 	ph::RawImage raw_hdr;
@@ -35,6 +54,8 @@ struct EnvMapProcessData {
 
 	// Synchronization primitives
 	vk::Semaphore transfer_done;
+	vk::Semaphore projection_done;
+	vk::Semaphore mipmap_done;
 
 	// Rendering data
 	ph::FrameInfo fake_frame;
@@ -62,6 +83,7 @@ private:
 		float* data, uint32_t width, uint32_t height);
 	void begin_preprocess_commands(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void project_equirectangular_to_cubemap(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
+	void generate_cube_mipmap(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void create_irradiance_map(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void create_specular_map(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);
 	void end_preprocess_commands(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data);

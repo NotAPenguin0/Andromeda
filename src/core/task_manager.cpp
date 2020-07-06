@@ -43,4 +43,14 @@ void TaskManager::on_task_end() {
 	--running_tasks;
 }
 
+void TaskManager::resume_if_idle() {
+	if (idle) {
+		io::log("Resuming idle task manager because a new task was launched. Total idle time was {} ticks.", ticks_with_no_tasks);
+		idle = false;
+		init();
+	}
+
+	ticks_with_no_tasks = 0;
+}
+
 }

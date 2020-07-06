@@ -65,7 +65,8 @@ void main() {
 	
 	vec3 reflect_dir = reflect(-view_dir, normal);
 	const float MAX_REFLECTION_LOD = 7.0f; // Currently hardcoded, needs a better system
-	vec3 indirect_specular = textureLod(specular_map, reflect_dir, roughness * MAX_REFLECTION_LOD).rgb;
+	float lod = MAX_REFLECTION_LOD * roughness;
+	vec3 indirect_specular = textureLod(specular_map, reflect_dir, lod).rgb;
 	vec2 env_brdf  = texture(brdf_lookup, vec2(max(dot(normal, view_dir), 0.0), roughness)).rg;
 	vec3 specular = indirect_specular * (F * env_brdf.x + env_brdf.y);
 
