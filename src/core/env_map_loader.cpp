@@ -34,7 +34,7 @@ EnvMapLoader::EnvMapLoader(ph::VulkanContext& ctx) {
 	sampler_info.compareOp = vk::CompareOp::eAlways;
 	sampler_info.mipmapMode = vk::SamplerMipmapMode::eLinear;
 	sampler_info.minLod = 0.0;
-	sampler_info.maxLod = 0.0;
+	sampler_info.maxLod = EnvMapProcessData::cubemap_mip_count - 1;
 	sampler_info.mipLodBias = 0.0;
 	sampler = ctx.device.createSampler(sampler_info);
 }
@@ -279,7 +279,7 @@ void EnvMapLoader::create_irradiance_map(ftl::TaskScheduler* scheduler, ph::Vulk
 }
 
 void EnvMapLoader::create_specular_map(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data) {
-	const uint32_t mip_count = std::log2(process_data.specular_map_base_size) + 1;
+	constexpr uint32_t mip_count = fast_log2(process_data.specular_map_base_size) + 1;
 
 	process_data.specular_map = ph::create_image(vulkan, process_data.specular_map_base_size, process_data.specular_map_base_size,
 		ph::ImageType::EnvMap, vk::Format::eR32G32B32A32Sfloat, 6, mip_count);
@@ -304,7 +304,7 @@ void EnvMapLoader::create_specular_map(ftl::TaskScheduler* scheduler, ph::Vulkan
 		vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
 		cmd_buf.bind_descriptor_set(0, descr_set);
 
-		float roughness = (float)level / (float)(mip_count - 1);
+		float roughness = std::clamp((float)level / (float)(mip_count - 1), 0.04f, 1.0f);
 		cmd_buf.push_constants(vk::ShaderStageFlagBits::eCompute, 0, sizeof(float), &roughness);
 
 		uint32_t const mip_size = process_data.specular_map_base_size / pow(2, level);

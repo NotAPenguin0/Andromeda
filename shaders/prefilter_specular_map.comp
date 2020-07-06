@@ -81,6 +81,28 @@ vec3 importance_sample_ggx(vec2 Xi, vec3 N, float roughness) {
     return normalize(sample_vec);
 }  
 
+// Credit goes to https://github.com/nem0/LumixEngine/blob/master/data/pipelines/ibl_filter.shd#L120
+float D_GGX(float ndoth, float roughness) {
+	float a = roughness * roughness;
+	float a2 = a * a;
+	float f = max(1e-5, (ndoth * ndoth) * (a2 - 1) + 1);
+	return a2 / (f * f * PI);
+}
+
+// Credit goes to https://github.com/nem0/LumixEngine/blob/master/data/pipelines/ibl_filter.shd#L120
+float prefiltered_importance_sampling(float ipdf) {
+	const float numSamples = 1024.0f;
+	const float invNumSamples = 1.0 / 1024.0f;
+	const float dim = textureSize(cube_map, 0).x;
+	const float omegaP = (4.0 * PI) / (6.0 * dim * dim);
+	const float invOmegaP = 1.0 / omegaP;
+	const float K = 4.0;
+	const float iblRoughnessOneLevel = 11;
+	float omegaS = invNumSamples * ipdf;
+	float mipLevel = clamp(log2(K * omegaS * invOmegaP) * 0.5, 0.0, iblRoughnessOneLevel);
+	return mipLevel;
+}
+
 vec3 apply_specular_filter(vec3 local_direction, float roughness) {
     vec3 N = normalize(local_direction);    
     vec3 R = N;
@@ -96,7 +118,10 @@ vec3 apply_specular_filter(vec3 local_direction, float roughness) {
 
         float n_dot_l = max(dot(N, L), 0.0);
         if(n_dot_l > 0.0) {
-            prefiltered_color += texture(cube_map, L).rgb * n_dot_l;
+            // Credit for this approach goes to https://github.com/nem0/LumixEngine/blob/master/data/pipelines/ibl_filter.shd#L120
+            float ipdf = (4.0 * dot(L, H)) / (D_GGX(dot(N, H), roughness) * dot(N, H));
+            float mip_level = prefiltered_importance_sampling(ipdf);
+            prefiltered_color += textureLod(cube_map, L, mip_level).rgb * n_dot_l;
             total_weight += n_dot_l;
         }
     }
