@@ -178,7 +178,8 @@ void Application::run() {
 			}
 		}
 	};
-//	initialize();
+	initialize();
+	while (context.tasks->task_count() != 0) {}
 
 	double time = mimas_get_time();
 	double last_time = time;

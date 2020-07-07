@@ -69,6 +69,8 @@ public:
 
 	void free_if_idle();
 
+	std::atomic<size_t> const& task_count() const { return running_tasks; }
+
 private:
 	void init();
 	void deinit();

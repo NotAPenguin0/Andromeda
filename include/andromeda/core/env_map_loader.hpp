@@ -105,6 +105,7 @@ private:
 	} specular_prefiter_bindings;
 
 	vk::Sampler sampler;
+	vk::Sampler no_mip_sampler;
 };
 
 }

@@ -45,23 +45,27 @@ vec3 fresnel_schlick_roughness(float cos_theta, vec3 F0, float roughness) {
 void main() {
 	vec4 albedo_ao = texture(gAlbedoAO, UV);
 	vec3 albedo = albedo_ao.rgb;
+	
 	float ao = albedo_ao.a;
 	vec3 normal = texture(gNormal, UV).rgb * 2.0f - 1.0f;
+	
 	vec2 metallic_roughness = texture(gMetallicRoughness, UV).rg;
 	float metallic = metallic_roughness.r;
 	float roughness = metallic_roughness.g;
+	
 	vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
+
 	float depth = texture(gDepth, UV).r;
 	vec3 WorldPos = WorldPosFromDepth(depth, UV);
 	vec3 view_dir = normalize(camera.position - WorldPos);
 
 	vec3 F = fresnel_schlick_roughness(max(dot(normal, view_dir), 0.0), F0, roughness);
 	vec3 kS = F;
-	vec3 kD = 1.0 - kS;
-	kD *= 1.0 - metallic;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= (1.0 - metallic);
 	vec3 irradiance = texture(irradiance_map, normal).rgb;
-	vec3 diffuse  = irradiance * albedo;
+	vec3 diffuse = irradiance * albedo;
 	
 	vec3 reflect_dir = reflect(-view_dir, normal);
 	const float MAX_REFLECTION_LOD = 7.0f; // Currently hardcoded, needs a better system

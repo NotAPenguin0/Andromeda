@@ -136,7 +136,9 @@ layout(push_constant) uniform PC {
 void main() {
     for (int face = 0; face < 6; ++face) {
         int face_size = imageSize(specular_map).x;
-        vec2 uv = clamp(vec2(gl_GlobalInvocationID.xy) / float(face_size), vec2(0), vec2(1));
+        vec2 uv = vec2(gl_GlobalInvocationID.xy) / float(face_size);
+        // Avoid accessing out of bounds
+        if (uv.x > 1 || uv.y > 1) return;
         vec3 local_direction = normalize(to_local_direction(uv, face));
         local_direction.y = -local_direction.y;
 

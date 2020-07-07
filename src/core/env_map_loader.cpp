@@ -37,6 +37,9 @@ EnvMapLoader::EnvMapLoader(ph::VulkanContext& ctx) {
 	sampler_info.maxLod = EnvMapProcessData::cubemap_mip_count - 1;
 	sampler_info.mipLodBias = 0.0;
 	sampler = ctx.device.createSampler(sampler_info);
+
+	sampler_info.maxLod = 0.0;
+	no_mip_sampler = ctx.device.createSampler(sampler_info);
 }
 
 void EnvMapLoader::load(ftl::TaskScheduler* scheduler, EnvMapLoadInfo load_info) {
@@ -269,7 +272,7 @@ void EnvMapLoader::create_irradiance_map(ftl::TaskScheduler* scheduler, ph::Vulk
 	cmd_buf.barrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, barrier);
 
 	ph::DescriptorSetBinding set_binding;
-	set_binding.add(ph::make_descriptor(convolution_bindings.cube_map, process_data.cubemap_view, sampler, vk::ImageLayout::eGeneral));
+	set_binding.add(ph::make_descriptor(convolution_bindings.cube_map, process_data.cubemap_view, no_mip_sampler, vk::ImageLayout::eGeneral));
 	set_binding.add(ph::make_descriptor(convolution_bindings.irradiance_map, process_data.irradiance_map_view, vk::ImageLayout::eGeneral));
 
 	vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);

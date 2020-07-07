@@ -259,6 +259,7 @@ Handle<Mesh> Context::request_mesh(float const* vertices, uint32_t size, uint32_
 Handle<EnvMap> Context::request_env_map(std::string_view path) {
 	Handle<EnvMap> handle = assets::insert_pending<EnvMap>();
 	EnvMapLoadInfo load_info{ handle, this, std::string(path) };
+//	envmap_loader->load(&tasks->get_scheduler(), load_info);
 	tasks->launch([this](ftl::TaskScheduler* scheduler, EnvMapLoadInfo load_info) -> void {
 		envmap_loader->load(scheduler, std::move(load_info));
 		}, std::move(load_info));

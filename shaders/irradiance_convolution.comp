@@ -45,23 +45,22 @@ vec3 to_local_direction(vec2 uv, int face) {
 #define PI 3.14159265359
 
 vec3 calculate_irradiance(vec3 local_direction) {
-    vec3 normal = normalize(vec3(local_direction.x, -local_direction.y, local_direction.z));
+    vec3 normal = normalize(local_direction);
     vec3 irradiance = vec3(0.0);
 
     vec3 up = vec3(0.0, 1.0, 0.0);
-    vec3 right = cross(up, normal);
+    vec3 right = normalize(cross(up, normal));
     up = cross(normal, right);
 
     float sample_delta = 0.025;
     float n_samples = 0.0; 
     for(float phi = 0.0; phi < 2.0 * PI; phi += sample_delta) {
         for(float theta = 0.0; theta < 0.5 * PI; theta += sample_delta) {
-            // spherical to cartesian (in tangent space)
-            vec3 tangent_sample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
-            // tangent space to world
-            vec3 sample_vec = tangent_sample.x * right + tangent_sample.y * up + tangent_sample.z * normal; 
+            vec3 tangent = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+            vec3 sample_vec = tangent.x * right + tangent.y * up + tangent.z * normal;
 
-            irradiance += texture(cube_map, sample_vec).rgb * cos(theta) * sin(theta);
+            vec3 sample_color = texture(cube_map, sample_vec).rgb * cos(theta) * sin(theta);
+            irradiance += sample_color;
             n_samples++;
         }
     }
@@ -73,7 +72,10 @@ vec3 calculate_irradiance(vec3 local_direction) {
 void main() {
     int face_size = imageSize(irradiance_map).x;
     vec2 uv = vec2(gl_GlobalInvocationID.xy) / float(face_size);
+    // Avoid accessing out of bounds
+    if (uv.x > 1 || uv.y > 1) return;
     vec3 local_direction = normalize(to_local_direction(uv, int(gl_GlobalInvocationID.z)));
+    local_direction.y = -local_direction.y;
 
     vec4 color = vec4(calculate_irradiance(local_direction), 1);
 
