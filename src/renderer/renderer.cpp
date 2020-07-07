@@ -37,8 +37,10 @@ Renderer::Renderer(Context& ctx) {
 	geometry_pass = std::make_unique<GeometryPass>(ctx, *vk_present);
 	lighting_pass = std::make_unique<LightingPass>(ctx);
 	skybox_pass = std::make_unique<SkyboxPass>(ctx);
+	tonemap_pass = std::make_unique<TonemapPass>(ctx);
 
-	scene_color = &vk_present->add_color_attachment("scene_color", { 1280, 720 });
+	scene_color = &vk_present->add_color_attachment("scene_color", { 1280, 720 }, vk::Format::eR16G16B16A16Sfloat);
+	scene_color_tonemapped = &vk_present->add_color_attachment("scene_color_tonemapped", { 1280, 720 });
 }
 
 Renderer::~Renderer() {
@@ -103,6 +105,10 @@ void Renderer::render(Context& ctx) {
 	skybox_pass->build(ctx, {
 			.output = *scene_color,
 			.depth = geometry_pass->get_depth()
+		}, frame, graph, database);
+	tonemap_pass->build(ctx, {
+			.input_hdr = *scene_color,
+			.output_ldr = *scene_color_tonemapped
 		}, frame, graph, database);
 
 	ImGui::Render();

@@ -18,6 +18,7 @@ target_sources(andromeda PRIVATE
 	"renderer/lighting_pass.cpp"
 	"renderer/util.cpp"
 	"renderer/skybox_pass.cpp"
+	"renderer/tonemap_pass.cpp"
 
 	"util/log.cpp"
 

@@ -7,6 +7,7 @@
 #include <andromeda/renderer/geometry_pass.hpp>
 #include <andromeda/renderer/lighting_pass.hpp>
 #include <andromeda/renderer/skybox_pass.hpp>
+#include <andromeda/renderer/tonemap_pass.hpp>
 
 #include <phobos/renderer/render_attachment.hpp>
 #include <phobos/pipeline/pipeline.hpp>
@@ -21,7 +22,7 @@ public:
 	// Renders the world (and UI) to the screen. Before calling this, you are not allowed to directly modify in-use GPU resources.
 	void render(Context& ctx);
 
-	ph::ImageView scene_image() { return scene_color->image_view(); }
+	ph::ImageView scene_image() { return scene_color_tonemapped->image_view(); }
 	GeometryPass& get_geometry_pass() { return *geometry_pass; }
 	LightingPass& get_lighting_pass() { return *lighting_pass; }
 
@@ -34,8 +35,10 @@ private:
 	std::unique_ptr<GeometryPass> geometry_pass;
 	std::unique_ptr<LightingPass> lighting_pass;
 	std::unique_ptr<SkyboxPass> skybox_pass;
+	std::unique_ptr<TonemapPass> tonemap_pass;
 
 	ph::RenderAttachment* scene_color;
+	ph::RenderAttachment* scene_color_tonemapped;
 };
 
 } // namespace andromeda::renderer

@@ -8,8 +8,6 @@ layout(location = 0) out vec4 FragColor;
 
 void main() {
     vec3 color = texture(skybox, UV).rgb;
-	// HDR tonemap. Not sure about this one, might look slightly better without tbh
-//    color = color / (color + vec3(1.0));
 	FragColor = vec4(color, 1.0);
 	gl_FragDepth = 1.0;
 }
