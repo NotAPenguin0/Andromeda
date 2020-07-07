@@ -90,25 +90,32 @@ static void do_texture_load(ftl::TaskScheduler* scheduler, TextureLoadInfo load_
 	vk::Fence transition_done = vulkan.device.createFence({});
 	vulkan.graphics->end_single_time(transition_cmd, transition_done, vk::PipelineStageFlagBits::eTransfer, transfer_done);
 
-	// 5. Wait for fence
-	vulkan.device.waitForFences(transition_done, true, std::numeric_limits<uint64_t>::max());
+	TaskManager& task_manager = *load_info.ctx->tasks;
+	task_manager.wait_task(
+		// Polling function. This function polls the fence
+		[transition_done, &vulkan]() -> TaskStatus {
+			vk::Result fence_status = vulkan.device.getFenceStatus(transition_done);
+			if (fence_status == vk::Result::eSuccess) { return TaskStatus::Completed; }
+			return TaskStatus::Running;
+		},
+		// Cleanup function for when the polling function returns TaskStatus::Completed
+		[transition_done, transfer_done, cmd_buf, thread_index, staging, texture, data, load_info, &vulkan] () mutable -> void {
+			vulkan.device.destroyFence(transition_done);
+			vulkan.device.destroySemaphore(transfer_done);
+			vulkan.transfer->free_single_time(cmd_buf, thread_index);
 
-	// 6. Done, do some cleanup and exit
-	vulkan.device.destroyFence(transition_done);
-	vulkan.device.destroySemaphore(transfer_done);
-	vulkan.transfer->free_single_time(cmd_buf, thread_index);
+			// Don't forget to destroy the staging buffer
+			ph::destroy_buffer(vulkan, staging);
+			// Create image view
+			texture.view = ph::create_image_view(vulkan.device, texture.image);
 
-	// Don't forget to destroy the staging buffer
-	ph::destroy_buffer(vulkan, staging);
-	// Create image view
-	texture.view = ph::create_image_view(vulkan.device, texture.image);
+			// Push texture to the asset system and set state to Ready
+			assets::finalize_load(load_info.handle, std::move(texture));
 
-	// Push texture to the asset system and set state to Ready
-	assets::finalize_load(load_info.handle, std::move(texture));
-
-	io::log("Finished load {}", load_info.path);
-	// Cleanup
-	stbi_image_free(data);
+			io::log("Finished load {}", load_info.path);
+			stbi_image_free(data);
+		}
+	);	
 }
 
 struct MeshLoadInfo {
@@ -184,18 +191,27 @@ static void load_mesh_data(ftl::TaskScheduler* scheduler, MeshLoadInfo& load_inf
 	vulkan.graphics->acquire_ownership(ownership_cbuf, result.indices, *vulkan.transfer);
 	vulkan.graphics->end_single_time(ownership_cbuf, ownership_done, vk::PipelineStageFlagBits::eTransfer, copy_done);
 
-	vulkan.device.waitForFences(ownership_done, true, std::numeric_limits<uint64_t>::max());
-	// Cleanup, transfer operation complete
-	vulkan.device.destroyFence(ownership_done);
-	vulkan.device.destroySemaphore(copy_done);
+	TaskManager& task_manager = *load_info.ctx->tasks;
+	task_manager.wait_task(
+		[ownership_done, &vulkan]() -> TaskStatus {
+			vk::Result fence_status = vulkan.device.getFenceStatus(ownership_done);
+			return fence_status == vk::Result::eSuccess ? TaskStatus::Completed : TaskStatus::Running;
+		},
+		[&vulkan, ownership_done, copy_done, cmd_buf, ownership_cbuf, 
+			thread_index, vertex_staging, index_staging, load_info, result]() mutable -> void {
+			// Cleanup, transfer operation complete
+			vulkan.device.destroyFence(ownership_done);
+			vulkan.device.destroySemaphore(copy_done);
 
-	vulkan.transfer->free_single_time(cmd_buf, thread_index);
-	vulkan.graphics->free_single_time(ownership_cbuf, thread_index);
+			vulkan.transfer->free_single_time(cmd_buf, thread_index);
+			vulkan.graphics->free_single_time(ownership_cbuf, thread_index);
 
-	ph::destroy_buffer(vulkan, vertex_staging);
-	ph::destroy_buffer(vulkan, index_staging);
+			ph::destroy_buffer(vulkan, vertex_staging);
+			ph::destroy_buffer(vulkan, index_staging);
 
-	assets::finalize_load(load_info.handle, std::move(result));
+			assets::finalize_load(load_info.handle, std::move(result));
+		}
+	);	
 }
 
 static void do_mesh_load(ftl::TaskScheduler* scheduler, MeshLoadInfo load_info) {
@@ -259,7 +275,6 @@ Handle<Mesh> Context::request_mesh(float const* vertices, uint32_t size, uint32_
 Handle<EnvMap> Context::request_env_map(std::string_view path) {
 	Handle<EnvMap> handle = assets::insert_pending<EnvMap>();
 	EnvMapLoadInfo load_info{ handle, this, std::string(path) };
-//	envmap_loader->load(&tasks->get_scheduler(), load_info);
 	tasks->launch([this](ftl::TaskScheduler* scheduler, EnvMapLoadInfo load_info) -> void {
 		envmap_loader->load(scheduler, std::move(load_info));
 		}, std::move(load_info));

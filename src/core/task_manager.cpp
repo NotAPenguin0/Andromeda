@@ -12,6 +12,25 @@ TaskManager::TaskManager() {
 
 }
 
+void TaskManager::check_task_status() {
+	if (waiting_tasks.empty()) return;
+	std::lock_guard lock(waiting_mutex);
+
+	for (auto it = waiting_tasks.begin(); it != waiting_tasks.end(); ++it) {
+		auto const& waiting_task = *it;
+		if (waiting_task.poll_func() == TaskStatus::Completed) {
+			waiting_task.cleanup_func();
+			it = waiting_tasks.erase(it);
+			if (it == waiting_tasks.end()) break;
+		}
+	}
+}
+
+void TaskManager::wait_task(std::function<TaskStatus()> status_callback, std::function<void()> cleanup_callback) {
+	std::lock_guard lock(waiting_mutex);
+	waiting_tasks.push_back({ status_callback, cleanup_callback });
+}
+
 void TaskManager::free_if_idle() {
 	if (running_tasks == 0) {
 		++ticks_with_no_tasks;

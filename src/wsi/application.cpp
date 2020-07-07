@@ -179,12 +179,12 @@ void Application::run() {
 		}
 	};
 	initialize();
-	while (context.tasks->task_count() != 0) {}
 
 	double time = mimas_get_time();
 	double last_time = time;
 	while (window.is_open()) {
 		window.poll_events();
+		context.tasks->check_task_status();
 		context.tasks->free_if_idle();
 
 		ImGui_ImplMimas_NewFrame();
