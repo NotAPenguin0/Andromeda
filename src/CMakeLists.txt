@@ -9,6 +9,7 @@ target_sources(andromeda PRIVATE
 	"core/context.cpp"
 	"core/task_manager.cpp"
 	"core/env_map_loader.cpp"
+	"core/mipmap_gen.cpp"
 
 	"ecs/registry.cpp"
 

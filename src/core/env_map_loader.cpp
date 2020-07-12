@@ -5,6 +5,7 @@
 #include <phobos/renderer/render_graph.hpp>
 #include <phobos/renderer/render_attachment.hpp>
 #include <andromeda/core/context.hpp>
+#include <andromeda/core/mipmap_gen.hpp>
 #include <andromeda/assets/assets.hpp>
 
 #include <cmath>
@@ -27,14 +28,14 @@ EnvMapLoader::EnvMapLoader(ph::VulkanContext& ctx) {
 	sampler_info.addressModeV = vk::SamplerAddressMode::eRepeat;
 	sampler_info.addressModeW = vk::SamplerAddressMode::eRepeat;
 	sampler_info.anisotropyEnable = true;
-	sampler_info.maxAnisotropy = 8;
+	sampler_info.maxAnisotropy = 16;
 	sampler_info.borderColor = vk::BorderColor::eIntOpaqueBlack;
 	sampler_info.unnormalizedCoordinates = false;
 	sampler_info.compareEnable = false;
 	sampler_info.compareOp = vk::CompareOp::eAlways;
 	sampler_info.mipmapMode = vk::SamplerMipmapMode::eLinear;
 	sampler_info.minLod = 0.0;
-	sampler_info.maxLod = EnvMapProcessData::cubemap_mip_count - 1;
+	sampler_info.maxLod = 64;
 	sampler_info.mipLodBias = 0.0;
 	sampler = ctx.device.createSampler(sampler_info);
 
@@ -108,7 +109,7 @@ void EnvMapLoader::begin_preprocess_commands(ftl::TaskScheduler* scheduler, ph::
 
 void EnvMapLoader::project_equirectangular_to_cubemap(ftl::TaskScheduler* scheduler, ph::VulkanContext& vulkan, EnvMapProcessData& process_data) {
 	process_data.cube_map = ph::create_image(vulkan, process_data.cubemap_size, process_data.cubemap_size, 
-		ph::ImageType::EnvMap, vk::Format::eR32G32B32A32Sfloat, 6, process_data.cubemap_mip_count);
+		ph::ImageType::EnvMap, vk::Format::eR32G32B32A32Sfloat, 6, fast_log2(process_data.cubemap_size) + 1);
 	process_data.cubemap_view = ph::create_image_view(vulkan.device, process_data.cube_map);
 	
 	ph::transition_image_layout(process_data.raw_cmd_buf, process_data.cube_map, vk::ImageLayout::eGeneral);
@@ -141,7 +142,7 @@ void EnvMapLoader::generate_cube_mipmap(ftl::TaskScheduler* scheduler, ph::Vulka
 	vk::CommandBuffer cmd_buf = vulkan.graphics->begin_single_time(thread_index);
 	vulkan.graphics->acquire_ownership(cmd_buf, process_data.cube_map, *vulkan.compute);
 
-	// Transition first mip level of the image to TransferSrcOptimal
+	// Transition entire image to TransferSrcOptimal
 	vk::ImageMemoryBarrier barrier;
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -151,7 +152,7 @@ void EnvMapLoader::generate_cube_mipmap(ftl::TaskScheduler* scheduler, ph::Vulka
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = process_data.cube_map.layers;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.levelCount = get_mip_count(process_data.cube_map);
 	
 	barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
 	barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
@@ -162,77 +163,8 @@ void EnvMapLoader::generate_cube_mipmap(ftl::TaskScheduler* scheduler, ph::Vulka
 	cmd_buf.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer, 
 		vk::DependencyFlagBits::eByRegion, nullptr, nullptr, barrier);
 
-	// We are now ready to generate the mip levels. Approach taken and adapted from Sasha Willems' Vulkan examples
-	// https://github.com/SaschaWillems/Vulkan/blob/e370e6d169204bc3deaef637189336972414ffa5/examples/texturemipmapgen/texturemipmapgen.cpp#L264
-	for (uint32_t mip = 1; mip < process_data.cubemap_mip_count; ++mip) {
-		vk::ImageBlit blit;
-		// Source
-		blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-		blit.srcSubresource.layerCount = 6;
-		blit.srcSubresource.baseArrayLayer = 0;
-		blit.srcSubresource.mipLevel = mip - 1;
-		blit.srcOffsets[1].x = int32_t(process_data.cubemap_size >> (mip - 1));
-		blit.srcOffsets[1].y = int32_t(process_data.cubemap_size >> (mip - 1));
-		blit.srcOffsets[1].z = 1;
-		// Destination
-		blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-		blit.dstSubresource.layerCount = 6;
-		blit.dstSubresource.baseArrayLayer = 0;
-		blit.dstSubresource.mipLevel = mip;
-		blit.dstOffsets[1].x = int32_t(process_data.cubemap_size >> mip);
-		blit.dstOffsets[1].y = int32_t(process_data.cubemap_size >> mip);
-		blit.dstOffsets[1].z = 1;
-
-		vk::ImageSubresourceRange mip_sub_range;
-		mip_sub_range.aspectMask = vk::ImageAspectFlagBits::eColor;
-		mip_sub_range.baseMipLevel = mip;
-		mip_sub_range.levelCount = 1;
-		mip_sub_range.baseArrayLayer = 0;
-		mip_sub_range.layerCount = process_data.cube_map.layers;
-
-		// Prepare current mip level as transfer destination
-
-		barrier.srcAccessMask = {};
-		barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-		barrier.subresourceRange = mip_sub_range;
-		barrier.oldLayout = vk::ImageLayout::eGeneral;
-		barrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
-		cmd_buf.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, 
-			vk::DependencyFlagBits::eByRegion, nullptr, nullptr, barrier);
-
-		// Do the blit
-		cmd_buf.blitImage(process_data.cube_map.image, vk::ImageLayout::eTransferSrcOptimal, 
-			process_data.cube_map.image, vk::ImageLayout::eTransferDstOptimal, blit, vk::Filter::eLinear);
-
-		if (mip != process_data.cubemap_mip_count - 1) {
-			// Prepare current mip level as transfer source if it is not the last mip level
-			barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-			barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-			barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
-			barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
-			cmd_buf.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, 
-				vk::DependencyFlagBits::eByRegion, nullptr, nullptr, barrier);
-		} else {
-			// Else, transition to general layout immediately. We won't include the last mip level in the final barrier
-			barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-			barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-			barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
-			barrier.newLayout = vk::ImageLayout::eGeneral;
-			cmd_buf.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader, 
-				vk::DependencyFlagBits::eByRegion, nullptr, nullptr, barrier);
-		}
-	}
-
-	// Transition the entire image except the final mip level to General for use in the compute shader
-	barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-	barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-	barrier.subresourceRange.levelCount = process_data.cubemap_mip_count - 1;
-	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
-	barrier.newLayout = vk::ImageLayout::eGeneral;
-
-	cmd_buf.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader, 
-		vk::DependencyFlagBits::eByRegion, nullptr, nullptr, barrier);
+	generate_mipmaps(cmd_buf, process_data.cube_map, vk::ImageLayout::eGeneral, vk::AccessFlagBits::eShaderRead, 
+		vk::PipelineStageFlagBits::eComputeShader);
 
 	vulkan.graphics->release_ownership(cmd_buf, process_data.cube_map, *vulkan.compute);
 	process_data.mipmap_done = vulkan.device.createSemaphore({});
@@ -268,7 +200,7 @@ void EnvMapLoader::create_irradiance_map(ftl::TaskScheduler* scheduler, ph::Vulk
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = 6;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = process_data.cubemap_mip_count;
+	barrier.subresourceRange.levelCount = get_mip_count(process_data.cube_map);
 	cmd_buf.barrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, barrier);
 
 	ph::DescriptorSetBinding set_binding;

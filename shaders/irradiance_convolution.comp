@@ -39,7 +39,7 @@ vec2 uv_to_quad_pos(vec2 uv) {
 
 vec3 to_local_direction(vec2 uv, int face) {
      mat4 view = look_at(view_pos, view_target[face], view_up[face]);
-     return (view * vec4(uv_to_quad_pos(uv), 1, 1)).xyz;
+     return (view * vec4(uv_to_quad_pos(uv), 1, 0)).xyz;
 }
 
 #define PI 3.14159265359
@@ -71,7 +71,7 @@ vec3 calculate_irradiance(vec3 local_direction) {
 
 void main() {
     int face_size = imageSize(irradiance_map).x;
-    vec2 uv = vec2(gl_GlobalInvocationID.xy) / float(face_size);
+    vec2 uv = (vec2(gl_GlobalInvocationID.xy)) / float(face_size);
     // Avoid accessing out of bounds
     if (uv.x > 1 || uv.y > 1) return;
     vec3 local_direction = normalize(to_local_direction(uv, int(gl_GlobalInvocationID.z)));

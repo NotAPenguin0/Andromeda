@@ -36,7 +36,6 @@ struct EnvMapProcessData {
 	static constexpr uint32_t cubemap_size = 2048;
 	static constexpr uint32_t irradiance_map_size = 32;
 	static constexpr uint32_t specular_map_base_size = 256;
-	static constexpr uint32_t cubemap_mip_count = fast_log2(cubemap_size) + 1;
 
 	// Resources
 	ph::RawImage raw_hdr;

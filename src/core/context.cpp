@@ -7,6 +7,8 @@
 #include <andromeda/assets/assets.hpp>
 #include <andromeda/world/world.hpp>
 
+#include <andromeda/core/mipmap_gen.hpp>
+
 #include <andromeda/util/types.hpp>
 
 #include <andromeda/assets/importers/stb_image.h>
@@ -49,7 +51,7 @@ static void do_texture_load(ftl::TaskScheduler* scheduler, TextureLoadInfo load_
 
 	vk::Format format = load_info.srgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm;
 
-	texture.image = ph::create_image(vulkan, width, height, ph::ImageType::Texture, format);
+	texture.image = ph::create_image(vulkan, width, height, ph::ImageType::Texture, format, 1, std::log2(std::max(width, height)) + 1);
 	// Upload data
 	uint32_t size = width * height * format_byte_size(format);
 	ph::RawBuffer staging = ph::create_buffer(vulkan, size, ph::BufferType::TransferBuffer);
@@ -63,10 +65,10 @@ static void do_texture_load(ftl::TaskScheduler* scheduler, TextureLoadInfo load_
 	// Command buffer recording and execution will happen as follows
 	// 1. Record commands for transfer [TRANSFER QUEUE]
 	// 2. Submit commands to [TRANSFER QUEUE] with signalSemaphore = transfer_done
-	// 3. Record layout transition to ShaderReadOnlyOptimal on [GRAPHICS QUEUE]
-	// 4. Submit commands to [GRAPHICS QUEUE] with waitSemaphore = transfer_done and signalFence = transition_done
-	// 5. Wait for fence transition_done 
-	// 6. Done
+	// 3. Record layout transition to TransferSrcOptimal on [GRAPHICS QUEUE]
+	// 4. Record mipmap generation on [GRAPHICS QUEUE] with finalLayout = ShaderReadOnlyOptimal
+	// 5. Submit commands to [GRAPHICS QUEUE] with waitSemaphore = transfer_done and signalFence = mipmap_done
+	// 6. Wait for fence mipmap_done 
 
 	// 1. Record commands for transfer 
 	vk::CommandBuffer cmd_buf = vulkan.transfer->begin_single_time(thread_index);
@@ -81,26 +83,47 @@ static void do_texture_load(ftl::TaskScheduler* scheduler, TextureLoadInfo load_
 	vulkan.transfer->end_single_time(cmd_buf, nullptr, {}, nullptr, transfer_done);
 
 	// 3. Record commands for layout transition
-	// First acquire ownership of the image, then exeucte transition
-	vk::CommandBuffer transition_cmd = vulkan.graphics->begin_single_time(thread_index);
-	vulkan.graphics->acquire_ownership(transition_cmd, texture.image, *vulkan.transfer);
-	ph::transition_image_layout(transition_cmd, texture.image, vk::ImageLayout::eShaderReadOnlyOptimal);
 
-	// 4. Submit to graphics queue
-	vk::Fence transition_done = vulkan.device.createFence({});
-	vulkan.graphics->end_single_time(transition_cmd, transition_done, vk::PipelineStageFlagBits::eTransfer, transfer_done);
+	// First acquire ownership of the image, then execute transition
+	vk::CommandBuffer gfx_cmd = vulkan.graphics->begin_single_time(thread_index);
+	vulkan.graphics->acquire_ownership(gfx_cmd, texture.image, *vulkan.transfer);
+
+	// Image must be in TransferSrcOptimal when calling generate_mimpmaps
+	vk::ImageMemoryBarrier barrier;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = texture.image.image;
+	barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+	barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+	barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+	barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite;
+	barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = texture.image.layers;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+	gfx_cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlagBits::eByRegion,
+		nullptr, nullptr, barrier);
+
+	// 4. Mipmap generation
+	generate_mipmaps(gfx_cmd, texture.image, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, 
+		vk::PipelineStageFlagBits::eAllGraphics);
+
+	// 5. Submit to graphics queue
+	vk::Fence mipmap_done = vulkan.device.createFence({});
+	vulkan.graphics->end_single_time(gfx_cmd, mipmap_done, vk::PipelineStageFlagBits::eTransfer, transfer_done);
 
 	TaskManager& task_manager = *load_info.ctx->tasks;
 	task_manager.wait_task(
 		// Polling function. This function polls the fence
-		[transition_done, &vulkan]() -> TaskStatus {
-			vk::Result fence_status = vulkan.device.getFenceStatus(transition_done);
+		[mipmap_done, &vulkan]() -> TaskStatus {
+			vk::Result fence_status = vulkan.device.getFenceStatus(mipmap_done);
 			if (fence_status == vk::Result::eSuccess) { return TaskStatus::Completed; }
 			return TaskStatus::Running;
 		},
 		// Cleanup function for when the polling function returns TaskStatus::Completed
-		[transition_done, transfer_done, cmd_buf, thread_index, staging, texture, data, load_info, &vulkan] () mutable -> void {
-			vulkan.device.destroyFence(transition_done);
+		[mipmap_done, transfer_done, cmd_buf, thread_index, staging, texture, data, load_info, &vulkan] () mutable -> void {
+			vulkan.device.destroyFence(mipmap_done);
 			vulkan.device.destroySemaphore(transfer_done);
 			vulkan.transfer->free_single_time(cmd_buf, thread_index);
 

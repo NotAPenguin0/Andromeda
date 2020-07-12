@@ -76,19 +76,6 @@ Application::~Application() {
 	context.vulkan.reset(nullptr);
 }
 
-static constexpr float quad_verts[] = {
-	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	-1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-	1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-	1.0f, 1.0f, 0.0f, 1.0f, 1.0f
-};
-
-static constexpr uint32_t quad_indices[] = {
-	0, 1, 2, 3, 4, 5
-};
-
 void Application::run() {
 	using namespace components;
 
@@ -123,19 +110,19 @@ void Application::run() {
 
 
 		Handle<Material> pbr_mat = assets::take<Material>(Material{
-				.color = color,
-				.normal = normal,
-				.metallic = metallic,
-				.roughness = roughness,
-				.ambient_occlusion = ao
+			.color = color,
+			.normal = normal,
+			.metallic = metallic,
+			.roughness = roughness,
+			.ambient_occlusion = ao
 			}
 		);
 
-		Handle<Texture> color2 = context.request_texture("data/textures/iced-over-ground7-albedo.png", true);
-		Handle<Texture> normal2 = context.request_texture("data/textures/iced-over-ground7-Normal-dx.png", false);
-		Handle<Texture> metallic2 = context.request_texture("data/textures/iced-over-ground7-Metallic.png", false);
-		Handle<Texture> roughness2 = context.request_texture("data/textures/iced-over-ground7-Roughness.png", false);
-		Handle<Texture> ao2 = context.request_texture("data/textures/iced-over-ground7-ao.png", false);
+		Handle<Texture> color2 = context.request_texture("data/textures/Rocks006_2K_Color.jpg", true);
+		Handle<Texture> normal2 = context.request_texture("data/textures/Rocks006_2K_Normal.jpg", false);
+		Handle<Texture> metallic2 = context.request_texture("data/textures/black.png", false);
+		Handle<Texture> roughness2 = context.request_texture("data/textures/Rocks006_2K_Roughness.jpg", false);
+		Handle<Texture> ao2 = context.request_texture("data/textures/Rocks006_2K_AmbientOcclusion.jpg", false);
 
 		Handle<Material> pbr_mat2 = assets::take<Material>(Material{
 			.color = color2,
