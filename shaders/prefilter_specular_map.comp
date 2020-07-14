@@ -2,7 +2,7 @@
 
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout (binding = 0) uniform samplerCube cube_map;
 layout (binding = 1, rgba32f) uniform imageCube specular_map;
@@ -108,7 +108,7 @@ vec3 apply_specular_filter(vec3 local_direction, float roughness) {
     vec3 R = N;
     vec3 V = R;
 
-    const uint SAMPLE_COUNT = 1024u;
+    const uint SAMPLE_COUNT = 512u;
     float total_weight = 0.0;   
     vec3 prefiltered_color = vec3(0.0);     
     for(uint i = 0u; i < SAMPLE_COUNT; ++i) {
@@ -131,20 +131,22 @@ vec3 apply_specular_filter(vec3 local_direction, float roughness) {
 
 layout(push_constant) uniform PC {
     float roughness;
+    uint x;
+    uint y;
+    uint z;
 } pc;
 
 void main() {
-    for (int face = 0; face < 6; ++face) {
-        int face_size = imageSize(specular_map).x;
-        vec2 uv = vec2(gl_GlobalInvocationID.xy) / float(face_size);
-        // Avoid accessing out of bounds
-        if (uv.x > 1 || uv.y > 1) return;
-        vec3 local_direction = normalize(to_local_direction(uv, face));
-        local_direction.y = -local_direction.y;
+    int face = int(gl_GlobalInvocationID.z + pc.z);
+    int face_size = imageSize(specular_map).x;
+    vec2 uv = vec2(gl_GlobalInvocationID.xy + ivec2(pc.x, pc.y)) / float(face_size);
+    // Avoid accessing out of bounds
+    if (uv.x > 1 || uv.y > 1) return;
+    vec3 local_direction = normalize(to_local_direction(uv, face));
+    local_direction.y = -local_direction.y;
 
-        vec4 color = vec4(apply_specular_filter(local_direction, pc.roughness), 1);
+    vec4 color = vec4(apply_specular_filter(local_direction, pc.roughness), 1);
 
-        ivec3 cube_texels = ivec3(uv * face_size, face);
-        imageStore(specular_map, cube_texels, color);
-    }
+    ivec3 cube_texels = ivec3(uv * face_size, face);
+    imageStore(specular_map, cube_texels, color);
 }

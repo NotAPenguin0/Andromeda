@@ -11,15 +11,18 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <andromeda/assets/assets.hpp>
+#include <phobos/present/present_manager.hpp>
 
 namespace andromeda::renderer {
 
-LightingPass::LightingPass(Context& ctx) {
+LightingPass::LightingPass(Context& ctx, ph::PresentManager& vk_present) {
     create_pipeline(ctx);
     create_ambient_pipeline(ctx);
     create_light_mesh(ctx);
 
     brdf_lookup = ctx.request_texture("data/textures/ibl_brdf_lut.png", false);
+    // TODO: look into vkCmdResolveImage instead
+    depth_resolved = &vk_present.add_depth_attachment("resolved_depth", { 1280, 720 });
 }
 
 static constexpr float quad_geometry[] = {
@@ -99,7 +102,7 @@ void LightingPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& f
 #if ANDROMEDA_DEBUG
     pass.debug_name = "deferred_lighting_pass";
 #endif
-    pass.outputs = { attachments.output };
+    pass.outputs = { attachments.output, *depth_resolved };
     pass.sampled_attachments = { attachments.normal, attachments.depth, attachments.albedo_ao, attachments.metallic_roughness };
     pass.clear_values = { vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} } };
 
@@ -259,7 +262,7 @@ void LightingPass::create_ambient_pipeline(Context& ctx) {
     pci.vertex_attributes.emplace_back(1_u32, 0_u32, vk::Format::eR32G32Sfloat, 2 * (uint32_t)sizeof(float));
 
     pci.depth_stencil.depthTestEnable = false;
-    pci.depth_stencil.depthWriteEnable = false;
+    pci.depth_stencil.depthWriteEnable = true;
     // The ambient pipeline draws a fullscreen quad so we don't want any culling
     pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
     std::vector<uint32_t> vert_code = ph::load_shader_code("data/shaders/ambient.vert.spv");

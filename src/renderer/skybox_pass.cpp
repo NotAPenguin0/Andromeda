@@ -6,6 +6,7 @@
 #include <andromeda/assets/assets.hpp>
 
 #include <phobos/core/vulkan_context.hpp>
+#include <phobos/present/present_manager.hpp>
 
 #include <stl/literals.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -39,7 +40,7 @@ static constexpr float skybox_vertices[] = {
 	-1, 1, -1, -1, 1, 1,
 };
 
-SkyboxPass::SkyboxPass(Context& ctx) {
+SkyboxPass::SkyboxPass(Context& ctx, ph::PresentManager& vk_present) {
 	create_pipeline(ctx);
 }
 
@@ -54,7 +55,7 @@ void SkyboxPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& fra
 #endif
 	pass.outputs = { attachments.output, attachments.depth };
 
-	pass.callback = [this, &frame, &database](ph::CommandBuffer& cmd_buf) {
+	pass.callback = [this, &frame, &database, attachments](ph::CommandBuffer& cmd_buf) {
 		auto_viewport_scissor(cmd_buf);
 		ph::BufferSlice ubo = cmd_buf.allocate_scratch_ubo(2 * sizeof(glm::mat4));
 		std::memcpy(ubo.data, glm::value_ptr(database.projection), sizeof(glm::mat4));
@@ -107,7 +108,6 @@ void SkyboxPass::create_pipeline(Context& ctx) {
 	pci.depth_stencil.depthBoundsTestEnable = false;
 	// We want to render the skybox if the depth value is 1.0 (which it is), so we need to set LessOrEqual
 	pci.depth_stencil.depthCompareOp = vk::CompareOp::eLessOrEqual;
-
 
 	pci.shaders.push_back(ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/skybox.vert.spv"),
 		"main", vk::ShaderStageFlagBits::eVertex));

@@ -35,8 +35,8 @@ Renderer::Renderer(Context& ctx) {
 	vk_renderer = std::make_unique<ph::Renderer>(*ctx.vulkan);
 
 	geometry_pass = std::make_unique<GeometryPass>(ctx, *vk_present);
-	lighting_pass = std::make_unique<LightingPass>(ctx);
-	skybox_pass = std::make_unique<SkyboxPass>(ctx);
+	lighting_pass = std::make_unique<LightingPass>(ctx, *vk_present);
+	skybox_pass = std::make_unique<SkyboxPass>(ctx, *vk_present);
 	tonemap_pass = std::make_unique<TonemapPass>(ctx);
 
 	scene_color = &vk_present->add_color_attachment("scene_color", { 1280, 720 }, vk::Format::eR16G16B16A16Sfloat);
@@ -104,7 +104,7 @@ void Renderer::render(Context& ctx) {
 		}, frame, graph, database);
 	skybox_pass->build(ctx, {
 			.output = *scene_color,
-			.depth = geometry_pass->get_depth()
+			.depth = lighting_pass->get_resolved_depth()
 		}, frame, graph, database);
 	tonemap_pass->build(ctx, {
 			.input_hdr = *scene_color,

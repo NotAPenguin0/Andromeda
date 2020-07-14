@@ -15,7 +15,7 @@ namespace renderer {
 
 class LightingPass {
 public:
-	LightingPass(Context& ctx);
+	LightingPass(Context& ctx, ph::PresentManager& vk_present);
 
 	struct Attachments {
 		ph::RenderAttachment& output;
@@ -26,6 +26,8 @@ public:
 	};
 
 	void build(Context& ctx, Attachments attachments, ph::FrameInfo& frame, ph::RenderGraph& graph, RenderDatabase& database);
+
+	ph::RenderAttachment& get_resolved_depth() { return *depth_resolved; }
 
 	// Temporary
 	bool enable_ambient = true;
@@ -65,6 +67,8 @@ private:
 	void update_camera_data(ph::CommandBuffer& cmd_buf, RenderDatabase& database);
 	void update_lights(ph::CommandBuffer& cmd_buf, RenderDatabase& database);
 	vk::DescriptorSet get_descriptors(ph::CommandBuffer& cmd_buf, ph::FrameInfo& frame, Attachments attachments);
+
+	ph::RenderAttachment* depth_resolved;
 };
 
 }

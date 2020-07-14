@@ -15,10 +15,10 @@ namespace andromeda::renderer {
 GeometryPass::GeometryPass(Context& ctx, ph::PresentManager& vk_present) {
 	create_pipeline(ctx);
 
-	depth = &vk_present.add_depth_attachment("depth", {1280, 720});
-	normal = &vk_present.add_color_attachment("normal", { 1280, 720 }, vk::Format::eR16G16B16A16Unorm);
-	albedo_ao = &vk_present.add_color_attachment("albedo_ao", { 1280, 720 }, vk::Format::eR8G8B8A8Unorm);
-	metallic_roughness = &vk_present.add_color_attachment("metallic_roughness", { 1280, 720 }, vk::Format::eR8G8Unorm);
+	depth = &vk_present.add_depth_attachment("depth", {1280, 720}, vk::SampleCountFlagBits::e8);
+	normal = &vk_present.add_color_attachment("normal", { 1280, 720 }, vk::Format::eR16G16B16A16Unorm, vk::SampleCountFlagBits::e8);
+	albedo_ao = &vk_present.add_color_attachment("albedo_ao", { 1280, 720 }, vk::Format::eR8G8B8A8Unorm, vk::SampleCountFlagBits::e8);
+	metallic_roughness = &vk_present.add_color_attachment("metallic_roughness", { 1280, 720 }, vk::Format::eR8G8Unorm, vk::SampleCountFlagBits::e8);
 }
 
 void GeometryPass::build(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& graph, RenderDatabase& database) {
@@ -124,6 +124,8 @@ void GeometryPass::create_pipeline(Context& ctx) {
 	pci.vertex_attributes.emplace_back(2_u32, 0_u32, vk::Format::eR32G32B32Sfloat, 6 * (uint32_t)sizeof(float));
 	// vec2 iTexCoords
 	pci.vertex_attributes.emplace_back(3_u32, 0_u32, vk::Format::eR32G32Sfloat, 9 * (uint32_t)sizeof(float));
+
+	pci.multisample.rasterizationSamples = vk::SampleCountFlagBits::e8;
 
 	std::vector<uint32_t> vert_code = ph::load_shader_code("data/shaders/geometry.vert.spv");
 	std::vector<uint32_t> frag_code = ph::load_shader_code("data/shaders/geometry.frag.spv");

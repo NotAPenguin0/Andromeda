@@ -50,12 +50,19 @@ vec2 sample_spherical_map(vec3 v) {
     return uv;
 }
 
+layout(push_constant) uniform PC {
+    uint x;
+    uint y;
+    uint z;
+} offset;
+
 void main() {
+    ivec3 real_invocation_id = ivec3(gl_GlobalInvocationID.xyz) + ivec3(offset.x, offset.y, offset.z);
     int face_size = imageSize(cube_map).x;
-    vec2 uv = vec2(gl_GlobalInvocationID.xy) / float(face_size);
-    vec2 equirect = sample_spherical_map(normalize(to_local_direction(uv, int(gl_GlobalInvocationID.z))));
+    vec2 uv = vec2(real_invocation_id.xy) / float(face_size);
+    vec2 equirect = sample_spherical_map(normalize(to_local_direction(uv, int(real_invocation_id.z))));
 
     vec4 color = texture(equirectangular, equirect);
-    ivec3 cube_texels = ivec3(gl_GlobalInvocationID.xyz);
+    ivec3 cube_texels = real_invocation_id;
     imageStore(cube_map, cube_texels, color);
 }

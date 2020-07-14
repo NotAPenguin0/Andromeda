@@ -50,16 +50,6 @@ struct EnvMapProcessData {
 	std::vector<ph::ImageView> specular_map_mips;
 
 	ph::RawBuffer upload_staging;
-
-	// Synchronization primitives
-	vk::Semaphore transfer_done;
-	vk::Semaphore projection_done;
-	vk::Semaphore mipmap_done;
-
-	// Rendering data
-	ph::FrameInfo fake_frame;
-	vk::CommandBuffer raw_cmd_buf;
-	std::unique_ptr<ph::CommandBuffer> cmd_buf;
 };
 
 struct EnvMapLoadInfo {

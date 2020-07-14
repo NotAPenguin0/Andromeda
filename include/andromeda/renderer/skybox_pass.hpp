@@ -13,7 +13,7 @@ namespace andromeda::renderer {
 
 class SkyboxPass {
 public:
-	SkyboxPass(Context& ctx);
+	SkyboxPass(Context& ctx, ph::PresentManager& vk_present);
 
 	struct Attachments {
 		ph::RenderAttachment& output;

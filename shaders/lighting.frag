@@ -25,10 +25,10 @@ layout(set = 0, binding = 1) buffer readonly PointLights {
 } lights;
 
 
-layout(set = 0, binding = 2) uniform sampler2D gDepth;
-layout(set = 0, binding = 3) uniform sampler2D gNormal;
-layout(set = 0, binding = 4) uniform sampler2D gAlbedoAO;
-layout(set = 0, binding = 5) uniform sampler2D gMetallicRoughness;
+layout(set = 0, binding = 2) uniform sampler2DMS gDepth;
+layout(set = 0, binding = 3) uniform sampler2DMS gNormal;
+layout(set = 0, binding = 4) uniform sampler2DMS gAlbedoAO;
+layout(set = 0, binding = 5) uniform sampler2DMS gMetallicRoughness;
 
 layout(push_constant) uniform PC {
     uvec2 screen_size;
@@ -130,21 +130,34 @@ vec2 CalculateGBufferTexCoords(uvec2 screen_size) {
 
 void main() {             
     vec2 GBufferTexCoords = CalculateGBufferTexCoords(pc.screen_size);
-    // retrieve data from gbuffer
-    vec3 Normal = texture(gNormal, GBufferTexCoords).rgb;
-    vec4 AlbedoAO = texture(gAlbedoAO, GBufferTexCoords);
-    vec3 diffuse = AlbedoAO.rgb;
-    vec2 MetallicRoughness = texture(gMetallicRoughness, GBufferTexCoords).rg;
-    float metallic = MetallicRoughness.r;
-    float roughness = MetallicRoughness.g;
+    ivec2 attachment_size = textureSize(gAlbedoAO);
+    ivec2 UV = ivec2(GBufferTexCoords * attachment_size);
+
+    vec3 color = vec3(0);
+    const int NUM_SAMPLES = 8;
+
+    for (int i = 0; i < NUM_SAMPLES; ++i) {
+        // retrieve data from gbuffer
+//        vec3 Normal = texture(gNormal, GBufferTexCoords).rgb;
+        vec3 Normal = texelFetch(gNormal, UV, i).rgb;
+//        vec4 AlbedoAO = texture(gAlbedoAO, GBufferTexCoords);
+        vec4 AlbedoAO = texelFetch(gAlbedoAO, UV, i);
+        vec3 diffuse = AlbedoAO.rgb;
+//        vec2 MetallicRoughness = texture(gMetallicRoughness, GBufferTexCoords).rg;
+        vec2 MetallicRoughness = texelFetch(gMetallicRoughness, UV, i).rg;
+        float metallic = MetallicRoughness.r;
+        float roughness = MetallicRoughness.g;
     
-    float depth = texture(gDepth, GBufferTexCoords).r;
-    vec3 WorldPos = WorldPosFromDepth(depth, GBufferTexCoords);
+        float depth = texelFetch(gDepth, UV, i).r;
+        vec3 WorldPos = WorldPosFromDepth(depth, GBufferTexCoords);
     
-    vec3 color = diffuse;
-    vec3 norm = Normal * 2.0 - 1.0;
+        vec3 color = diffuse;
+        vec3 norm = Normal * 2.0 - 1.0;
     
-    color = apply_point_light(norm, color, lights.lights[light_index], WorldPos, roughness, metallic);
+        color += apply_point_light(norm, color, lights.lights[light_index], WorldPos, roughness, metallic);
+    }
+
+    color = color / float(NUM_SAMPLES);
 
     FragColor = vec4(color, 1.0);
 }

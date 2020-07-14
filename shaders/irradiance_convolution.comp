@@ -69,16 +69,23 @@ vec3 calculate_irradiance(vec3 local_direction) {
     return irradiance;
 }
 
+layout(push_constant) uniform PC {
+    uint x;
+    uint y;
+    uint z;
+} offset;
+
 void main() {
     int face_size = imageSize(irradiance_map).x;
-    vec2 uv = (vec2(gl_GlobalInvocationID.xy)) / float(face_size);
+    ivec3 real_invocation_id = ivec3(gl_GlobalInvocationID.xyz) + ivec3(offset.x, offset.y, offset.z);
+    vec2 uv = (vec2(real_invocation_id.xy)) / float(face_size);
     // Avoid accessing out of bounds
     if (uv.x > 1 || uv.y > 1) return;
-    vec3 local_direction = normalize(to_local_direction(uv, int(gl_GlobalInvocationID.z)));
+    vec3 local_direction = normalize(to_local_direction(uv, int(real_invocation_id.z)));
     local_direction.y = -local_direction.y;
 
     vec4 color = vec4(calculate_irradiance(local_direction), 1);
 
-    ivec3 cube_texels = ivec3(gl_GlobalInvocationID.xyz);
+    ivec3 cube_texels = real_invocation_id;
     imageStore(irradiance_map, cube_texels, color);
 }
