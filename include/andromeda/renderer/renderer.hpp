@@ -59,7 +59,7 @@ public:
 	ForwardPlusRenderer(Context& ctx);
 	virtual ~ForwardPlusRenderer() = default;
 
-	ph::ImageView debug_image() const override { return depth->image_view(); }
+	ph::ImageView debug_image() const override { return color->image_view(); }
 
 private:
 	void create_pipelines(Context& ctx);
@@ -73,9 +73,14 @@ private:
 
 	void depth_prepass(ph::RenderGraph& graph, Context& ctx);
 	void light_cull(ph::RenderGraph& graph, Context& ctx);
+	void shading(ph::RenderGraph& graph, Context& ctx);
 
+	ph::RenderAttachment* color;
 	ph::RenderAttachment* depth;
 	vk::Sampler depth_sampler;
+	vk::Sampler sampler;
+
+	Handle<Texture> brdf_lookup;
 
 	struct DepthBindings {
 		ph::ShaderInfo::BindingInfo camera;
@@ -88,6 +93,17 @@ private:
 		ph::ShaderInfo::BindingInfo lights;
 		ph::ShaderInfo::BindingInfo visible_lights_output;
 	} compute_bindings{};
+
+	struct ShadingBindings {
+		ph::ShaderInfo::BindingInfo textures;
+		ph::ShaderInfo::BindingInfo camera;
+		ph::ShaderInfo::BindingInfo transforms;
+		ph::ShaderInfo::BindingInfo lights;
+		ph::ShaderInfo::BindingInfo visible_light_indices;
+		ph::ShaderInfo::BindingInfo irradiance_map;
+		ph::ShaderInfo::BindingInfo specular_map;
+		ph::ShaderInfo::BindingInfo brdf_lookup;
+	} shading_bindings;
 
 	struct PerFrameBuffers {
 		ph::BufferSlice camera;
