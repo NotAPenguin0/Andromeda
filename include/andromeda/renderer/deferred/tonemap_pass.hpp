@@ -7,6 +7,7 @@
 
 namespace andromeda {
 namespace renderer {
+namespace deferred {
 
 class TonemapPass {
 public:
@@ -27,6 +28,7 @@ private:
 	void create_pipeline(Context& ctx);
 };
 
+}
 }
 }
 

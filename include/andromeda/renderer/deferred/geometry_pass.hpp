@@ -9,6 +9,7 @@
 
 namespace andromeda {
 namespace renderer {
+namespace deferred {
 
 class GeometryPass {
 public:
@@ -46,6 +47,7 @@ private:
 	vk::DescriptorSet get_descriptors(ph::FrameInfo& frame, ph::CommandBuffer& cmd_buf, RenderDatabase& database);
 };
 
+}
 }
 }
 

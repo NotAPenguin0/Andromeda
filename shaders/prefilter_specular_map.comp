@@ -108,7 +108,7 @@ vec3 apply_specular_filter(vec3 local_direction, float roughness) {
     vec3 R = N;
     vec3 V = R;
 
-    const uint SAMPLE_COUNT = 512u;
+    const uint SAMPLE_COUNT = 1024u;
     float total_weight = 0.0;   
     vec3 prefiltered_color = vec3(0.0);     
     for(uint i = 0u; i < SAMPLE_COUNT; ++i) {

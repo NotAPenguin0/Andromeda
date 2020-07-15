@@ -29,25 +29,16 @@
 namespace andromeda::renderer {
 
 Renderer::Renderer(Context& ctx) {
-	using namespace stl::literals;
-
 	vk_present = std::make_unique<ph::PresentManager>(*ctx.vulkan);
 	vk_renderer = std::make_unique<ph::Renderer>(*ctx.vulkan);
 
-	geometry_pass = std::make_unique<GeometryPass>(ctx, *vk_present);
-	lighting_pass = std::make_unique<LightingPass>(ctx, *vk_present);
-	skybox_pass = std::make_unique<SkyboxPass>(ctx, *vk_present);
-	tonemap_pass = std::make_unique<TonemapPass>(ctx);
-
-	scene_color = &vk_present->add_color_attachment("scene_color", { 1280, 720 }, vk::Format::eR16G16B16A16Sfloat);
-	scene_color_tonemapped = &vk_present->add_color_attachment("scene_color_tonemapped", { 1280, 720 });
+	color_final = &vk_present->add_color_attachment("color_final", { 1920, 1088 });
 }
 
 Renderer::~Renderer() {
 	vk_renderer->destroy();
 	vk_present->destroy();
 }
-
 
 void Renderer::render(Context& ctx) {
 	using namespace components;
@@ -61,9 +52,8 @@ void Renderer::render(Context& ctx) {
 	database.reset();
 
 	// Fill render database
-
 	for (auto const& [trans, cam] : ctx.world->ecs().view<Transform, Camera>()) {
-		database.projection = glm::perspective(cam.fov, (float)scene_color->get_width() / (float)scene_color->get_height(), 0.1f, 100.0f);
+		database.projection = glm::perspective(cam.fov, (float)color_final->get_width() / (float)color_final->get_height(), 0.1f, 100.0f);
 		database.projection[1][1] *= -1; // Vulkan has upside down projection
 		database.view = glm::lookAt(trans.position, trans.position + cam.front, cam.up);
 		database.projection_view = database.projection * database.view;
@@ -82,9 +72,11 @@ void Renderer::render(Context& ctx) {
 		for (auto const& [transform, rend, mesh] : ctx.world->ecs().view<Transform, MeshRenderer, StaticMesh>()) {
 			// Calculate model matrix from transformation
 			glm::mat4 model = glm::translate(glm::mat4(1.0), transform.position);
-			model = glm::rotate(model, { glm::radians(transform.rotation.x),
-									glm::radians(transform.rotation.y),
-									glm::radians(transform.rotation.z) });
+			model = glm::rotate(model, { 
+				glm::radians(transform.rotation.x),
+				glm::radians(transform.rotation.y),
+				glm::radians(transform.rotation.z) 
+			});
 			model = glm::scale(model, transform.scale);
 			database.add_draw(renderer::Draw{ .mesh = mesh.mesh, .material = rend.material, .transform = model });
 		}
@@ -94,22 +86,7 @@ void Renderer::render(Context& ctx) {
 		}
 	}
 
-	geometry_pass->build(ctx, frame, graph, database);
-	lighting_pass->build(ctx, {
-			.output = *scene_color,
-			.depth = geometry_pass->get_depth(),
-			.albedo_ao = geometry_pass->get_albedo_ao(),
-			.metallic_roughness = geometry_pass->get_metallic_roughness(),
-			.normal = geometry_pass->get_normal()
-		}, frame, graph, database);
-	skybox_pass->build(ctx, {
-			.output = *scene_color,
-			.depth = lighting_pass->get_resolved_depth()
-		}, frame, graph, database);
-	tonemap_pass->build(ctx, {
-			.input_hdr = *scene_color,
-			.output_ldr = *scene_color_tonemapped
-		}, frame, graph, database);
+	render_frame(ctx, frame, graph);
 
 	ImGui::Render();
 	ImGui_ImplPhobos_RenderDrawData(ImGui::GetDrawData(), &frame, &graph, vk_renderer.get());

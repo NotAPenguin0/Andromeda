@@ -1,4 +1,4 @@
-#include <andromeda/renderer/lighting_pass.hpp>
+#include <andromeda/renderer/deferred/lighting_pass.hpp>
 
 #include <andromeda/core/context.hpp>
 #include <andromeda/renderer/util.hpp>
@@ -13,7 +13,7 @@
 #include <andromeda/assets/assets.hpp>
 #include <phobos/present/present_manager.hpp>
 
-namespace andromeda::renderer {
+namespace andromeda::renderer::deferred {
 
 LightingPass::LightingPass(Context& ctx, ph::PresentManager& vk_present) {
     create_pipeline(ctx);
@@ -104,7 +104,10 @@ void LightingPass::build(Context& ctx, Attachments attachments, ph::FrameInfo& f
 #endif
     pass.outputs = { attachments.output, *depth_resolved };
     pass.sampled_attachments = { attachments.normal, attachments.depth, attachments.albedo_ao, attachments.metallic_roughness };
-    pass.clear_values = { vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} } };
+    pass.clear_values = {
+        vk::ClearColorValue{ std::array<float, 4>{ {0.0f, 0.0f, 0.0f, 1.0f}} }, 
+        vk::ClearDepthStencilValue{1, 0} 
+    };
 
     pass.callback = [this, &ctx, &frame, &database, attachments] (ph::CommandBuffer& cmd_buf) {
         auto_viewport_scissor(cmd_buf);
@@ -263,6 +266,7 @@ void LightingPass::create_ambient_pipeline(Context& ctx) {
 
     pci.depth_stencil.depthTestEnable = false;
     pci.depth_stencil.depthWriteEnable = true;
+    pci.depth_stencil.depthBoundsTestEnable = false;
     // The ambient pipeline draws a fullscreen quad so we don't want any culling
     pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
     std::vector<uint32_t> vert_code = ph::load_shader_code("data/shaders/ambient.vert.spv");

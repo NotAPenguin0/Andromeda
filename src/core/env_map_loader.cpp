@@ -19,7 +19,7 @@ struct ComputeGroupSize {
 };
 
 struct ComputeDispatchOffset {
-	uint32_t x, y, z;
+	uint32_t x = 0, y = 0, z = 0;
 };
 
 struct PumpDispatchGroup {
@@ -368,7 +368,7 @@ void EnvMapLoader::create_irradiance_map(ftl::TaskScheduler* scheduler, ph::Vulk
 	PumpDispatchGroup pump;
 	pump.local_size = { 16, 16, 1 };
 	pump.workgroups = { process_data.irradiance_map_size / 16, process_data.irradiance_map_size / 16, 6 };
-	pump.max_workgroups = { 16, 16, 1 };
+	pump.max_workgroups = { 4, 4, 1 };
 	pump.min_workgroups = { 4, 4, 1 };
 	pump.max_concurrent_dispatches = 1;
 	pump.queue = vulkan.compute.get();

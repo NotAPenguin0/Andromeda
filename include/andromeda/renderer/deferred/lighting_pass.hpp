@@ -12,6 +12,7 @@
 
 namespace andromeda {
 namespace renderer {
+namespace deferred {
 
 class LightingPass {
 public:
@@ -71,6 +72,7 @@ private:
 	ph::RenderAttachment* depth_resolved;
 };
 
+}
 }
 }
 

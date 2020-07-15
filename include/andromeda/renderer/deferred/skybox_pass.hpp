@@ -9,7 +9,7 @@
 #include <andromeda/core/context.hpp>
 
 
-namespace andromeda::renderer {
+namespace andromeda::renderer::deferred {
 
 class SkyboxPass {
 public:

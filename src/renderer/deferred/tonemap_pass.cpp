@@ -1,11 +1,11 @@
-#include <andromeda/renderer/tonemap_pass.hpp>
+#include <andromeda/renderer/deferred/tonemap_pass.hpp>
 
 #include <andromeda/renderer/util.hpp>
 #include <phobos/core/vulkan_context.hpp>
 
 #include <stl/literals.hpp>
 
-namespace andromeda::renderer {
+namespace andromeda::renderer::deferred {
 
 static constexpr float quad_geometry[] = {
 	-1, 1, 0, 1, -1, -1, 0, 0,

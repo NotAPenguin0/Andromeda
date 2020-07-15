@@ -1,4 +1,4 @@
-#include <andromeda/renderer/skybox_pass.hpp>
+#include <andromeda/renderer/deferred/skybox_pass.hpp>
 
 
 #include <andromeda/core/context.hpp>
@@ -11,7 +11,7 @@
 #include <stl/literals.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-namespace andromeda::renderer {
+namespace andromeda::renderer::deferred {
 
 static constexpr float skybox_vertices[] = {
 	// back

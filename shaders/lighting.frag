@@ -151,10 +151,8 @@ void main() {
         float depth = texelFetch(gDepth, UV, i).r;
         vec3 WorldPos = WorldPosFromDepth(depth, GBufferTexCoords);
     
-        vec3 color = diffuse;
         vec3 norm = Normal * 2.0 - 1.0;
-    
-        color += apply_point_light(norm, color, lights.lights[light_index], WorldPos, roughness, metallic);
+        color += apply_point_light(norm, diffuse, lights.lights[light_index], WorldPos, roughness, metallic);
     }
 
     color = color / float(NUM_SAMPLES);

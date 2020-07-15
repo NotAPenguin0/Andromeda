@@ -1,0 +1,211 @@
+#version 450
+
+// One workgroup processing this compute shader processes 1 tile using 256 threads ( = 16 * 16).
+
+#define TILE_SIZE 16
+#define MAX_LIGHTS_PER_TILE 1024
+
+layout(local_size_x = TILE_SIZE, local_size_y = TILE_SIZE, local_size_z = 1) in;
+
+// Input data
+
+layout(push_constant) uniform PC {
+	uvec2 screen_size;
+} pc;
+
+layout(set = 0, binding = 0) uniform sampler2D depth_map;
+layout(set = 0, binding = 1) uniform Camera {
+	mat4 view;
+	mat4 projection;
+	mat4 projection_view;
+} camera;
+
+struct PointLight {
+	// First 3 values have the position, last has the radius of the light
+    vec4 transform;
+    // first 3 values are the color, last value has the intensity of the light
+    vec4 color;
+};
+
+layout(set = 0, binding = 2) buffer readonly Lights {
+	PointLight data[];
+} lights;
+
+// Output data
+
+struct VisibleLightIndex {
+	int index;
+};
+
+layout(set = 0, binding = 3) buffer writeonly VisibleIndices {
+	VisibleLightIndex data[];
+} visible_lights_out;
+
+// Shared data
+
+struct Frustum {
+	vec4 planes[6];
+};
+
+struct SharedData {
+	uint min_depth_int;
+	uint max_depth_int;
+	uint visible_light_count;
+	int visible_lights[MAX_LIGHTS_PER_TILE];
+	Frustum frustum;
+};
+
+shared SharedData tile_data;
+
+void initialize_tile() {
+	// Only initialize once
+	if (gl_LocalInvocationIndex == 0) {
+		tile_data.min_depth_int = 0xFFFFFFFF;
+		tile_data.max_depth_int = 0;
+		tile_data.visible_light_count = 0;
+	}
+}
+
+void calculate_depth_range() {
+	// Coordinate of the pixel on screen
+	ivec2 screen_pixel = ivec2(gl_GlobalInvocationID.xy);
+
+	vec2 UV = vec2(screen_pixel) / pc.screen_size;
+	float depth = texture(depth_map, UV).r;
+
+	// Depth values must be linearized because we stored them after applying projection
+	depth = (0.5 * camera.projection[3][2]) / (depth + 0.5 * camera.projection[2][2] - 0.5);
+
+	// Convert depth to uint so we can do atomic comparisons between threads
+	uint depth_int = floatBitsToUint(depth);
+	atomicMin(tile_data.min_depth_int, depth_int);
+	atomicMax(tile_data.min_depth_int, depth_int);
+}
+
+void create_frustum() {
+	if (gl_LocalInvocationIndex == 0) { 
+		// ID of this tile.
+		ivec2 tile_id = ivec2(gl_WorkGroupID.xy);
+		// Total amount of tiles, specified in vkCmdDispatch. Same as the workgroup count.
+		ivec2 tile_count = ivec2(gl_NumWorkGroups.xy);
+
+		// Get back floating point values for the depth
+		float min_depth = uintBitsToFloat(tile_data.min_depth_int);
+		float max_depth = uintBitsToFloat(tile_data.max_depth_int);
+
+		// Scale step with tile size
+		vec2 negative_step = (2.0 * vec2(tile_id)) / vec2(tile_count);
+		vec2 positive_step = (2.0 * vec2(tile_id + ivec2(1, 1))) / vec2(tile_count);
+
+		// Create basic planes, these still need to be transformed (multiply by view_projection and apply perspective division).
+		tile_data.frustum.planes[0] = vec4(1.0, 0.0, 0.0, 1.0 - negative_step.x); // Left
+		tile_data.frustum.planes[1] = vec4(-1.0, 0.0, 0.0, -1.0 + positive_step.x); // Right
+		tile_data.frustum.planes[2] = vec4(0.0, 1.0, 0.0, 1.0 - negative_step.y); // Bottom
+		tile_data.frustum.planes[3] = vec4(0.0, -1.0, 0.0, -1.0 + positive_step.y); // Top
+		tile_data.frustum.planes[4] = vec4(0.0, 0.0, -1.0, -min_depth); // Near
+		tile_data.frustum.planes[5] = vec4(0.0, 0.0, 1.0, max_depth); // Far
+
+		// Transform the first four planes (left, right, bottom, top)
+		for (uint i = 0; i < 4; i++) {
+			tile_data.frustum.planes[i] *= camera.projection_view;
+			tile_data.frustum.planes[i] /= length(tile_data.frustum.planes[i].xyz);
+		}
+
+		// Transform the depth planes. We do these separately because we don't want to apply the projection matrix here (since we're working
+		// with linearized depth values).
+		tile_data.frustum.planes[4] *= camera.view;
+		tile_data.frustum.planes[4] /= length(tile_data.frustum.planes[4].xyz);
+		tile_data.frustum.planes[5] *= camera.view;
+		tile_data.frustum.planes[5] /= length(tile_data.frustum.planes[5].xyz);
+	}
+}
+
+void cull_lights() {
+	const uint thread_count = TILE_SIZE * TILE_SIZE;
+	const uint thread_index = gl_LocalInvocationIndex;
+	// Since we can process 256 lights simultaneously, we need additional passes of 256 lights if we exceed this limit.
+	const uint light_count = lights.data.length();
+	const uint pass_count = (light_count + thread_count - 1) / thread_count;
+	// Each thread processes one light per pass
+	for (uint pass = 0; pass < pass_count; ++pass) {
+		// Get the light index for this thread in this pass. If this index is out of bounds, we can stop testing lights on this thread.
+		const uint light_index = pass * thread_count + thread_index;
+		if (light_index >= light_count) { break; }
+
+		// Read relevant light data from buffer
+		const vec4 position = vec4(lights.data[light_index].transform.xyz, 1);
+		const float radius = lights.data[light_index].transform.w;
+
+		// Check if the light is inside the tile frustum
+		float dist = 0;
+		for (uint plane = 0; plane < 6; ++plane) {
+			dist = dot(position, tile_data.frustum.planes[plane]) + radius;
+			// If one of the distance tests fails, the light is not inside the tile frustum and we don't need to check the other planes
+			if (dist < 0.0) {
+				break;
+			}
+		}
+
+		// If all distance tests succeeded, dist is now positive and the light is visible in the current tile.
+		if (dist > 0.0) {
+			// Add one to the amount of visible lights in this tile, and retrieve old amount. This old amount of the index at which we
+			// have to store the light's index.
+			const uint write_index = atomicAdd(tile_data.visible_light_count, 1);
+			tile_data.visible_lights[write_index] = int(light_index);
+		}
+	}
+}
+
+void write_output() { 
+	// Make sure only one thread writes output to avoid race conditions
+	if (gl_LocalInvocationIndex == 0) {
+		// ID of this tile.
+		ivec2 tile_id = ivec2(gl_WorkGroupID.xy);
+		// Total amount of tiles, specified in vkCmdDispatch. Same as the workgroup count.
+		ivec2 tile_count = ivec2(gl_NumWorkGroups.xy);
+		// Index of the tile. 
+		const uint tile_index = tile_id.y * tile_count.x + tile_id.x;
+
+		const uint offset = tile_index * MAX_LIGHTS_PER_TILE;
+		for (uint i = 0; i < tile_data.visible_light_count; ++i) {
+			visible_lights_out.data[offset + i].index = tile_data.visible_lights[i];
+		}
+
+		// Mark the final light with an index of -1 to indicate the end of the array, unless the array was completely filled
+		if (tile_data.visible_light_count != MAX_LIGHTS_PER_TILE) {
+			visible_lights_out.data[offset + tile_data.visible_light_count].index = -1;
+		}
+	}
+}
+
+void main() {
+	// Inside this function is logic to make sure the initialization only happens on one thread
+	initialize_tile();
+
+	// Initialization one first thread has to be completed before other threads can continue
+	barrier();
+
+	// Step 1: Calculate minimum and maximum depth in the tile.
+	calculate_depth_range();
+
+	// All threads must be done or we can't be sure we have the correct minimum and maximum depth values.
+	barrier();
+
+	// Step 2: Create a frustum for the culling algorithm to use.
+	// Inside this function is logic to make sure the initialization only happens on one thread
+	create_frustum();
+
+	// We can only continue once we have constructed a frustum check the lights.
+	barrier();
+
+	// Step 3: Cull the lights
+	// In this step, we will use each thread to check a single light, as opposed to using a thread per pixel.
+	// This way, we can check TILE_SIZE * TILE_SIZE lights simultaneously.
+	cull_lights();
+
+	// Wait for light culling stage to be complete before filling the final light buffer
+	barrier();
+
+	// Step 4: Finally, write all acquired light indices to the output buffer
+	write_output();
+}

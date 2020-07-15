@@ -13,13 +13,15 @@ target_sources(andromeda PRIVATE
 
 	"ecs/registry.cpp"
 
-	"renderer/geometry_pass.cpp"
 	"renderer/renderer.cpp"
 	"renderer/render_database.cpp"
-	"renderer/lighting_pass.cpp"
 	"renderer/util.cpp"
-	"renderer/skybox_pass.cpp"
-	"renderer/tonemap_pass.cpp"
+	"renderer/deferred/deferred_renderer.cpp"
+	"renderer/deferred/geometry_pass.cpp"
+	"renderer/deferred/lighting_pass.cpp"
+	"renderer/deferred/skybox_pass.cpp"
+	"renderer/deferred/tonemap_pass.cpp"
+	"renderer/forward_plus/forward_plus_renderer.cpp"
 
 	"util/log.cpp"
 

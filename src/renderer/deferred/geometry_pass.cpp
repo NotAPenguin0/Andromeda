@@ -1,4 +1,4 @@
-#include <andromeda/renderer/geometry_pass.hpp>
+#include <andromeda/renderer/deferred/geometry_pass.hpp>
 #include <stl/literals.hpp>
 
 #include <andromeda/assets/assets.hpp>
@@ -10,7 +10,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-namespace andromeda::renderer {
+namespace andromeda::renderer::deferred {
 
 GeometryPass::GeometryPass(Context& ctx, ph::PresentManager& vk_present) {
 	create_pipeline(ctx);

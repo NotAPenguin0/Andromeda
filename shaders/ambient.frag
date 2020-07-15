@@ -47,7 +47,8 @@ void main() {
 
 	const int SAMPLE_COUNT = 8;
 	vec3 ambient = vec3(0);
-	float depth_accum = 0;
+	// No need to multisample depth.
+	float depth = texelFetch(gDepth, texel_coords, 0).r;
 	for (int i = 0; i < SAMPLE_COUNT; ++i) {
 		vec4 albedo_ao = texelFetch(gAlbedoAO, texel_coords, i);
 		vec3 albedo = albedo_ao.rgb;
@@ -62,8 +63,6 @@ void main() {
 		vec3 F0 = vec3(0.04); 
 		F0 = mix(F0, albedo, metallic);
 
-		float depth = texelFetch(gDepth, texel_coords, i).r;
-		depth_accum += depth;
 		vec3 WorldPos = WorldPosFromDepth(depth, UV);
 		vec3 view_dir = normalize(camera.position - WorldPos);
 
@@ -85,6 +84,6 @@ void main() {
 	}
 
 	ambient = ambient / float(SAMPLE_COUNT);
-	gl_FragDepth = depth_accum / float(SAMPLE_COUNT);
+	gl_FragDepth = depth;
 	FragColor = vec4(ambient, 1.0);
 }

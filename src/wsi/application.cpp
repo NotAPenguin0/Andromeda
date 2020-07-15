@@ -65,7 +65,7 @@ Application::Application(size_t width, size_t height, std::string_view title)
 	ImGui_ImplPhobos_Init(&init_info);
 	io.Fonts->AddFontDefault();
 	load_imgui_fonts(*context.vulkan);
-	renderer = std::make_unique<renderer::Renderer>(context);
+	renderer = std::make_unique<renderer::ForwardPlusRenderer>(context);
 }
 
 Application::~Application() {
@@ -207,7 +207,7 @@ void Application::run() {
 		if (ImGui::Begin("Scene view", nullptr)) {
 			auto size = ImGui::GetContentRegionAvail();
 //			renderer->resize_attachments(size.x, size.y);
-			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_image()), { 1280, 720 });
+			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->debug_image()), { 1920, 1088 });
 		}
 		ImGui::End();
 		auto& cam_transform = context.world->ecs().get_component<Transform>(cam);
@@ -235,11 +235,8 @@ void Application::run() {
 				}
 			};
 
-//			display_transform("dragon", ent);
-//			display_transform("floor", floor);
 			display_light("light", light_entity);
 
-			ImGui::Checkbox("Enable ambient lighting", &renderer->get_lighting_pass().enable_ambient);
 			ImGui::DragFloat3("cam rotation", &cam_transform.rotation.x, 1.0f);
 			if (ImGui::Button("Toggle envmap")) {
 				envmap_idx++;
