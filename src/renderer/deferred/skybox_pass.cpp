@@ -37,7 +37,7 @@ static constexpr float skybox_vertices[] = {
 	// top 
 	-1, 1, -1, 1, 1, 1,
 	1, 1, -1, 1, 1, 1,
-	-1, 1, -1, -1, 1, 1,
+	-1, 1, -1, -1, 1, 1
 };
 
 SkyboxPass::SkyboxPass(Context& ctx, ph::PresentManager& vk_present) {

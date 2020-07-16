@@ -9,6 +9,50 @@
 
 namespace andromeda::renderer {
 
+static constexpr float skybox_vertices[] = {
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+};
+
 ForwardPlusRenderer::ForwardPlusRenderer(Context& ctx) : Renderer(ctx) {
 	color = &vk_present->add_color_attachment("fwd_plus_color", { 1920, 1088 }, vk::Format::eR16G16B16A16Sfloat);
 	depth = &vk_present->add_depth_attachment("fwd_plus_depth", { 1920, 1088 });
@@ -51,8 +95,8 @@ void ForwardPlusRenderer::depth_prepass(ph::RenderGraph& graph, Context& ctx) {
 #if ANDROMEDA_DEBUG
 	pass.debug_name = "fwd_plus_depth_prepass";
 #endif
-	pass.clear_values = { vk::ClearDepthStencilValue{1.0, 0} };
 	pass.outputs = { *depth };
+	pass.clear_values = { vk::ClearDepthStencilValue{1.0, 0} };
 	pass.callback = [this, &ctx](ph::CommandBuffer& cmd_buf) {
 		auto_viewport_scissor(cmd_buf);
 
@@ -167,59 +211,86 @@ void ForwardPlusRenderer::shading(ph::RenderGraph& graph, Context& ctx) {
 		if (!assets::is_ready(database.environment_map) || !assets::is_ready(brdf_lookup)) { return; }
 		if (database.draws.empty()) return;
 
-		// Bind the pipeline
-		ph::Pipeline pipeline = cmd_buf.get_pipeline("fwd_plus_shading");
-		cmd_buf.bind_pipeline(pipeline);
-
-		// Bind descriptor set
-		ph::DescriptorSetBinding set_binding;
-		set_binding.add(ph::make_descriptor(shading_bindings.textures, database.texture_views, sampler));
-		set_binding.add(ph::make_descriptor(shading_bindings.camera, per_frame_buffers.camera));
-		set_binding.add(ph::make_descriptor(shading_bindings.transforms, per_frame_buffers.transforms));
-		set_binding.add(ph::make_descriptor(shading_bindings.lights, per_frame_buffers.lights));
-		set_binding.add(ph::make_descriptor(shading_bindings.visible_light_indices, per_frame_buffers.visible_light_indices));
 		EnvMap* env_map = assets::get(database.environment_map);
-		set_binding.add(ph::make_descriptor(shading_bindings.brdf_lookup, assets::get(brdf_lookup)->get_view(), sampler));
-		set_binding.add(ph::make_descriptor(shading_bindings.irradiance_map, env_map->irradiance_map_view, sampler));
-		set_binding.add(ph::make_descriptor(shading_bindings.specular_map, env_map->specular_map_view, sampler));
-		// We need variable count to use descriptor indexing
-		vk::DescriptorSetVariableDescriptorCountAllocateInfo variable_count_info;
-		uint32_t counts[1]{ ph::meta::max_unbounded_array_size };
-		variable_count_info.descriptorSetCount = 1;
-		variable_count_info.pDescriptorCounts = counts;
-		vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding, &variable_count_info);
-		cmd_buf.bind_descriptor_set(0, descr_set);
+		// Draw the skybox
+		{
+			ph::Pipeline skybox_pipeline = cmd_buf.get_pipeline("fwd_plus_skybox");
+			cmd_buf.bind_pipeline(skybox_pipeline);
 
-		for (uint32_t draw_idx = 0; draw_idx < database.draws.size(); ++draw_idx) {
-			auto const& draw = database.draws[draw_idx];
+			ph::BufferSlice vbo = cmd_buf.allocate_scratch_vbo(sizeof(skybox_vertices));
+			std::memcpy(vbo.data, skybox_vertices, sizeof(skybox_vertices));
+			cmd_buf.bind_vertex_buffer(0, vbo);
 
-			// Skip this draw if the textures for it aren't loaded yet
-			Material* material = assets::get(draw.material);
-			if (!assets::is_ready(material->color) || !assets::is_ready(material->normal) || !assets::is_ready(material->metallic)
-				|| !assets::is_ready(material->roughness) || !assets::is_ready(material->ambient_occlusion)) {
-				continue;
+			ph::DescriptorSetBinding set_binding;
+			glm::mat4 model_view = database.view;
+			// Cancel out translation
+			model_view[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			ph::BufferSlice cam_ubo = cmd_buf.allocate_scratch_ubo(2 * sizeof(glm::mat4));
+			std::memcpy(cam_ubo.data, &model_view[0][0], sizeof(glm::mat4));
+			std::memcpy(cam_ubo.data + sizeof(glm::mat4), &database.projection[0][0], sizeof(glm::mat4));
+			set_binding.add(ph::make_descriptor(skybox_bindings.camera, cam_ubo));
+			set_binding.add(ph::make_descriptor(skybox_bindings.skybox, env_map->cube_map_view, sampler));
+			vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
+			cmd_buf.bind_descriptor_set(0, descr_set);
+
+			cmd_buf.draw(36, 1, 0, 0);
+		}
+
+		// Draw the scene 
+		{
+			// Bind the pipeline
+			ph::Pipeline pipeline = cmd_buf.get_pipeline("fwd_plus_shading");
+			cmd_buf.bind_pipeline(pipeline);
+
+			// Bind descriptor set
+			ph::DescriptorSetBinding set_binding;
+			set_binding.add(ph::make_descriptor(shading_bindings.textures, database.texture_views, sampler));
+			set_binding.add(ph::make_descriptor(shading_bindings.camera, per_frame_buffers.camera));
+			set_binding.add(ph::make_descriptor(shading_bindings.transforms, per_frame_buffers.transforms));
+			set_binding.add(ph::make_descriptor(shading_bindings.lights, per_frame_buffers.lights));
+			set_binding.add(ph::make_descriptor(shading_bindings.visible_light_indices, per_frame_buffers.visible_light_indices));
+			set_binding.add(ph::make_descriptor(shading_bindings.brdf_lookup, assets::get(brdf_lookup)->get_view(), sampler));
+			set_binding.add(ph::make_descriptor(shading_bindings.irradiance_map, env_map->irradiance_map_view, sampler));
+			set_binding.add(ph::make_descriptor(shading_bindings.specular_map, env_map->specular_map_view, sampler));
+			// We need variable count to use descriptor indexing
+			vk::DescriptorSetVariableDescriptorCountAllocateInfo variable_count_info;
+			uint32_t counts[1]{ ph::meta::max_unbounded_array_size };
+			variable_count_info.descriptorSetCount = 1;
+			variable_count_info.pDescriptorCounts = counts;
+			vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding, &variable_count_info);
+			cmd_buf.bind_descriptor_set(0, descr_set);
+
+			for (uint32_t draw_idx = 0; draw_idx < database.draws.size(); ++draw_idx) {
+				auto const& draw = database.draws[draw_idx];
+
+				// Skip this draw if the textures for it aren't loaded yet
+				Material* material = assets::get(draw.material);
+				if (!assets::is_ready(material->color) || !assets::is_ready(material->normal) || !assets::is_ready(material->metallic)
+					|| !assets::is_ready(material->roughness) || !assets::is_ready(material->ambient_occlusion)) {
+					continue;
+				}
+
+				// Don't draw if the mesh isn't ready
+				if (!assets::is_ready(draw.mesh)) {
+					continue;
+				}
+
+				Mesh* mesh = assets::get(draw.mesh);
+				// Bind draw data
+				cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, mesh->get_vertices()));
+				cmd_buf.bind_index_buffer(ph::whole_buffer_slice(*ctx.vulkan, mesh->get_indices()));
+
+				// update push constant ranges
+				stl::uint32_t const transform_index = draw_idx;
+				cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &transform_index);
+				auto indices = database.get_material_textures(draw.material);
+				uint32_t texture_indices[]{ indices.color, indices.normal, indices.metallic, indices.roughness, indices.ambient_occlusion };
+				cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), sizeof(texture_indices), &texture_indices);
+				uint32_t tile_count_x = 1920 / 16; // TODO: don't hardcode
+				cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 6 * sizeof(uint32_t), sizeof(uint32_t), &tile_count_x);
+				// Execute drawcall
+				cmd_buf.draw_indexed(mesh->index_count(), 1, 0, 0, 0);
 			}
-
-			// Don't draw if the mesh isn't ready
-			if (!assets::is_ready(draw.mesh)) {
-				continue;
-			}
-
-			Mesh* mesh = assets::get(draw.mesh);
-			// Bind draw data
-			cmd_buf.bind_vertex_buffer(0, ph::whole_buffer_slice(*ctx.vulkan, mesh->get_vertices()));
-			cmd_buf.bind_index_buffer(ph::whole_buffer_slice(*ctx.vulkan, mesh->get_indices()));
-
-			// update push constant ranges
-			stl::uint32_t const transform_index = draw_idx;
-			cmd_buf.push_constants(vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &transform_index);
-			auto indices = database.get_material_textures(draw.material);
-			uint32_t texture_indices[]{ indices.color, indices.normal, indices.metallic, indices.roughness, indices.ambient_occlusion };
-			cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), sizeof(texture_indices), &texture_indices);
-			uint32_t tile_count_x = 1920 / 16; // TODO: don't hardcode
-			cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 6 * sizeof(uint32_t), sizeof(uint32_t), &tile_count_x);
-			// Execute drawcall
-			cmd_buf.draw_indexed(mesh->index_count(), 1, 0, 0, 0);
 		}
 	};
 
@@ -367,6 +438,45 @@ void ForwardPlusRenderer::create_pipelines(Context& ctx) {
 		shading_bindings.specular_map = pci.shader_info["specular_map"];
 
 		ctx.vulkan->pipelines.create_named_pipeline("fwd_plus_shading", std::move(pci));
+	}
+
+	// Skybox pipeline
+	{
+		ph::PipelineCreateInfo pci;
+
+		vk::PipelineColorBlendAttachmentState blend_attachment;
+		blend_attachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+			vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+		blend_attachment.blendEnable = false;
+		pci.blend_attachments.push_back(blend_attachment);
+
+		pci.vertex_input_bindings.push_back(vk::VertexInputBindingDescription(0, 3 * sizeof(float), vk::VertexInputRate::eVertex));
+		pci.vertex_attributes.emplace_back(0_u32, 0_u32, vk::Format::eR32G32B32Sfloat, 0_u32);
+
+		pci.dynamic_states.push_back(vk::DynamicState::eViewport);
+		pci.dynamic_states.push_back(vk::DynamicState::eScissor);
+
+		// Note that these are dynamic state so we don't need to fill in the fields
+		pci.viewports.emplace_back();
+		pci.scissors.emplace_back();
+
+		pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+		pci.depth_stencil.depthTestEnable = false;
+		pci.depth_stencil.depthWriteEnable = false;
+		pci.depth_stencil.depthBoundsTestEnable = false;
+		// We want to render the skybox if the depth value is 1.0 (which it is), so we need to set LessOrEqual
+		pci.depth_stencil.depthCompareOp = vk::CompareOp::eLessOrEqual;
+
+		pci.shaders.push_back(ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/skybox.vert.spv"),
+			"main", vk::ShaderStageFlagBits::eVertex));
+		pci.shaders.push_back(ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/skybox.frag.spv"),
+			"main", vk::ShaderStageFlagBits::eFragment));
+
+		ph::reflect_shaders(*ctx.vulkan, pci);
+		skybox_bindings.camera = pci.shader_info["camera"];
+		skybox_bindings.skybox = pci.shader_info["skybox"];
+
+		ctx.vulkan->pipelines.create_named_pipeline("fwd_plus_skybox", stl::move(pci));
 	}
 }
 

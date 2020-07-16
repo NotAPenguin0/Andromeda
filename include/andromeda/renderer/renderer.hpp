@@ -74,6 +74,7 @@ private:
 	void depth_prepass(ph::RenderGraph& graph, Context& ctx);
 	void light_cull(ph::RenderGraph& graph, Context& ctx);
 	void shading(ph::RenderGraph& graph, Context& ctx);
+	void tonemap(ph::RenderGraph& graph, Context& ctx);
 
 	ph::RenderAttachment* color;
 	ph::RenderAttachment* depth;
@@ -104,6 +105,11 @@ private:
 		ph::ShaderInfo::BindingInfo specular_map;
 		ph::ShaderInfo::BindingInfo brdf_lookup;
 	} shading_bindings;
+
+	struct SkyboxBindings {
+		ph::ShaderInfo::BindingInfo skybox;
+		ph::ShaderInfo::BindingInfo camera;
+	} skybox_bindings;
 
 	struct PerFrameBuffers {
 		ph::BufferSlice camera;
