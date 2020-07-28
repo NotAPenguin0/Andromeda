@@ -2,29 +2,12 @@
 
 layout(location = 0) in vec2 UV;
 
-layout(set = 0, binding = 0) uniform sampler2D input_hdr;
+layout(set = 0, binding = 0) uniform sampler2DMS input_hdr;
 
 layout(location = 0) out vec4 FragColor;
 
-vec3 reinhard_extended(vec3 v, float max_white) {
-    vec3 numerator = v * (1.0f + (v / vec3(max_white * max_white)));
-    return numerator / (1.0f + v);
-}
 
-float luminance(vec3 v)
-{
-    return dot(v, vec3(0.2126f, 0.7152f, 0.0722f));
-}
-
-vec3 reinhard_jodie(vec3 v)
-{
-    float l = luminance(v);
-    vec3 tv = v / (1.0f + v);
-    return mix(v / (1.0f + l), tv, tv);
-}
-
-vec3 uncharted2_tonemap_partial(vec3 x)
-{
+vec3 uncharted2_tonemap_partial(vec3 x) {
     float A = 0.15f;
     float B = 0.50f;
     float C = 0.10f;
@@ -34,8 +17,7 @@ vec3 uncharted2_tonemap_partial(vec3 x)
     return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
-vec3 uncharted2_filmic(vec3 v)
-{
+vec3 uncharted2_filmic(vec3 v) {
     float exposure_bias = 2.0f;
     vec3 curr = uncharted2_tonemap_partial(v * exposure_bias);
 
@@ -45,7 +27,15 @@ vec3 uncharted2_filmic(vec3 v)
 }
 
 void main() {
-	vec4 in_hdr = texture(input_hdr, UV);
-    vec3 out_ldr = uncharted2_filmic(in_hdr.rgb);
-    FragColor = vec4(out_ldr, 1.0);
+    const int NUM_SAMPLES = 8;
+    ivec2 tex_size = ivec2(textureSize(input_hdr));
+    ivec2 texels = ivec2(UV * tex_size);
+
+    vec3 color = vec3(0);
+
+    for (int sample_i = 0; sample_i < NUM_SAMPLES; ++sample_i) {
+	    vec4 in_hdr = texelFetch(input_hdr, texels, sample_i);
+        color += uncharted2_filmic(in_hdr.rgb);
+    }
+    FragColor = vec4(color / float(NUM_SAMPLES), 1.0);
 }

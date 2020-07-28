@@ -32,7 +32,10 @@ Renderer::Renderer(Context& ctx) {
 	vk_present = std::make_unique<ph::PresentManager>(*ctx.vulkan);
 	vk_renderer = std::make_unique<ph::Renderer>(*ctx.vulkan);
 
-	color_final = &vk_present->add_color_attachment("color_final", { 1920, 1088 });
+	render_size = { 1920, 1080 };
+
+	color_final = &vk_present->add_color_attachment("color_final", render_size);
+	attachments.push_back(color_final);
 }
 
 Renderer::~Renderer() {
@@ -96,6 +99,13 @@ void Renderer::render(Context& ctx) {
 	frame.render_graph = &graph;
 	vk_renderer->render_frame(frame);
 	vk_present->present_frame(frame);
+}
+
+void Renderer::resize(vk::Extent2D size) {
+	render_size = size;
+	for (auto attachment : attachments) {
+		attachment->resize(size.width, size.height);
+	}
 }
 
 }

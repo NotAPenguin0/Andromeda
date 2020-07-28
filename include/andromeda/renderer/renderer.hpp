@@ -24,6 +24,7 @@ public:
 	ph::ImageView scene_image() const { return color_final->image_view(); }
 
 	virtual ph::ImageView debug_image() const = 0;
+	virtual void resize(vk::Extent2D size);
 
 protected:
 	virtual void render_frame(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& graph) = 0;
@@ -32,7 +33,10 @@ protected:
 	std::unique_ptr<ph::PresentManager> vk_present;
 
 	RenderDatabase database;
+
+	std::vector<ph::RenderAttachment*> attachments;
 	ph::RenderAttachment* color_final = nullptr;
+	vk::Extent2D render_size;
 };
 
 class DeferredRenderer : public Renderer {
@@ -53,6 +57,7 @@ private:
 
 	ph::RenderAttachment* scene_color;
 };
+
 
 class ForwardPlusRenderer : public Renderer {
 public:
@@ -75,6 +80,15 @@ private:
 	void light_cull(ph::RenderGraph& graph, Context& ctx);
 	void shading(ph::RenderGraph& graph, Context& ctx);
 	void tonemap(ph::RenderGraph& graph, Context& ctx);
+	void overlay(ph::RenderGraph& graph, Context& ctx);
+
+	uint32_t get_tile_count_x() const {
+		return (render_size.width + tile_size - 1) / tile_size;
+	}
+
+	uint32_t get_tile_count_y() const {
+		return (render_size.height + tile_size - 1) / tile_size;
+	}
 
 	ph::RenderAttachment* color;
 	ph::RenderAttachment* depth;
@@ -82,6 +96,8 @@ private:
 	vk::Sampler sampler;
 
 	Handle<Texture> brdf_lookup;
+
+	static constexpr uint32_t tile_size = 16;
 
 	struct DepthBindings {
 		ph::ShaderInfo::BindingInfo camera;
@@ -110,6 +126,14 @@ private:
 		ph::ShaderInfo::BindingInfo skybox;
 		ph::ShaderInfo::BindingInfo camera;
 	} skybox_bindings;
+
+	struct TonemapBindings {
+		ph::ShaderInfo::BindingInfo in_hdr;
+	} tonemap_bindings;
+
+	struct LightHeatmapOverlayBindings {
+		ph::ShaderInfo::BindingInfo visible_indices;
+	} light_heatmap_overlay_bindings;
 
 	struct PerFrameBuffers {
 		ph::BufferSlice camera;

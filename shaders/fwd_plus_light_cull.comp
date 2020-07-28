@@ -13,7 +13,7 @@ layout(push_constant) uniform PC {
 	uvec2 screen_size;
 } pc;
 
-layout(set = 0, binding = 0) uniform sampler2D depth_map;
+layout(set = 0, binding = 0) uniform sampler2DMS depth_map;
 layout(set = 0, binding = 1) uniform Camera {
 	mat4 view;
 	mat4 projection;
@@ -46,6 +46,7 @@ layout(set = 0, binding = 3) buffer writeonly VisibleIndices {
 
 struct Frustum {
 	vec4 planes[6];
+	vec3 points[8]; // indices 0-3 are points for the near plane, 4-7 for the far plane.
 };
 
 struct SharedData {
@@ -72,7 +73,9 @@ void calculate_depth_range() {
 	ivec2 screen_pixel = ivec2(gl_GlobalInvocationID.xy);
 
 	vec2 UV = vec2(screen_pixel) / pc.screen_size;
-	float depth = texture(depth_map, UV).r;
+	ivec2 tex_size = ivec2(textureSize(depth_map));
+    ivec2 texels = ivec2(UV * tex_size);
+	float depth = texelFetch(depth_map, texels, 0).r;
 
 	// Depth values must be linearized because we stored them after applying projection
 	depth = (0.5 * camera.projection[3][2]) / (depth + 0.5 * camera.projection[2][2] - 0.5);
@@ -98,26 +101,13 @@ void create_frustum() {
 		vec2 negative_step = (2.0 * vec2(tile_id)) / vec2(tile_count);
 		vec2 positive_step = (2.0 * vec2(tile_id + ivec2(1, 1))) / vec2(tile_count);
 
-		// Create basic planes, these still need to be transformed (multiply by view_projection and apply perspective division).
+		// Create frustum planes
 		tile_data.frustum.planes[0] = vec4(1.0, 0.0, 0.0, 1.0 - negative_step.x); // Left
 		tile_data.frustum.planes[1] = vec4(-1.0, 0.0, 0.0, -1.0 + positive_step.x); // Right
 		tile_data.frustum.planes[2] = vec4(0.0, 1.0, 0.0, 1.0 - negative_step.y); // Bottom
 		tile_data.frustum.planes[3] = vec4(0.0, -1.0, 0.0, -1.0 + positive_step.y); // Top
 		tile_data.frustum.planes[4] = vec4(0.0, 0.0, -1.0, -min_depth); // Near
 		tile_data.frustum.planes[5] = vec4(0.0, 0.0, 1.0, max_depth); // Far
-
-		// Transform the first four planes (left, right, bottom, top)
-		for (uint i = 0; i < 4; i++) {
-			tile_data.frustum.planes[i] *= camera.projection_view;
-			tile_data.frustum.planes[i] /= length(tile_data.frustum.planes[i].xyz);
-		}
-
-		// Transform the depth planes. We do these separately because we don't want to apply the projection matrix here (since we're working
-		// with linearized depth values).
-		tile_data.frustum.planes[4] *= camera.view;
-		tile_data.frustum.planes[4] /= length(tile_data.frustum.planes[4].xyz);
-		tile_data.frustum.planes[5] *= camera.view;
-		tile_data.frustum.planes[5] /= length(tile_data.frustum.planes[5].xyz);
 	}
 }
 
@@ -157,6 +147,96 @@ void cull_lights() {
 	}
 }
 
+void create_frustum_maybe_vk() {
+	if (gl_LocalInvocationIndex == 0) {
+		// vulkan ndc, minDepth = 0.0, maxDepth = 1.0
+		const vec2 ndc_upper_left = vec2(-1.0, -1.0);
+		const float ndc_near_plane = 0.0;
+		const float ndc_far_plane = 1.0;
+
+		mat4 inv_pv = inverse(camera.projection_view);
+		vec2 ndc_size_per_tile = 2.0 * vec2(TILE_SIZE, TILE_SIZE) / pc.screen_size;
+
+		// ID of this tile.
+		ivec2 tile_id = ivec2(gl_WorkGroupID.xy);
+		// Get back floating point values for the depth
+		float min_depth = uintBitsToFloat(tile_data.min_depth_int);
+		float max_depth = uintBitsToFloat(tile_data.max_depth_int);
+
+		vec2 ndc_pts[4];  // corners of tile in ndc
+		ndc_pts[0] = ndc_upper_left + tile_id * ndc_size_per_tile;  // upper left
+		ndc_pts[1] = vec2(ndc_pts[0].x + ndc_size_per_tile.x, ndc_pts[0].y); // upper right
+		ndc_pts[2] = ndc_pts[0] + ndc_size_per_tile;
+		ndc_pts[3] = vec2(ndc_pts[0].x, ndc_pts[0].y + ndc_size_per_tile.y); // lower left
+
+		vec4 temp;
+		for (int i = 0; i < 4; i++) {
+			temp = inv_pv * vec4(ndc_pts[i], min_depth, 1.0);
+			tile_data.frustum.points[i] = temp.xyz / temp.w;
+			temp = inv_pv * vec4(ndc_pts[i], max_depth, 1.0);
+			tile_data.frustum.points[i + 4] = temp.xyz / temp.w;
+		}
+
+		vec3 temp_normal;
+		for (int i = 0; i < 4; i++)
+		{
+			//Cax+Cby+Ccz+Cd = 0, planes[i] = (Ca, Cb, Cc, Cd)
+			// temp_normal: normal without normalization
+			temp_normal = cross(tile_data.frustum.points[i] - camera.cam_pos, tile_data.frustum.points[i + 1] - camera.cam_pos);
+			temp_normal = normalize(temp_normal);
+			tile_data.frustum.planes[i] = vec4(temp_normal, - dot(temp_normal, tile_data.frustum.points[i]));
+		}
+		// near plane
+		{
+			temp_normal = cross(tile_data.frustum.points[1] - tile_data.frustum.points[0], tile_data.frustum.points[3] - tile_data.frustum.points[0]);
+			temp_normal = normalize(temp_normal);
+			tile_data.frustum.planes[4] = vec4(temp_normal, - dot(temp_normal, tile_data.frustum.points[0]));
+		}
+		// far plane
+		{
+			temp_normal = cross(tile_data.frustum.points[7] - tile_data.frustum.points[4], tile_data.frustum.points[5] - tile_data.frustum.points[4]);
+			temp_normal = normalize(temp_normal);
+			tile_data.frustum.planes[5] = vec4(temp_normal, - dot(temp_normal, tile_data.frustum.points[4]));
+		}
+	}
+}
+
+void cull_lights_maybe_vk() {
+	const uint thread_count = TILE_SIZE * TILE_SIZE;
+	const uint thread_index = gl_LocalInvocationIndex;
+	// Since we can process 256 lights simultaneously, we need additional passes of 256 lights if we exceed this limit.
+	const uint light_count = lights.data.length();
+	const uint pass_count = (light_count + thread_count - 1) / thread_count;
+	// Each thread processes one light per pass
+	for (uint pass = 0; pass < pass_count; ++pass) {
+		// Get the light index for this thread in this pass. If this index is out of bounds, we can stop testing lights on this thread.
+		const uint light_index = pass * thread_count + thread_index;
+		if (light_index >= light_count) { break; }
+
+		// Read relevant light data from buffer
+		const vec3 position = lights.data[light_index].transform.xyz;
+		const float radius = lights.data[light_index].transform.w;
+
+		// Check if the light is inside the tile frustum
+		bool result = true;
+		for (uint plane = 0; plane < 6; ++plane) {
+			if (dot(position, tile_data.frustum.planes[plane].xyz) + tile_data.frustum.planes[plane].w < -radius) {
+				// If one of the distance tests fails, the light is not inside the tile frustum and we don't need to check the other planes
+				result = false;
+				break;
+			}
+		}
+
+		// If all distance tests succeeded, dist is now positive and the light is visible in the current tile.
+		if (result) {
+			// Add one to the amount of visible lights in this tile, and retrieve old amount. This old amount of the index at which we
+			// have to store the light's index.
+			const uint write_index = atomicAdd(tile_data.visible_light_count, 1);
+			tile_data.visible_lights[write_index] = int(light_index);
+		}
+	}
+}
+
 void write_output() { 
 	// Make sure only one thread writes output to avoid race conditions
 	if (gl_LocalInvocationIndex == 0) {
@@ -179,22 +259,32 @@ void write_output() {
 	}
 }
 
+bool thread_pixel_in_range() {
+	ivec2 screen_pixel = ivec2(gl_GlobalInvocationID.xy);
+	if (screen_pixel.x >= pc.screen_size.x || screen_pixel.y >= pc.screen_size.y) return false;
+	return true;
+}
+
 void main() {
 	// Inside this function is logic to make sure the initialization only happens on one thread
 	initialize_tile();
-
+	
 	// Initialization one first thread has to be completed before other threads can continue
 	barrier();
-
-	// Step 1: Calculate minimum and maximum depth in the tile.
-	calculate_depth_range();
+	
+	if (thread_pixel_in_range()) {
+		// Step 1: Calculate minimum and maximum depth in the tile.
+		calculate_depth_range();
+	}
 
 	// All threads must be done or we can't be sure we have the correct minimum and maximum depth values.
 	barrier();
 
-	// Step 2: Create a frustum for the culling algorithm to use.
-	// Inside this function is logic to make sure the initialization only happens on one thread
-	create_frustum();
+	if (thread_pixel_in_range()) {
+		// Step 2: Create a frustum for the culling algorithm to use.
+		// Inside this function is logic to make sure the initialization only happens on one thread
+		create_frustum();
+	}
 
 	// We can only continue once we have constructed a frustum check the lights.
 	barrier();

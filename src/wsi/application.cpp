@@ -206,8 +206,8 @@ void Application::run() {
 
 		if (ImGui::Begin("Scene view", nullptr)) {
 			auto size = ImGui::GetContentRegionAvail();
-//			renderer->resize_attachments(size.x, size.y);
-			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->debug_image()), { 1920, 1088 });
+			renderer->resize(vk::Extent2D(size.x, size.y));
+			ImGui::Image(ImGui_ImplPhobos_GetTexture(renderer->scene_image()), size);
 		}
 		ImGui::End();
 		auto& cam_transform = context.world->ecs().get_component<Transform>(cam);

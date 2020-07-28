@@ -54,8 +54,8 @@ static constexpr float skybox_vertices[] = {
 };
 
 ForwardPlusRenderer::ForwardPlusRenderer(Context& ctx) : Renderer(ctx) {
-	color = &vk_present->add_color_attachment("fwd_plus_color", { 1920, 1088 }, vk::Format::eR16G16B16A16Sfloat);
-	depth = &vk_present->add_depth_attachment("fwd_plus_depth", { 1920, 1088 });
+	color = &vk_present->add_color_attachment("fwd_plus_color", render_size, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e8);
+	depth = &vk_present->add_depth_attachment("fwd_plus_depth", render_size, vk::SampleCountFlagBits::e8);
 
 	brdf_lookup = ctx.request_texture("data/textures/ibl_brdf_lut.png", false);
 
@@ -81,6 +81,9 @@ ForwardPlusRenderer::ForwardPlusRenderer(Context& ctx) : Renderer(ctx) {
 	sampler_info.anisotropyEnable = true;
 	sampler_info.maxAnisotropy = 16;
 	sampler = ctx.vulkan->device.createSampler(sampler_info);
+
+	attachments.push_back(color);
+	attachments.push_back(depth);
 }
 
 void ForwardPlusRenderer::render_frame(Context& ctx, ph::FrameInfo& frame, ph::RenderGraph& graph) {
@@ -88,6 +91,8 @@ void ForwardPlusRenderer::render_frame(Context& ctx, ph::FrameInfo& frame, ph::R
 	depth_prepass(graph, ctx);
 	light_cull(graph, ctx);
 	shading(graph, ctx);
+	tonemap(graph, ctx);
+	overlay(graph, ctx); // TODO: make overlay optional, select currently displayed overlay.
 }
 
 void ForwardPlusRenderer::depth_prepass(ph::RenderGraph& graph, Context& ctx) {
@@ -172,9 +177,9 @@ void ForwardPlusRenderer::light_cull(ph::RenderGraph& graph, Context& ctx) {
 		cmd_buf.bind_descriptor_set(0, descr_set);
 
 		//TODO: Don't hardcode this
-		uint32_t screen_size[2]{ 1920, 1088 };
-		uint32_t const tile_count_x = (screen_size[0] / 16);
-		uint32_t const tile_count_y = (screen_size[1] / 16); 
+		uint32_t screen_size[2]{ render_size.width, render_size.height };
+		uint32_t const tile_count_x = get_tile_count_x();
+		uint32_t const tile_count_y = get_tile_count_y();
 		cmd_buf.push_constants(vk::ShaderStageFlagBits::eCompute, 0, 2 * sizeof(uint32_t), &screen_size);
 		cmd_buf.dispatch_compute(tile_count_x, tile_count_y, 1);
 
@@ -286,12 +291,63 @@ void ForwardPlusRenderer::shading(ph::RenderGraph& graph, Context& ctx) {
 				auto indices = database.get_material_textures(draw.material);
 				uint32_t texture_indices[]{ indices.color, indices.normal, indices.metallic, indices.roughness, indices.ambient_occlusion };
 				cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), sizeof(texture_indices), &texture_indices);
-				uint32_t tile_count_x = 1920 / 16; // TODO: don't hardcode
+				uint32_t const tile_count_x = get_tile_count_x();
 				cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 6 * sizeof(uint32_t), sizeof(uint32_t), &tile_count_x);
 				// Execute drawcall
 				cmd_buf.draw_indexed(mesh->index_count(), 1, 0, 0, 0);
 			}
 		}
+	};
+
+	graph.add_pass(std::move(pass));
+}
+
+void ForwardPlusRenderer::tonemap(ph::RenderGraph& graph, Context& ctx) {
+	ph::RenderPass pass;
+#if ANDROMEDA_DEBUG
+	pass.debug_name = "forward_plus_tonemap_pass";
+#endif
+	pass.sampled_attachments = { *color };
+	pass.outputs = { *color_final };
+	pass.clear_values.emplace_back();
+	pass.clear_values[0].color = vk::ClearColorValue{ std::array<float, 4>{ {0, 0, 0, 1}} };
+	pass.callback = [this](ph::CommandBuffer& cmd_buf) {
+		ph::Pipeline pipeline = cmd_buf.get_pipeline("fwd_plus_tonemap");
+		cmd_buf.bind_pipeline(pipeline);
+
+		ph::DescriptorSetBinding set_binding;
+		set_binding.add(ph::make_descriptor(tonemap_bindings.in_hdr, color->image_view(), sampler));
+		vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
+		cmd_buf.bind_descriptor_set(0, descr_set);
+
+		cmd_buf.draw(6, 1, 0, 0);
+	};
+
+	graph.add_pass(std::move(pass));
+}
+
+void ForwardPlusRenderer::overlay(ph::RenderGraph& graph, Context& ctx) {
+	ph::RenderPass pass;
+#if ANDROMEDA_DEBUG
+	pass.debug_name = "forward_plus_overlay_pass";
+#endif
+	pass.outputs = { *color_final };
+	pass.callback = [this](ph::CommandBuffer& cmd_buf) {
+		if (database.draws.empty()) return;
+		if (database.point_lights.empty()) return;
+
+		ph::Pipeline pipeline = cmd_buf.get_pipeline("fwd_plus_light_heatmap_overlay");
+		cmd_buf.bind_pipeline(pipeline);
+
+		ph::DescriptorSetBinding set_binding;
+		set_binding.add(ph::make_descriptor(light_heatmap_overlay_bindings.visible_indices, per_frame_buffers.visible_light_indices));
+		vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
+		cmd_buf.bind_descriptor_set(0, descr_set);
+
+		uint32_t const tile_count_x = get_tile_count_x();
+		cmd_buf.push_constants(vk::ShaderStageFlagBits::eFragment, 0, sizeof(uint32_t), &tile_count_x);
+
+		cmd_buf.draw(6, 1, 0, 0);
 	};
 
 	graph.add_pass(std::move(pass));
@@ -322,7 +378,7 @@ void ForwardPlusRenderer::update_lights(ph::CommandBuffer& cmd_buf) {
 }
 
 void ForwardPlusRenderer::create_compute_output_buffer(ph::CommandBuffer& cmd_buf) {
-	uint32_t const tile_count = (1920 / 16) * (1088 / 16); //TODO: Don't hardcode this
+	uint32_t const tile_count = get_tile_count_x() * get_tile_count_y();;
 	uint32_t const max_lights_per_tile = 1024;
 	vk::DeviceSize size = tile_count * max_lights_per_tile * sizeof(int32_t);
 	per_frame_buffers.visible_light_indices = cmd_buf.allocate_scratch_ssbo(size);
@@ -351,6 +407,8 @@ void ForwardPlusRenderer::create_pipelines(Context& ctx) {
 		pci.vertex_input_bindings.push_back(vk::VertexInputBindingDescription(0, stride, vk::VertexInputRate::eVertex));
 		// vec3 iPos;
 		pci.vertex_attributes.emplace_back(0_u32, 0_u32, vk::Format::eR32G32B32Sfloat, 0_u32);
+
+		pci.multisample.rasterizationSamples = vk::SampleCountFlagBits::e8;
 
 		// We don't need a fragment shader for a depth-only pass.
 		std::vector<uint32_t> vert_code = ph::load_shader_code("data/shaders/fwd_plus_depth.vert.spv");
@@ -389,7 +447,7 @@ void ForwardPlusRenderer::create_pipelines(Context& ctx) {
 	{
 		ph::PipelineCreateInfo pci;
 #if ANDROMEDA_DEBUG
-		pci.debug_name = "fwd_plus_depth_pipeline";
+		pci.debug_name = "fwd_plus_shading_pipeline";
 #endif
 		pci.blend_logic_op_enable = false;
 		vk::PipelineColorBlendAttachmentState blend;
@@ -401,6 +459,8 @@ void ForwardPlusRenderer::create_pipelines(Context& ctx) {
 		pci.dynamic_states.push_back(vk::DynamicState::eScissor);
 		pci.viewports.emplace_back();
 		pci.scissors.emplace_back();
+
+		pci.multisample.rasterizationSamples = vk::SampleCountFlagBits::e8;
 
 		// Pos + Normal + Tangent + TexCoords. 
 		constexpr size_t stride = (3 + 3 + 3 + 2) * sizeof(float);
@@ -443,7 +503,9 @@ void ForwardPlusRenderer::create_pipelines(Context& ctx) {
 	// Skybox pipeline
 	{
 		ph::PipelineCreateInfo pci;
-
+#if ANDROMEDA_DEBUG
+		pci.debug_name = "fwd_plus_skybox_pipeline";
+#endif
 		vk::PipelineColorBlendAttachmentState blend_attachment;
 		blend_attachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
 			vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
@@ -455,6 +517,8 @@ void ForwardPlusRenderer::create_pipelines(Context& ctx) {
 
 		pci.dynamic_states.push_back(vk::DynamicState::eViewport);
 		pci.dynamic_states.push_back(vk::DynamicState::eScissor);
+
+		pci.multisample.rasterizationSamples = vk::SampleCountFlagBits::e8;
 
 		// Note that these are dynamic state so we don't need to fill in the fields
 		pci.viewports.emplace_back();
@@ -477,6 +541,82 @@ void ForwardPlusRenderer::create_pipelines(Context& ctx) {
 		skybox_bindings.skybox = pci.shader_info["skybox"];
 
 		ctx.vulkan->pipelines.create_named_pipeline("fwd_plus_skybox", stl::move(pci));
+	}
+
+	// Tonemapping 
+	{
+		ph::PipelineCreateInfo pci;
+#if ANDROMEDA_DEBUG
+		pci.debug_name = "fwd_plus_tonemap_pipeline";
+#endif
+		vk::PipelineColorBlendAttachmentState blend_attachment;
+		blend_attachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+			vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+		blend_attachment.blendEnable = false;
+		pci.blend_attachments.push_back(blend_attachment);
+
+		pci.dynamic_states.push_back(vk::DynamicState::eViewport);
+		pci.dynamic_states.push_back(vk::DynamicState::eScissor);
+
+		// Note that these are dynamic state so we don't need to fill in the fields
+		pci.viewports.emplace_back();
+		pci.scissors.emplace_back();
+
+		pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+		pci.depth_stencil.depthTestEnable = false;
+		pci.depth_stencil.depthWriteEnable = false;
+		pci.depth_stencil.depthBoundsTestEnable = false;
+
+		pci.shaders.push_back(ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/tonemap.vert.spv"),
+			"main", vk::ShaderStageFlagBits::eVertex));
+		pci.shaders.push_back(ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/tonemap.frag.spv"),
+			"main", vk::ShaderStageFlagBits::eFragment));
+
+		ph::reflect_shaders(*ctx.vulkan, pci);
+		tonemap_bindings.in_hdr = pci.shader_info["input_hdr"];
+
+		ctx.vulkan->pipelines.create_named_pipeline("fwd_plus_tonemap", stl::move(pci));
+	}
+
+	// Light heatmap overlay
+	{
+		ph::PipelineCreateInfo pci;
+#if ANDROMEDA_DEBUG
+		pci.debug_name = "fwd_plus_light_heatmap_pipeline";
+#endif
+		vk::PipelineColorBlendAttachmentState blend_attachment;
+		blend_attachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+			vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+		blend_attachment.blendEnable = true;
+		blend_attachment.colorBlendOp = vk::BlendOp::eAdd;
+		blend_attachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+		blend_attachment.dstColorBlendFactor = vk::BlendFactor::eOne;
+		blend_attachment.alphaBlendOp = vk::BlendOp::eAdd;
+		blend_attachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+		blend_attachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+		pci.blend_attachments.push_back(blend_attachment);
+
+		pci.dynamic_states.push_back(vk::DynamicState::eViewport);
+		pci.dynamic_states.push_back(vk::DynamicState::eScissor);
+
+		// Note that these are dynamic state so we don't need to fill in the fields
+		pci.viewports.emplace_back();
+		pci.scissors.emplace_back();
+
+		pci.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+		pci.depth_stencil.depthTestEnable = false;
+		pci.depth_stencil.depthWriteEnable = false;
+		pci.depth_stencil.depthBoundsTestEnable = false;
+
+		pci.shaders.push_back(ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/overlay.vert.spv"),
+			"main", vk::ShaderStageFlagBits::eVertex));
+		pci.shaders.push_back(ph::create_shader(*ctx.vulkan, ph::load_shader_code("data/shaders/light_heatmap_overlay.frag.spv"),
+			"main", vk::ShaderStageFlagBits::eFragment));
+
+		ph::reflect_shaders(*ctx.vulkan, pci);
+		light_heatmap_overlay_bindings.visible_indices = pci.shader_info["visible_light_indices"];
+
+		ctx.vulkan->pipelines.create_named_pipeline("fwd_plus_light_heatmap_overlay", stl::move(pci));
 	}
 }
 
