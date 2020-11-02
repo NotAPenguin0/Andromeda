@@ -16,6 +16,7 @@ ecs::registry& World::ecs() { return entities; }
 ecs::registry const& World::ecs() const { return entities; }
 
 ecs::entity_t World::create_entity(ecs::entity_t parent) {
+	std::lock_guard lock(mutex);
 	assert(parent != ecs::no_entity && "All entities must be children of the root entity (directly or indirectly)");
 	ecs::entity_t entity = entities.create_entity();
 	initialize_entity(entity, parent);
@@ -42,6 +43,14 @@ components::Hierarchy& World::get_hierarchy(ecs::entity_t entity) {
 
 components::Hierarchy const& World::get_hierarchy(ecs::entity_t entity) const {
 	return entities.get_component<components::Hierarchy>(entity);
+}
+
+void World::lock() {
+	mutex.lock();
+}
+
+void World::unlock() {
+	mutex.unlock();
 }
 
 }

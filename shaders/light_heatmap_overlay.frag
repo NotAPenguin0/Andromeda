@@ -19,6 +19,26 @@ layout(push_constant) uniform PC {
     uint tile_count_x;
 } pc;
 
+vec3 heat_colors[] = {
+    vec3(0.5, 0, 1),
+    vec3(0, 0, 1),
+    vec3(0, 0.5, 1),
+    vec3(0, 1, 1),
+    vec3(0, 1, 0.5),
+    vec3(0, 1, 0),
+    vec3(0.5, 1, 0),
+    vec3(1, 0.5, 0),
+    vec3(1, 0, 0)
+};
+
+vec3 get_heat_color(uint light_count) {
+    const uint color_cnt = 9;
+    float color_level = float(light_count) / float(color_cnt - 1);
+    float pct = fract(color_level);
+    uint base = uint(color_level);
+    
+    return mix(heat_colors[base], heat_colors[base + 1], pct);
+}
 
 void main() {
 	// Figure out the tile we're on and its index, so we can index into the visible indices buffer correctly
@@ -32,5 +52,6 @@ void main() {
         ++light_count;
     }
 
-    FragColor = vec4(float(light_count) / MAX_LIGHTS_PER_TILE, 0, 0, 1);
+    FragColor = vec4(get_heat_color(light_count), 1);
+    FragColor = vec4(0);
 }

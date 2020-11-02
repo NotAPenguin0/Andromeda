@@ -48,17 +48,24 @@ void RenderDatabase::reset() {
 	transforms.clear();
 	texture_map.clear();
 	point_lights.clear();
+
+	texture_views.resize(default_texture_count);
+	texture_views[default_color_index] = default_color;
+	texture_views[default_normal_index] = default_normal;
+	texture_views[default_metallic_index] = default_metallic;
+	texture_views[default_roughness_index] = default_roughness;
+	texture_views[default_ambient_occlusion_index] = default_ambient_occlusion;
 }
 
 RenderDatabase::TextureIndices RenderDatabase::get_material_textures(Handle<Material> handle) {
 	Material* material = assets::get(handle);
 	STL_ASSERT(material, "Invalid material handle");
 	return TextureIndices{
-		.color = texture_map[material->color.id],
-		.normal = texture_map[material->normal.id],
-		.metallic = texture_map[material->metallic.id],
-		.roughness = texture_map[material->roughness.id],
-		.ambient_occlusion = texture_map[material->ambient_occlusion.id]
+		.color = material->color ? texture_map[material->color.id] : default_color_index,
+		.normal = material->normal ? texture_map[material->normal.id] : default_normal_index,
+		.metallic = material->metallic ? texture_map[material->metallic.id] : default_metallic_index,
+		.roughness = material->roughness ? texture_map[material->roughness.id] : default_roughness_index,
+		.ambient_occlusion = material->ambient_occlusion ? texture_map[material->ambient_occlusion.id] : default_ambient_occlusion_index
 	};
 }
 

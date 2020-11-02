@@ -133,7 +133,6 @@ vec3 apply_point_light(PointLight light, vec3 norm, vec3 albedo, float roughness
 }
 
 vec3 indirect_light(vec3 normal, vec3 albedo, float ao, float roughness, float metallic) {
-    return vec3(0);
 	vec3 F0 = vec3(0.04); 
 	F0 = mix(F0, albedo, metallic);
 

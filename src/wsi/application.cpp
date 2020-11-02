@@ -83,6 +83,7 @@ void Application::run() {
 	Handle<EnvMap> env_maps[2] = {
 		{}, {}
 	};
+	env_maps[0] = context.request_env_map("data/envmaps/the_lost_city_4k.hdr");
 	uint32_t envmap_idx = 0;
 	// Make camera look at the center of the scene
 	{
@@ -92,80 +93,31 @@ void Application::run() {
 		context.world->ecs().get_component<Transform>(cam).position = glm::vec3(4.0f, 4.0f, 4.0f);
 	}
 
-	ecs::entity_t light_entity = context.world->create_entity();
-	auto& light = context.world->ecs().add_component<PointLight>(light_entity);
-	light.radius = 7.9f;
-	light.intensity = 15.8f;
-	auto& light_trans = context.world->ecs().get_component<Transform>(light_entity);
-	light_trans.position = glm::vec3(-0.3f, 0.4f, 1.0f);
-	auto initialize = [&env_maps, this] {
-		env_maps[0] = context.request_env_map("data/envmaps/the_lost_city_4k.hdr");
-		Handle<Mesh> sphere = context.request_mesh("data/meshes/sphere.glb");
+	srand(time(nullptr));
 
-		Handle<Texture> color = context.request_texture("data/textures/lightgold_albedo.png", true);
-		Handle<Texture> normal = context.request_texture("data/textures/lightgold_normal-dx.png", false);
-		Handle<Texture> metallic = context.request_texture("data/textures/lightgold_metallic.png", false);
-		Handle<Texture> roughness = context.request_texture("data/textures/lightgold_roughness.png", false);
-		Handle<Texture> ao = context.request_texture("data/textures/blank.png", false);
-
-
-		Handle<Material> pbr_mat = assets::take<Material>(Material{
-			.color = color,
-			.normal = normal,
-			.metallic = metallic,
-			.roughness = roughness,
-			.ambient_occlusion = ao
-			}
-		);
-
-		Handle<Texture> color2 = context.request_texture("data/textures/Rocks006_2K_Color.jpg", true);
-		Handle<Texture> normal2 = context.request_texture("data/textures/Rocks006_2K_Normal.jpg", false);
-		Handle<Texture> metallic2 = context.request_texture("data/textures/black.png", false);
-		Handle<Texture> roughness2 = context.request_texture("data/textures/Rocks006_2K_Roughness.jpg", false);
-		Handle<Texture> ao2 = context.request_texture("data/textures/Rocks006_2K_AmbientOcclusion.jpg", false);
-
-		Handle<Material> pbr_mat2 = assets::take<Material>(Material{
-			.color = color2,
-			.normal = normal2,
-			.metallic = metallic2,
-			.roughness = roughness2,
-			.ambient_occlusion = ao2
-			}
-		);
-
-		Handle<Texture> color3 = context.request_texture("data/textures/metalgrid1_basecolor.png", true);
-		Handle<Texture> normal3 = context.request_texture("data/textures/metalgrid1_normal.png", false);
-		Handle<Texture> metallic3 = context.request_texture("data/textures/blank.png", false);
-		Handle<Texture> roughness3 = context.request_texture("data/textures/black.png", false);
-		Handle<Texture> ao3 = context.request_texture("data/textures/metalgrid1_AO.png", false);
-
-		Handle<Material> pbr_mat3 = assets::take<Material>(Material{
-			.color = color3,
-			.normal = normal3,
-			.metallic = metallic3,
-			.roughness = roughness3,
-			.ambient_occlusion = ao3
-			}
-		);
-
-		Handle<Material> materials[]{ pbr_mat, pbr_mat2, pbr_mat3 };
-
-		for (int i = 0; i < 4; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				ecs::entity_t entt = context.world->create_entity();
-				auto& trans = context.world->ecs().get_component<Transform>(entt);
-				trans.position.x = -3.0f + j * 1.5f;
-				trans.position.y = -3.0f + i * 1.5f;
-				trans.position.z = -1.5f;
-				auto& mesh = context.world->ecs().add_component<StaticMesh>(entt);
-				mesh.mesh = sphere;
-				auto& rend = context.world->ecs().add_component<MeshRenderer>(entt);
-				constexpr size_t amt = sizeof(materials) / sizeof(Handle<Material>);
-				rend.material = materials[(i + j) % amt];
-			}
-		}
+	glm::vec3 colors[]{
+		{1, 0, 0},
+		{0, 1, 0},
+		{0, 0, 1},
+		{1, 0, 1},
+		{0, 1, 1},
+		{1, 1, 0},
+		{1, 1, 1}
 	};
-	initialize();
+	uint32_t color_cnt = sizeof(colors) / sizeof(glm::vec3);
+
+	uint32_t const light_count = 50;
+	for (int i = 0; i < light_count; ++i) {
+		ecs::entity_t light_entity = context.world->create_entity();
+		auto& light = context.world->ecs().add_component<PointLight>(light_entity);
+		light.radius = rand() % 50 + 10;
+		light.intensity = rand() % 100 + 20;
+		light.color = colors[rand() % color_cnt];
+		auto& light_trans = context.world->ecs().get_component<Transform>(light_entity);
+		light_trans.position = glm::vec3(rand() % 100 - 50, rand() % 30, rand() % 40 - 20);
+	}
+
+	context.request_model("data/models/sponza-gltf-pbr/sponza.glb");
 
 	double time = mimas_get_time();
 	double last_time = time;
@@ -235,8 +187,6 @@ void Application::run() {
 				}
 			};
 
-			display_light("light", light_entity);
-
 			ImGui::DragFloat3("cam rotation", &cam_transform.rotation.x, 1.0f);
 			if (ImGui::Button("Toggle envmap")) {
 				envmap_idx++;
@@ -245,9 +195,6 @@ void Application::run() {
 			cam_data.env_map = env_maps[envmap_idx];
 			ImGui::Text("frame time: %f ms", delta_time * 1000.0);
 			ImGui::Text("fps: %d", (int)(1.0 / delta_time));
-			if (ImGui::Button("Initialize")) {
-				initialize();
-			}
 		}
 		ImGui::End();
 

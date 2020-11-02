@@ -3,6 +3,7 @@
 
 #include <andromeda/components/hierarchy.hpp>
 #include <andromeda/ecs/registry.hpp>
+#include <mutex>
 
 namespace andromeda::world {
 
@@ -22,10 +23,15 @@ public:
 	components::Hierarchy& get_hierarchy(ecs::entity_t entity);
 	components::Hierarchy const& get_hierarchy(ecs::entity_t entity) const;
 
+	void lock();
+	void unlock();
+
 private:
 	ecs::registry entities;
 	// We will build the world from a root entity. This root entity should always have ID 0.
 	ecs::entity_t root_entity = 0;
+
+	std::mutex mutex;
 
 	// Adds required components (Hierarchy and Transform) to an entity
 	void initialize_entity(ecs::entity_t entity, ecs::entity_t parent);

@@ -37,6 +37,9 @@ protected:
 	std::vector<ph::RenderAttachment*> attachments;
 	ph::RenderAttachment* color_final = nullptr;
 	vk::Extent2D render_size;
+
+	std::vector<ph::Texture> default_textures;
+	ph::Cubemap default_cube;
 };
 
 class DeferredRenderer : public Renderer {

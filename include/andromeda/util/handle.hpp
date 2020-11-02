@@ -15,6 +15,10 @@ struct Handle {
 		return Handle{ .id = cur++ };
 	}
 
+	inline explicit operator bool() const {
+		return id != none;
+	}
+
 private:
 	static inline std::atomic<uint64_t> cur = 0;
 };

@@ -122,14 +122,6 @@ void ForwardPlusRenderer::depth_prepass(ph::RenderGraph& graph, Context& ctx) {
 		for (uint32_t draw_idx = 0; draw_idx < database.draws.size(); ++draw_idx) {
 			auto const& draw = database.draws[draw_idx];
 
-			// Skip this draw if the textures for it aren't loaded yet (even though the textures aren't used).
-			// We skip anyway because we can't process these draws furhter down the pipeline anyway.
-			Material* material = assets::get(draw.material);
-			if (!assets::is_ready(material->color) || !assets::is_ready(material->normal) || !assets::is_ready(material->metallic)
-				|| !assets::is_ready(material->roughness) || !assets::is_ready(material->ambient_occlusion)) {
-				continue;
-			}
-
 			// Don't draw if the mesh isn't ready
 			if (!assets::is_ready(draw.mesh)) {
 				continue;
@@ -213,10 +205,18 @@ void ForwardPlusRenderer::shading(ph::RenderGraph& graph, Context& ctx) {
 
 		// Note that we must set the viewport and scissor state before early returning, this is because we specified them as dynamic states.
 		// This requires us to have commands to update them.
-		if (!assets::is_ready(database.environment_map) || !assets::is_ready(brdf_lookup)) { return; }
+		if (!assets::is_ready(brdf_lookup)) { return; }
 		if (database.draws.empty()) return;
 
-		EnvMap* env_map = assets::get(database.environment_map);
+		EnvMap env_map;
+		if (assets::is_ready(database.environment_map)) {
+			env_map = *assets::get(database.environment_map);
+		}
+		else {
+			env_map.cube_map_view = database.default_skybox;
+			env_map.irradiance_map_view = database.default_irr_map;
+			env_map.specular_map_view = database.default_specular_map;
+		}
 		// Draw the skybox
 		{
 			ph::Pipeline skybox_pipeline = cmd_buf.get_pipeline("fwd_plus_skybox");
@@ -234,7 +234,7 @@ void ForwardPlusRenderer::shading(ph::RenderGraph& graph, Context& ctx) {
 			std::memcpy(cam_ubo.data, &model_view[0][0], sizeof(glm::mat4));
 			std::memcpy(cam_ubo.data + sizeof(glm::mat4), &database.projection[0][0], sizeof(glm::mat4));
 			set_binding.add(ph::make_descriptor(skybox_bindings.camera, cam_ubo));
-			set_binding.add(ph::make_descriptor(skybox_bindings.skybox, env_map->cube_map_view, sampler));
+			set_binding.add(ph::make_descriptor(skybox_bindings.skybox, env_map.cube_map_view, sampler));
 			vk::DescriptorSet descr_set = cmd_buf.get_descriptor(set_binding);
 			cmd_buf.bind_descriptor_set(0, descr_set);
 
@@ -255,8 +255,8 @@ void ForwardPlusRenderer::shading(ph::RenderGraph& graph, Context& ctx) {
 			set_binding.add(ph::make_descriptor(shading_bindings.lights, per_frame_buffers.lights));
 			set_binding.add(ph::make_descriptor(shading_bindings.visible_light_indices, per_frame_buffers.visible_light_indices));
 			set_binding.add(ph::make_descriptor(shading_bindings.brdf_lookup, assets::get(brdf_lookup)->get_view(), sampler));
-			set_binding.add(ph::make_descriptor(shading_bindings.irradiance_map, env_map->irradiance_map_view, sampler));
-			set_binding.add(ph::make_descriptor(shading_bindings.specular_map, env_map->specular_map_view, sampler));
+			set_binding.add(ph::make_descriptor(shading_bindings.irradiance_map, env_map.irradiance_map_view, sampler));
+			set_binding.add(ph::make_descriptor(shading_bindings.specular_map, env_map.specular_map_view, sampler));
 			// We need variable count to use descriptor indexing
 			vk::DescriptorSetVariableDescriptorCountAllocateInfo variable_count_info;
 			uint32_t counts[1]{ ph::meta::max_unbounded_array_size };
@@ -270,10 +270,6 @@ void ForwardPlusRenderer::shading(ph::RenderGraph& graph, Context& ctx) {
 
 				// Skip this draw if the textures for it aren't loaded yet
 				Material* material = assets::get(draw.material);
-				if (!assets::is_ready(material->color) || !assets::is_ready(material->normal) || !assets::is_ready(material->metallic)
-					|| !assets::is_ready(material->roughness) || !assets::is_ready(material->ambient_occlusion)) {
-					continue;
-				}
 
 				// Don't draw if the mesh isn't ready
 				if (!assets::is_ready(draw.mesh)) {
@@ -378,7 +374,7 @@ void ForwardPlusRenderer::update_lights(ph::CommandBuffer& cmd_buf) {
 }
 
 void ForwardPlusRenderer::create_compute_output_buffer(ph::CommandBuffer& cmd_buf) {
-	uint32_t const tile_count = get_tile_count_x() * get_tile_count_y();;
+	uint32_t const tile_count = get_tile_count_x() * get_tile_count_y();
 	uint32_t const max_lights_per_tile = 1024;
 	vk::DeviceSize size = tile_count * max_lights_per_tile * sizeof(int32_t);
 	per_frame_buffers.visible_light_indices = cmd_buf.allocate_scratch_ssbo(size);

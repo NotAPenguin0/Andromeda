@@ -39,6 +39,6 @@ void main() {
     vec3 B = cross(N, T);
     TBN = mat3(T, B, N);
     UV = iTexCoords;
-
+    world_pos = (model * vec4(iPos, 1.0)).xyz;
     gl_Position = camera.projection_view * model * vec4(iPos, 1.0);
 }

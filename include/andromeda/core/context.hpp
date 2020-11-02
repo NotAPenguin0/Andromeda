@@ -4,6 +4,7 @@
 #include <phobos/forward.hpp>
 #include <memory>
 
+#include <andromeda/ecs/entity.hpp>
 #include <andromeda/assets/env_map.hpp>
 #include <andromeda/core/task_manager.hpp>
 #include <andromeda/util/handle.hpp>
@@ -20,6 +21,7 @@ namespace world {
 class World;
 }
 
+struct Model { ecs::entity_t id = 0; };
 
 class Context {
 public:
@@ -34,6 +36,8 @@ public:
 	// size is the amount of values in the vertices array
 	Handle<Mesh> request_mesh(std::string_view path); // TODO: full model
 	Handle<Mesh> request_mesh(float const* vertices, uint32_t size, uint32_t const* indices, uint32_t index_count);
+	Handle<Model> request_model(std::string_view path);
+	
 
 	Handle<EnvMap> request_env_map(std::string_view path);
 };

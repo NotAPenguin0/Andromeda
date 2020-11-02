@@ -49,6 +49,23 @@ public:
 	// These are not meant for modifying manually. Use the provided add_X functions for that. The only reason these are public is because
 	// you can't friend a lambda and getters are ugly.
 
+	ph::ImageView default_color;
+	ph::ImageView default_normal;
+	ph::ImageView default_metallic;
+	ph::ImageView default_roughness;
+	ph::ImageView default_ambient_occlusion;
+
+	ph::ImageView default_skybox;
+	ph::ImageView default_irr_map;
+	ph::ImageView default_specular_map;
+
+	static constexpr uint32_t default_color_index = 0;
+	static constexpr uint32_t default_normal_index = 1;
+	static constexpr uint32_t default_metallic_index = 2;
+	static constexpr uint32_t default_roughness_index = 3;
+	static constexpr uint32_t default_ambient_occlusion_index = 4;
+	static constexpr uint32_t default_texture_count = 5;
+
 	// Stores all ImageViews ready to be sent to the shader easily. This is populated when a material is registered.
 	std::vector<ph::ImageView> texture_views;
 	// Mapping for Handle<Texture> => Index into texture_views array. This is necessary due to the way ID's are generated, we can't simply 
