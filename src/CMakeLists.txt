@@ -5,5 +5,11 @@ target_sources(andromeda PRIVATE
 	"app/log.cpp"
 	"app/wsi.cpp"
 
+	"ecs/registry.cpp"
+
 	"graphics/context.cpp"
+
+	"thread/scheduler.cpp"
+
+	"world.cpp"
 )

@@ -3,6 +3,8 @@
 #include <andromeda/app/wsi.hpp>
 #include <andromeda/app/log.hpp>
 #include <andromeda/graphics/context.hpp>
+#include <andromeda/thread/scheduler.hpp>
+#include <andromeda/world.hpp>
 
 #include <memory>
 
@@ -35,6 +37,10 @@ private:
 	std::unique_ptr<Window> window;
 	// Core graphics context
 	std::unique_ptr<gfx::Context> graphics;
+	// The world with all entities in it
+	std::unique_ptr<World> world;
+	// The task scheduler
+	std::unique_ptr<thread::TaskScheduler> scheduler;
 };
 
 } // namespace andromeda
