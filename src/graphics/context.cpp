@@ -1,11 +1,11 @@
 #include <andromeda/graphics/context.hpp>
 
-#include <thread>
+#include <andromeda/assets/loaders.hpp>
 
 namespace andromeda {
 namespace gfx {
 
-std::unique_ptr<Context> Context::init(Window& window, Log& logger) {
+std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::TaskScheduler& scheduler) {
 	ph::AppSettings settings{};
 	settings.app_name = "Andromeda Scene Editor";
 #if ANDROMEDA_DEBUG
@@ -30,7 +30,7 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger) {
 	settings.gpu_requirements.features_1_2.scalarBlockLayout = true;
 	settings.present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	// Note that we cannot use make_unique since the constructor is private.
-	auto ctx = std::unique_ptr<Context>{ new Context{ settings } };
+	auto ctx = std::unique_ptr<Context>{ new Context{ settings, scheduler } };
 	// Log some information about the created context
 	LOG_FORMAT(LogLevel::Info, "Created graphics context.");
 	ph::PhysicalDevice const& gpu = ctx->get_physical_device();
@@ -59,8 +59,19 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger) {
 	return ctx;
 }
 
-Context::Context(ph::AppSettings settings) : ph::Context(std::move(settings)) {
+Context::Context(ph::AppSettings settings, thread::TaskScheduler& scheduler) 
+	: ph::Context(std::move(settings)), scheduler(scheduler) {
 
+	
+}
+
+Handle<gfx::Texture> Context::request_texture(std::string_view path) {
+	LOG_FORMAT(LogLevel::Info, "Loading texture at path {}.", path);
+	Handle<gfx::Texture> handle = assets::insert_pending<gfx::Texture>();
+	scheduler.schedule([this, handle, path](uint32_t thread) {
+		impl::load_texture(*this, handle, path, thread);
+	});
+	return handle;
 }
 
 } // namespace gfx

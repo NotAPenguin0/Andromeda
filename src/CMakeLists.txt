@@ -5,9 +5,13 @@ target_sources(andromeda PRIVATE
 	"app/log.cpp"
 	"app/wsi.cpp"
 
+	"assets/assets.cpp"
+	"assets/texture_loader.cpp"
+
 	"ecs/registry.cpp"
 
 	"graphics/context.cpp"
+	"graphics/renderer.cpp"
 
 	"thread/scheduler.cpp"
 

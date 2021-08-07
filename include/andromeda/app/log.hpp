@@ -87,8 +87,8 @@ namespace impl {
 	extern Log* _global_log_pointer;
 }
 
-#define LOG_WRITE(level, message) impl::_global_log_pointer->write(level, message)
-#define LOG_FORMAT(level, fmt_string, ...) impl::_global_log_pointer->write_format(level, fmt_string, __VA_ARGS__)
+#define LOG_WRITE(level, message) ::andromeda::impl::_global_log_pointer->write(level, message)
+#define LOG_FORMAT(level, fmt_string, ...) ::andromeda::impl::_global_log_pointer->write_format(level, fmt_string, __VA_ARGS__)
 
 
 } // namespace andromeda

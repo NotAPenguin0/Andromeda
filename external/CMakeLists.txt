@@ -18,12 +18,18 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/imfl/color-console
 )
 
+FetchContent_Declare(
+	assetlib
+	GIT_REPOSITORY https://github.com/notAPenguin0/assetlib
+)
+
 set(PHOBOS_ENABLE_RAY_TRACING ON)
 
 FetchContent_MakeAvailable(phobos)
 FetchContent_MakeAvailable(glfw)
 FetchContent_MakeAvailable(colorconsole)
+FetchContent_MakeAvailable(assetlib)
 
-target_link_libraries(andromeda PRIVATE Phobos glfw)
+target_link_libraries(andromeda PRIVATE Phobos glfw assetlib)
 
 target_include_directories(andromeda PRIVATE "${colorconsole_SOURCE_DIR}/include")

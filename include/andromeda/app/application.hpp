@@ -3,6 +3,7 @@
 #include <andromeda/app/wsi.hpp>
 #include <andromeda/app/log.hpp>
 #include <andromeda/graphics/context.hpp>
+#include <andromeda/graphics/renderer.hpp>
 #include <andromeda/thread/scheduler.hpp>
 #include <andromeda/world.hpp>
 
@@ -41,6 +42,8 @@ private:
 	std::unique_ptr<World> world;
 	// The task scheduler
 	std::unique_ptr<thread::TaskScheduler> scheduler;
+	// The main rendering interface
+	std::unique_ptr<gfx::Renderer> renderer;
 };
 
 } // namespace andromeda

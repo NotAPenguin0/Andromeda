@@ -1,5 +1,7 @@
 #include <andromeda/app/application.hpp>
 
+#include <andromeda/assets/assets.hpp>
+
 namespace andromeda {
 
 Application::Application(int argc, char** argv) {
@@ -7,34 +9,29 @@ Application::Application(int argc, char** argv) {
 	// Setup global logging system
 	impl::_global_log_pointer = log.get();
 	window = std::make_unique<Window>("Andromeda", 800, 600);
-	graphics = gfx::Context::init(*window, *log);
+	// Note that we use thread_count() - 1 threads. The reason for this is that
+	// the main thread is also included in thead_count(), but the task scheduler only uses
+	// extra threads.
+	scheduler = std::make_unique<thread::TaskScheduler>(std::thread::hardware_concurrency() - 1);
+	graphics = gfx::Context::init(*window, *log, *scheduler);
 	world = std::make_unique<World>();
-	scheduler = std::make_unique<thread::TaskScheduler>(graphics->thread_count());
+
+	renderer = std::make_unique<gfx::Renderer>(*graphics);
 }
 
 int Application::run() {
-	thread::task_id first = scheduler->schedule([](uint32_t thread_index) {
-		LOG_FORMAT(LogLevel::Info, "Thread 0 sleeping");
-		std::this_thread::sleep_for(std::chrono::seconds(3));
-		LOG_FORMAT(LogLevel::Info, "Thread 0 waking up");
-	});
-	for (int i = 1; i < graphics->thread_count(); ++i) {
-		scheduler->schedule([i](uint32_t thread_index) {
-			LOG_FORMAT(LogLevel::Info, "Thread {} sleeping", i);
-			std::this_thread::sleep_for(std::chrono::seconds(i));
-			LOG_FORMAT(LogLevel::Info, "Thread {} waking up", i);
-		}, { first });
-	}
+
+	Handle<gfx::Texture> t1 = assets::load<gfx::Texture>(*graphics, "data/textures/aerial_rocks_04_diff_4k.tx");
+	Handle<gfx::Texture> t2 = assets::load<gfx::Texture>(*graphics, "data/textures/aerial_rocks_04_disp_4k.tx");
+	Handle<gfx::Texture> t3 = assets::load<gfx::Texture>(*graphics, "data/textures/aerial_rocks_04_rough_4k.tx");
 
 	while (window->is_open()) {	
 		window->poll_events();
+		renderer->render_frame(*graphics, *world);
 	}
 
 	graphics->wait_idle();
 	scheduler->shutdown();
-
-	// Should report an error
-	scheduler->schedule([](uint32_t) {});
 
 	return 0;
 }
