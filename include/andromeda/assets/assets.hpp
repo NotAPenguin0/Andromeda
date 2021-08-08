@@ -2,6 +2,7 @@
 
 #include <andromeda/util/handle.hpp>
 #include <andromeda/thread/locked_value.hpp>
+#include <andromeda/thread/scheduler.hpp>
 
 #include <andromeda/app/log.hpp>
 
@@ -9,6 +10,7 @@
 #include <mutex>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 
 namespace andromeda {
@@ -47,6 +49,9 @@ struct asset_storage_type {
 
 	std::atomic<Status> status;
 	T data;
+
+	// Additional information
+	thread::task_id load_task_id = static_cast<thread::task_id>(-1);
 };
 
 template<typename T>
@@ -68,6 +73,89 @@ thread::LockedValue<container<T>> acquire() {
 	return thread::LockedValue<container<T>>{ ._lock = std::lock_guard{ data_mutex<T> }, .value = data<T> };
 }
 
+/**
+ * @brief Inserts a new empty asset in the pending state into the storage.
+ * @tparam T Type of the asset to insert.
+ * @param task Task ID of the load task. Defaults to -1 (no task).
+ * @return Handle referring to the asset to delete.
+*/
+template<typename T>
+Handle<T> insert_pending() requires std::default_initializable<T>&& std::movable<T> {
+	// Implementation similar to take()
+
+	auto [_, storage] = acquire<T>();
+	Handle<T> handle = Handle<T>::next();
+	storage.emplace(handle, delay_storage_init<T>{Status::Pending, T{}});
+	return handle;
+}
+
+/**
+ * @brief Removes an asset from the system. Note that this does not free its resources, for this
+ *		  you must call unload().
+ * @tparam T The type of the asset to delete.
+ * @param handle Handle referring to the asset to delete.
+*/
+template<typename T>
+void delete_asset(Handle<T> handle) {
+	auto [_, storage] = acquire<T>();
+	storage.erase(handle);
+}
+
+/**
+ * @brief Marks a previously pending asset as ready and stores it away.
+ * @tparam T Type of the asset to insert.
+ * @param handle Handle of the pending asset.
+ * @param asset Asset that will be stored at the handle's location.
+*/
+template<typename T>
+void make_ready(Handle<T> handle, T asset) requires std::movable<T> {
+	if (!handle) {
+		LOG_WRITE(LogLevel::Error, "Tried to mark null handle as ready");
+		return;
+	}
+
+	auto [_, storage] = acquire<T>();
+	asset_storage_type<T>& element = storage.at(handle);
+	element.status = Status::Ready;
+	element.data = std::move(asset);
+}
+
+/**
+ * @brief Sets the loading task associated with an asset
+ * @tparam T Type of the asset.
+ * @param handle Handle referring to the asset to set a load task of.
+ * @param task Task ID of the load task.
+*/
+template<typename T>
+void set_load_task(Handle<T> handle, thread::task_id task) {
+	if (!handle) {
+		LOG_WRITE(LogLevel::Error, "Tried to set load task of a null handle");
+		return;
+	}
+
+	auto [_, storage] = acquire<T>();
+	asset_storage_type<T>& element = storage.at(handle);
+	element.load_task_id = task;
+}
+
+/**
+ * @brief Query the loading task used to load this asset.
+ * @tparam T Type of the asset.
+ * @param handle Handle referring to the asset to query the load task of.
+ * @return Task ID of the load task used to load this asset.
+*/
+template<typename T>
+thread::task_id get_load_task(Handle<T> handle) {
+	if (!handle) {
+		LOG_WRITE(LogLevel::Error, "Tried to query load task of a null handle");
+		return static_cast<thread::task_id>(-1);
+	}
+
+	auto [_, storage] = acquire<T>();
+	asset_storage_type<T>& element = storage.at(handle);
+	return element.load_task_id;
+}
+
 } // namespace impl
 
 /**
@@ -80,6 +168,15 @@ thread::LockedValue<container<T>> acquire() {
 */
 template<typename T>
 Handle<T> load(gfx::Context& ctx, std::string_view path);
+
+/**
+ * @brief Unload an asset.
+ * @tparam T The type of the asset to unload.
+ * @param ctx Reference to the graphics context.
+ * @param handle Handle referring to the asset to unload.
+*/
+template<typename T>
+void unload(gfx::Context& ctx, Handle<T> handle);
 
 /**
  * @brief Consumes an asset object. This will store it inside the asset system and return a handle
@@ -100,40 +197,6 @@ Handle<T> take(T asset) requires std::movable<T> {
 }
 
 /**
- * @brief Inserts a new empty asset in the pending state into the storage.
- * @tparam T Type of the asset to insert.
- * @return Handle referring to the inserted asset
-*/
-template<typename T>
-Handle<T> insert_pending() requires std::default_initializable<T> && std::movable<T> {
-	// Implementation similar to take()
-
-	auto [_, storage] = impl::acquire<T>();
-	Handle<T> handle = Handle<T>::next();
-	storage.emplace(handle, impl::delay_storage_init<T>{Status::Pending, T{}});
-	return handle;
-}
-
-/**
- * @brief Marks a previously pending asset as ready and stores it away.
- * @tparam T Type of the asset to insert.
- * @param handle Handle of the pending asset.
- * @param asset Asset that will be stored at the handle's location.
-*/
-template<typename T>
-void make_ready(Handle<T> handle, T asset) requires std::movable<T> {
-	if (!handle) {
-		LOG_WRITE(LogLevel::Error, "Tried to mark null handle as ready");
-		return;
-	}
-
-	auto [_, storage] = impl::acquire<T>();
-	impl::asset_storage_type& element = storage.at(handle);
-	element.status = Status::Ready;
-	element.data = std::move(asset);
-}
-
-/**
  * @brief Query if an asset is in the Ready state.
  * @tparam T Type of the asset.
  * @param handle Handle of the asset to query.
@@ -147,7 +210,7 @@ bool is_ready(Handle<T> handle) {
 	}
 
 	auto [_, storage] = impl::acquire<T>();
-	impl::asset_storage_type& element = storage.at(handle);
+	impl::asset_storage_type<T>& element = storage.at(handle);
 	return element.status == Status::Ready;
 }
 
@@ -166,7 +229,7 @@ T* get(Handle<T> handle) {
 
 	auto [_, storage] = impl::acquire<T>();
 	try {
-		impl::asset_storage_type& element = storage.at(handle);
+		impl::asset_storage_type<T>& element = storage.at(handle);
 		if (element.status != Status::Ready) {
 			LOG_WRITE(LogLevel::Warning, "Tried to get asset while it is in the pending state.");
 			return nullptr;
@@ -177,6 +240,28 @@ T* get(Handle<T> handle) {
 		LOG_WRITE(LogLevel::Error, "Tried to get asset for invalid handle");
 	}
 	return nullptr;
+}
+
+/**
+ * @brief Unloads all assets of a given type.
+ * @tparam T Type of the assets to unload.
+ * @param ctx Reference to the graphics context.
+*/
+template<typename T>
+void unload_all(gfx::Context& ctx) {
+	// We need to collect all handles in a vector first so we can release the lock again, since
+	// unload() indirectly tries to lock the asset system again.
+	std::vector<Handle<T>> handles;
+	{
+		auto [_, storage] = impl::acquire<T>();
+		handles.reserve(storage.size());
+		for (auto& [handle, _] : storage) {
+			handles.push_back(handle);
+		}
+	}
+	for (auto handle : handles) {
+		unload(ctx, handle);
+	}
 }
 
 } // namespace assets

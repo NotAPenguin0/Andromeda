@@ -49,6 +49,10 @@ void Window::close() {
 	glfwSetWindowShouldClose(reinterpret_cast<GLFWwindow*>(handle), GLFW_TRUE);
 }
 
+void Window::hide() {
+	glfwHideWindow(reinterpret_cast<GLFWwindow*>(handle));
+}
+
 std::vector<const char*> Window::window_extension_names() const {
 	uint32_t count = 0;
 	const char** extensions = glfwGetRequiredInstanceExtensions(&count);
@@ -61,6 +65,10 @@ VkSurfaceKHR Window::create_surface(VkInstance instance) const {
 	VkSurfaceKHR surface = nullptr;
 	glfwCreateWindowSurface(instance, reinterpret_cast<GLFWwindow*>(handle), nullptr, &surface);
 	return surface;
+}
+
+void* Window::platform_handle() {
+	return handle;
 }
 
 } // namespace andromeda

@@ -62,6 +62,11 @@ public:
 	void close();
 
 	/**
+	 * @brief Hides the window.
+	*/
+	void hide();
+
+	/**
 	 * @brief Grab the Vulkan extensions needed to create this window's surface.
 	 * @return A vector with extension names required to create a Vulkan surface.
 	*/
@@ -73,6 +78,12 @@ public:
 	 * @return The created Vulkan surface.
 	*/
 	VkSurfaceKHR create_surface(VkInstance instance) const override;
+
+	/**
+	 * @brief Returns a handle to the managed window.
+	 * @return Type-erased handle to managed GLFWwindow.
+	*/
+	void* platform_handle();
 
 private:
 	// Handle to the actual window instance.

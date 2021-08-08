@@ -28,6 +28,7 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 	settings.gpu_requirements.features.independentBlend = true;
 	settings.gpu_requirements.features.shaderInt64 = true;
 	settings.gpu_requirements.features_1_2.scalarBlockLayout = true;
+	settings.gpu_requirements.features_1_2.bufferDeviceAddress = true;
 	settings.present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	// Note that we cannot use make_unique since the constructor is private.
 	auto ctx = std::unique_ptr<Context>{ new Context{ settings, scheduler } };
@@ -47,7 +48,7 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 
 	float mem_size_in_mb = (float)total_mem_size / (1024.0f * 1024.0f);
 	float device_local_in_mb = (float)device_local / (1024.0f * 1024.0f);
-	LOG_FORMAT(LogLevel::Performance, "Total available VRAM on device: {} MiB ({} MiB device local)", 
+	LOG_FORMAT(LogLevel::Performance, "Total available VRAM on device: {:.1f} MiB ({:.1f} MiB device local)", 
 		mem_size_in_mb, device_local_in_mb);
 	LOG_FORMAT(LogLevel::Performance, "Available hardware threads: {}", settings.num_threads);
 	LOG_FORMAT(LogLevel::Performance, "Transfer queue is dedicated: {}", 
@@ -67,11 +68,81 @@ Context::Context(ph::AppSettings settings, thread::TaskScheduler& scheduler)
 
 Handle<gfx::Texture> Context::request_texture(std::string_view path) {
 	LOG_FORMAT(LogLevel::Info, "Loading texture at path {}.", path);
-	Handle<gfx::Texture> handle = assets::insert_pending<gfx::Texture>();
-	scheduler.schedule([this, handle, path](uint32_t thread) {
-		impl::load_texture(*this, handle, path, thread);
+	Handle<gfx::Texture> handle = assets::impl::insert_pending<gfx::Texture>();
+	thread::task_id task = scheduler.schedule([this, handle, path](uint32_t thread) {
+		impl::load_texture(*this, handle, path, thread + 1);
 	});
+	// Store load task so we can give the unload task a proper dependency.
+	assets::impl::set_load_task(handle, task);
 	return handle;
+}
+
+Handle<gfx::Mesh> Context::request_mesh(std::string_view path) {
+	LOG_FORMAT(LogLevel::Info, "Loading mesh at path {}", path);
+	Handle<gfx::Mesh> handle = assets::impl::insert_pending<gfx::Mesh>();
+	thread::task_id task = scheduler.schedule([this, handle, path](uint32_t thread) {
+		impl::load_mesh(*this, handle, path, thread + 1);
+	});
+	assets::impl::set_load_task(handle, task);
+	return handle;
+}
+
+void Context::free_texture(Handle<gfx::Texture> handle) {
+	try {
+		// If we free a texture before it is fully loaded we will get an error, unless
+		// we set the load task as a dependency of the unload task
+		thread::task_id dependency = assets::impl::get_load_task(handle);
+		// Note that we only want to add the task as a dependency if there was a loading task.
+		// This can happen when a resource was loaded synchronously.
+		std::vector<thread::task_id> dependencies;
+		if (dependency != static_cast<thread::task_id>(-1)) {
+			dependencies.push_back(dependency);
+		}
+		scheduler.schedule([this, handle](uint32_t thread) {
+			gfx::Texture* tex = assets::get(handle);
+			if (tex == nullptr) {
+				LOG_WRITE(LogLevel::Error, "Tried to delete null texture");
+				return;
+			}
+			destroy_image_view(tex->view);
+			destroy_image(tex->image);
+			// Remove the asset from the asset system.
+			assets::impl::delete_asset(handle);
+		}, dependencies);
+	}
+	catch (std::exception const& e) {
+		LOG_FORMAT(LogLevel::Fatal, "Fatal exception occured. Provided message: {}", e.what());
+		std::terminate();
+	}
+}
+
+void Context::free_mesh(Handle<gfx::Mesh> handle) {
+	try {
+		// If we free a mesh before it is fully loaded we will get an error, unless
+		// we set the load task as a dependency of the unload task
+		thread::task_id dependency = assets::impl::get_load_task(handle);
+		// Note that we only want to add the task as a dependency if there was a loading task.
+		// This can happen when a resource was loaded synchronously.
+		std::vector<thread::task_id> dependencies;
+		if (dependency != static_cast<thread::task_id>(-1)) {
+			dependencies.push_back(dependency);
+		}
+		scheduler.schedule([this, handle](uint32_t thread) {
+			gfx::Mesh* mesh = assets::get(handle);
+			if (mesh == nullptr) {
+				LOG_WRITE(LogLevel::Error, "Tried to delete null mesh");
+				return;
+			}
+			destroy_buffer(mesh->vertices);
+			destroy_buffer(mesh->indices);
+			// Remove the asset from the asset system.
+			assets::impl::delete_asset(handle);
+		}, dependencies);
+	}
+	catch (std::exception const& e) {
+		LOG_FORMAT(LogLevel::Fatal, "Fatal exception occured. Provided message: {}", e.what());
+		std::terminate();
+	}
 }
 
 } // namespace gfx

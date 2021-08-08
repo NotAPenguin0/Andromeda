@@ -23,13 +23,23 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/notAPenguin0/assetlib
 )
 
-set(PHOBOS_ENABLE_RAY_TRACING ON)
+FetchContent_Declare(
+	imgui_docking
+	GIT_REPOSITORY https://github.com/NotAPenguin0/imgui/
+	GIT_TAG f287d868bacefc1fe044ec834f9bd879d8659d17 # Latest commit on docking branch
+)
+
+#set(PHOBOS_ENABLE_RAY_TRACING ON)
 
 FetchContent_MakeAvailable(phobos)
 FetchContent_MakeAvailable(glfw)
 FetchContent_MakeAvailable(colorconsole)
 FetchContent_MakeAvailable(assetlib)
+FetchContent_MakeAvailable(imgui_docking)
 
-target_link_libraries(andromeda PRIVATE Phobos glfw assetlib)
+target_link_libraries(andromeda PRIVATE Phobos glfw assetlib imgui)
 
-target_include_directories(andromeda PRIVATE "${colorconsole_SOURCE_DIR}/include")
+target_include_directories(andromeda PRIVATE 
+	"${colorconsole_SOURCE_DIR}/include" 
+	"${imgui_docking_SOURCE_DIR}/include"
+)

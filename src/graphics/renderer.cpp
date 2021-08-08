@@ -1,12 +1,18 @@
 #include <andromeda/graphics/renderer.hpp>
 
+#include <andromeda/graphics/imgui.hpp>
+
 #include <phobos/render_graph.hpp>
 
 namespace andromeda{
 namespace gfx {
 
-Renderer::Renderer(gfx::Context& ctx) {
+Renderer::Renderer(gfx::Context& ctx, Window& window) {
+	gfx::imgui::init(ctx, window);
+}
 
+void Renderer::shutdown(gfx::Context& ctx) {
+	gfx::imgui::shutdown();
 }
 
 void Renderer::render_frame(gfx::Context& ctx, World const& world) {
@@ -19,6 +25,9 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
 
 	ph::RenderGraph graph{};
 	graph.add_pass(std::move(clear));
+
+	// After all passes we add the imgui render pass
+	imgui::render(graph, ifc, ctx.get_swapchain_attachment_name());
 
 	graph.build(ctx);
 

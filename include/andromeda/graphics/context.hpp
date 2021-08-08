@@ -6,6 +6,7 @@
 #include <andromeda/app/wsi.hpp>
 
 #include <andromeda/assets/assets.hpp>
+#include <andromeda/graphics/mesh.hpp>
 #include <andromeda/graphics/texture.hpp>
 #include <andromeda/thread/scheduler.hpp>
 #include <andromeda/util/handle.hpp>
@@ -39,12 +40,35 @@ private:
 	template<typename T>
 	friend Handle<T> assets::load(gfx::Context&, std::string_view);
 
+	// So does unload()
+	template<typename T>
+	friend void assets::unload(gfx::Context&, Handle<T>);
+
 	/**
 	 * @brief Request a texture to be loaded. This will be done asynchronously.
 	 * @param path Path to the texture file.
 	 * @return A handle referring to the texture in the asset system.
 	*/
 	Handle<gfx::Texture> request_texture(std::string_view path);
+
+	/**
+	 * @brief Request a mesh to be loaded. This will be done asynchronously.
+	 * @param path Path to the mesh file
+	 * @return A handle referring to the mesh in the asset system
+	*/
+	Handle<gfx::Mesh> request_mesh(std::string_view path);
+
+	/**
+	 * @brief Frees a texture. This will be done asynchronously.
+	 * @param handle A handle referring to the texture to free
+	*/
+	void free_texture(Handle<gfx::Texture> handle);
+
+	/**
+	 * @brief Frees a mesh. This will be done asynchronously.
+	 * @param handle A handle referring to the mesh to free.
+	*/
+	void free_mesh(Handle<gfx::Mesh> handle);
 };
 
 } // namespace gfx
