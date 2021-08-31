@@ -18,7 +18,7 @@ FetchContent_Declare(
 
 FetchContent_Declare( 
 	mustache 
-	GIT_REPOSITORY https://github.com/kainjow/Mustache
+	GIT_REPOSITORY https://github.com/NotAPenguin0/Mustache
 )
 
 FetchContent_MakeAvailable(cppast-lib mustache)
