@@ -11,12 +11,29 @@ target_sources(andromeda PRIVATE
 
 	"ecs/registry.cpp"
 
+	"editor/command_parser.cpp"
+	"editor/console.cpp"
+	"editor/editor.cpp"
+	"editor/inspector.cpp"
+	"editor/scene_viewport.cpp"
+	"editor/style.cpp"
+	"editor/widgets/dockspace.cpp"
+	"editor/widgets/floating_panel.cpp"
+	"editor/widgets/image.cpp"
+	"editor/widgets/input_text.cpp"
+	"editor/widgets/menu_bar.cpp"
+	"editor/widgets/table.cpp"
+
+	"graphics/backend/simple.cpp"
 	"graphics/context.cpp"
-	"graphics/renderer.cpp"
 	"graphics/imgui_impl.cpp"
 	"graphics/imgui_impl_glfw.cpp"
+	"graphics/renderer.cpp"
+	"graphics/scene_description.cpp"
 
 	"thread/scheduler.cpp"
+
+	"util/string_ops.cpp"
 
 	"world.cpp"
 )

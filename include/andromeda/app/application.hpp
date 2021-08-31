@@ -2,6 +2,7 @@
 
 #include <andromeda/app/wsi.hpp>
 #include <andromeda/app/log.hpp>
+#include <andromeda/editor/editor.hpp>
 #include <andromeda/graphics/context.hpp>
 #include <andromeda/graphics/renderer.hpp>
 #include <andromeda/thread/scheduler.hpp>
@@ -42,6 +43,8 @@ private:
 	std::unique_ptr<World> world;
 	// The task scheduler
 	std::unique_ptr<thread::TaskScheduler> scheduler;
+	// Editor interface
+	std::unique_ptr<editor::Editor> editor;
 	// The main rendering interface
 	std::unique_ptr<gfx::Renderer> renderer;
 };

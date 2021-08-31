@@ -6,7 +6,7 @@
 
 namespace andromeda {
 
-static std::string_view log_level_string(LogLevel lvl) {
+std::string_view log_level_string(LogLevel lvl) {
 	switch (lvl) {
 	case LogLevel::Debug:
 		return "Debug";
@@ -35,7 +35,7 @@ static std::ostream& dye_log_level(LogLevel lvl, std::ostream& out) {
 	case LogLevel::Info:
 		return out << hue::white << "[" << string << "]";
 	case LogLevel::Warning:
-		return out << hue::yellow << "[" << string << "]";
+		return out << hue::light_yellow << "[" << string << "]";
 	case LogLevel::Error:
 		return out << hue::light_red << "[" << string << "]";
 	case LogLevel::Fatal:

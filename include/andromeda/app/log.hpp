@@ -13,13 +13,20 @@ namespace andromeda {
  * @brief Describes the log level of a message
 */
 enum class LogLevel {
-	Debug, 
+	Debug = 0, 
 	Performance,
 	Info,
 	Warning,
 	Error, 
-	Fatal
+	Fatal,
+	MAX_ENUM_VALUE
 };
+
+/**
+ * @brief Get the name of a LogLevel as a string.
+ * @return The string of the enum value name.
+*/
+std::string_view log_level_string(LogLevel lvl);
 
 /**
  * @var using log_write_fun = std::function<void(LogLevel, std::string_view)> 

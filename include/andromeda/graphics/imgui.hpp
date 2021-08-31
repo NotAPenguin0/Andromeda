@@ -6,6 +6,8 @@
 #include <phobos/render_graph.hpp>
 #include <imgui/imgui.h>
 
+#include <IconsFontAwesome5.h>
+
 namespace andromeda {
 namespace gfx {
 namespace imgui {

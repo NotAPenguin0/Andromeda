@@ -64,6 +64,8 @@ struct Handle {
 		return Handle{ IDGen<T, uint64_t>::next() };
 	}
 
+	uint64_t get_id() const { return id; }
+
 private:
 	friend class std::hash<Handle<T>>;
 

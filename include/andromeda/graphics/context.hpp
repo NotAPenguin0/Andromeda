@@ -38,7 +38,7 @@ private:
 
 	// load() needs access to the request_XXX() functions.
 	template<typename T>
-	friend Handle<T> assets::load(gfx::Context&, std::string_view);
+	friend Handle<T> assets::load(gfx::Context&, std::string const&);
 
 	// So does unload()
 	template<typename T>
@@ -49,14 +49,14 @@ private:
 	 * @param path Path to the texture file.
 	 * @return A handle referring to the texture in the asset system.
 	*/
-	Handle<gfx::Texture> request_texture(std::string_view path);
+	Handle<gfx::Texture> request_texture(std::string const& path);
 
 	/**
 	 * @brief Request a mesh to be loaded. This will be done asynchronously.
 	 * @param path Path to the mesh file
 	 * @return A handle referring to the mesh in the asset system
 	*/
-	Handle<gfx::Mesh> request_mesh(std::string_view path);
+	Handle<gfx::Mesh> request_mesh(std::string const& path);
 
 	/**
 	 * @brief Frees a texture. This will be done asynchronously.

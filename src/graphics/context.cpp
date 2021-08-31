@@ -29,6 +29,8 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 	settings.gpu_requirements.features.shaderInt64 = true;
 	settings.gpu_requirements.features_1_2.scalarBlockLayout = true;
 	settings.gpu_requirements.features_1_2.bufferDeviceAddress = true;
+	settings.scratch_ibo_size = 1024 * 1024;
+	settings.scratch_vbo_size = 1024 * 1024;
 	settings.present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	// Note that we cannot use make_unique since the constructor is private.
 	auto ctx = std::unique_ptr<Context>{ new Context{ settings, scheduler } };
@@ -66,22 +68,32 @@ Context::Context(ph::AppSettings settings, thread::TaskScheduler& scheduler)
 	
 }
 
-Handle<gfx::Texture> Context::request_texture(std::string_view path) {
+Handle<gfx::Texture> Context::request_texture(std::string const& path) {
 	LOG_FORMAT(LogLevel::Info, "Loading texture at path {}.", path);
 	Handle<gfx::Texture> handle = assets::impl::insert_pending<gfx::Texture>();
 	thread::task_id task = scheduler.schedule([this, handle, path](uint32_t thread) {
-		impl::load_texture(*this, handle, path, thread + 1);
+		try {
+			impl::load_texture(*this, handle, path, thread + 1);
+		}
+		catch (std::exception const& e) {
+			LOG_FORMAT(LogLevel::Error, "Exception while loading texture {}: {}", path, e.what());
+		}
 	});
 	// Store load task so we can give the unload task a proper dependency.
 	assets::impl::set_load_task(handle, task);
 	return handle;
 }
 
-Handle<gfx::Mesh> Context::request_mesh(std::string_view path) {
+Handle<gfx::Mesh> Context::request_mesh(std::string const& path) {
 	LOG_FORMAT(LogLevel::Info, "Loading mesh at path {}", path);
 	Handle<gfx::Mesh> handle = assets::impl::insert_pending<gfx::Mesh>();
 	thread::task_id task = scheduler.schedule([this, handle, path](uint32_t thread) {
-		impl::load_mesh(*this, handle, path, thread + 1);
+		try {
+			impl::load_mesh(*this, handle, path, thread + 1);
+		}
+		catch (std::exception const& e) {
+			LOG_FORMAT(LogLevel::Error, "Exception while loading mesh {}: {}", path, e.what());
+		}
 	});
 	assets::impl::set_load_task(handle, task);
 	return handle;

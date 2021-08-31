@@ -5,7 +5,13 @@
 
 #include <phobos/window_interface.hpp>
 
+struct GLFWwindow;
+
 namespace andromeda {
+
+namespace impl {
+void resize_callback(GLFWwindow*, int, int);
+}
 
 /**
  * @class Window 
@@ -44,6 +50,11 @@ public:
 	 * @return The height of the window, in screen pixels.
 	*/
 	uint32_t height() const override;
+
+	/**
+	 * @brief Maximizes the window.
+	*/
+	void maximize();
 
 	/**
 	 * @brief Updates the window, polls and processes input events;
@@ -89,6 +100,8 @@ private:
 	// Handle to the actual window instance.
 	void* handle = nullptr;
 	uint32_t width_px = 0, height_px = 0;
+
+	friend void impl::resize_callback(GLFWwindow*, int, int);
 };
 
 } // namespace andromeda

@@ -95,10 +95,8 @@ void create_fonts_texture() {
     std::memcpy(data, pixels, upload_size);
 
     ph::Queue& transfer = *impl::context->get_queue(ph::QueueType::Transfer);
-    ph::Queue& graphics = *impl::context->get_queue(ph::QueueType::Graphics);
 
     VkFence fence = impl::context->create_fence();
-    VkSemaphore semaphore = impl::context->create_semaphore();
 
     ph::CommandBuffer cmd_buf = transfer.begin_single_time(0);
     cmd_buf.transition_layout(
@@ -108,23 +106,16 @@ void create_fonts_texture() {
     cmd_buf.copy_buffer_to_image(staging, impl::font_view);
     cmd_buf.transition_layout(
         ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
-        ph::PipelineStage::BottomOfPipe, VK_ACCESS_NONE_KHR,
+        ph::PipelineStage::BottomOfPipe, VK_ACCESS_MEMORY_READ_BIT,
         impl::font_view, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
-    cmd_buf.release_ownership(transfer, graphics, impl::font_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    transfer.end_single_time(cmd_buf, nullptr, {}, nullptr, semaphore);
-
-    ph::CommandBuffer gfx_cmd = graphics.begin_single_time(0);
-    gfx_cmd.acquire_ownership(transfer, graphics, impl::font_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    graphics.end_single_time(gfx_cmd, fence, ph::PipelineStage::TopOfPipe, semaphore);
+    transfer.end_single_time(cmd_buf, fence);
 
     impl::context->wait_for_fence(fence);
 
     impl::context->destroy_buffer(staging);
     impl::context->destroy_fence(fence);
-    impl::context->destroy_semaphore(semaphore);
     transfer.free_single_time(cmd_buf, 0);
-    graphics.free_single_time(gfx_cmd, 0);
 
     LOG_FORMAT(LogLevel::Performance, "Created ImGui font texture ({:.1f} KiB)", upload_size / 1024.0f);
 }
@@ -180,7 +171,7 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
         ImDrawList const* draw_list = draw_data->CmdLists[i];
         for (size_t cmd_i = 0; cmd_i < (size_t)draw_list->CmdBuffer.Size; ++cmd_i) {
             ImDrawCmd const* cmd = &draw_list->CmdBuffer[cmd_i];
-            ph::ImageView view = impl::context->get_image_view(reinterpret_cast<uint64_t>(cmd->TextureId));
+            ph::ImageView view = impl::context->get_image_view(reinterpret_cast<uint64_t>(cmd->GetTexID()));
             // Font is definitely not an attachment, easy skip
             if (view.id == impl::font_view.id) {
                 continue;
@@ -260,6 +251,12 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
                     // Bind descriptorset with font or user texture
                     ph::ImageView img_view = impl::context->get_image_view(reinterpret_cast<uint64_t>(cmd->GetTexID()));
                     
+                    int depth_val = 0;
+                    if (img_view.aspect == ph::ImageAspect::Depth) {
+                        depth_val = 1;
+                    }
+                    cmd_buf.push_constants(ph::ShaderStage::Fragment, 4 * sizeof(float), sizeof(int), &depth_val);
+
                     VkDescriptorSet set = ph::DescriptorBuilder::create(*impl::context, 
                         cmd_buf.get_bound_pipeline())
                         .add_sampled_image("sTexture", img_view, impl::sampler)

@@ -68,7 +68,6 @@ void load_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, std::string_vi
 	
 	// Now copy from the staging buffer to the image
 	ph::Queue& transfer = *ctx.get_queue(ph::QueueType::Transfer);
-	ph::Queue& graphics = *ctx.get_queue(ph::QueueType::Graphics);
 	ph::CommandBuffer cmd_buf = transfer.begin_single_time(thread);
 	
 	cmd_buf.transition_layout(
@@ -83,22 +82,13 @@ void load_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, std::string_vi
 		// Right after the copy operation
 		ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
 		// We don't use it anymore this submission
-		ph::PipelineStage::BottomOfPipe, VK_ACCESS_NONE_KHR,
+		ph::PipelineStage::BottomOfPipe, VK_ACCESS_MEMORY_READ_BIT,
 		// Next usage will be a shader read operation.
 		texture.view, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	);
 
-	// Now transfer ownership to the graphics queue. We additionally get a free transition.
-	cmd_buf.release_ownership(transfer, graphics, texture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
 	VkFence fence = ctx.create_fence();
-	VkSemaphore semaphore = ctx.create_semaphore();
-
-	transfer.end_single_time(cmd_buf, nullptr, {}, nullptr, semaphore);
-
-	ph::CommandBuffer graphics_cmd = graphics.begin_single_time(thread);
-	graphics_cmd.acquire_ownership(transfer, graphics, texture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	graphics.end_single_time(graphics_cmd, fence, ph::PipelineStage::TopOfPipe, semaphore);
+	transfer.end_single_time(cmd_buf, fence);
 
 	// Wait until the task is complete
 	ctx.wait_for_fence(fence);
@@ -107,9 +97,7 @@ void load_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, std::string_vi
 
 	ctx.destroy_buffer(staging);
 	ctx.destroy_fence(fence);
-	ctx.destroy_semaphore(semaphore);
 	transfer.free_single_time(cmd_buf, thread);
-	graphics.free_single_time(graphics_cmd, thread);
 
 	assets::impl::make_ready(handle, std::move(texture));
 	

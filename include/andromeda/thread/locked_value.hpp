@@ -15,6 +15,14 @@ template<typename T>
 struct LockedValue {
 	std::lock_guard<std::mutex> _lock;
 	T& value;
+
+	T* operator->() {
+		return &value;
+	}
+
+	T const* operator->() const {
+		return &value;
+	}
 };
 
 } // namespace thread

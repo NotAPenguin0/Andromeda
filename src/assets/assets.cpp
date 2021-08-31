@@ -6,12 +6,12 @@ namespace andromeda {
 namespace assets {
 
 template<>
-Handle<gfx::Texture> load<gfx::Texture>(gfx::Context& ctx, std::string_view path) {
+Handle<gfx::Texture> load<gfx::Texture>(gfx::Context& ctx, std::string const& path) {
 	return ctx.request_texture(path);
 }
 
 template<>
-Handle<gfx::Mesh> load<gfx::Mesh>(gfx::Context& ctx, std::string_view path) {
+Handle<gfx::Mesh> load<gfx::Mesh>(gfx::Context& ctx, std::string const& path) {
 	return ctx.request_mesh(path);
 }
 

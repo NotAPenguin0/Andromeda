@@ -8,6 +8,16 @@
 
 namespace andromeda {
 
+namespace impl {
+
+void resize_callback(GLFWwindow* window, int width, int height) {
+	Window* win = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+	win->width_px = width;
+	win->height_px = height;
+}
+
+}
+
 Window::Window(std::string_view title, uint32_t width, uint32_t height) {
 	if (glfwInit() != GLFW_TRUE) {
 		throw std::runtime_error("Failed to initialize GLFW.");
@@ -16,6 +26,9 @@ Window::Window(std::string_view title, uint32_t width, uint32_t height) {
 	// For Vulkan we need to set GLFW's API to no API.
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	handle = reinterpret_cast<void*>(glfwCreateWindow(width, height, title.data(), nullptr, nullptr));
+
+	glfwSetWindowUserPointer(reinterpret_cast<GLFWwindow*>(handle), this);
+	glfwSetWindowSizeCallback(reinterpret_cast<GLFWwindow*>(handle), impl::resize_callback);
 
 	width_px = width;
 	height_px = height;
@@ -35,6 +48,10 @@ uint32_t Window::width() const {
 
 uint32_t Window::height() const {
 	return height_px;
+}
+
+void Window::maximize() {
+	glfwMaximizeWindow(reinterpret_cast<GLFWwindow*>(handle));
 }
 
 void Window::poll_events() {

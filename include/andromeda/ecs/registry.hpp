@@ -62,8 +62,7 @@ public:
         if constexpr (sizeof...(Ts) == 0) { return 0; }
         if constexpr (sizeof...(Ts) == 1) { return get_or_emplace_storage<Ts...>().size(); } // sizeof...(Ts) == 1, so this instantiation is valid
 
-        // Is this UB?
-        auto view = component_view<Ts...>{ const_cast<registry*>(this)->get_or_emplace_storage<Ts>() ... };
+        auto view = this->view<Ts...>();
         size_t n = 0;
         for (auto const& _ : view) {
             ++n;
@@ -74,6 +73,11 @@ public:
 
     template<typename... Ts>
     component_view<Ts...> view() {
+        return { get_or_emplace_storage<Ts>() ... };
+    }
+
+    template<typename... Ts>
+    const_component_view<Ts...> view() const {
         return { get_or_emplace_storage<Ts>() ... };
     }
 

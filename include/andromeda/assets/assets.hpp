@@ -9,6 +9,7 @@
 #include <concepts>
 #include <mutex>
 #include <string_view>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -167,7 +168,7 @@ thread::task_id get_load_task(Handle<T> handle) {
  * @return Handle referring to the loaded asset.
 */
 template<typename T>
-Handle<T> load(gfx::Context& ctx, std::string_view path);
+Handle<T> load(gfx::Context& ctx, std::string const& path);
 
 /**
  * @brief Unload an asset.

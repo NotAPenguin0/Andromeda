@@ -58,32 +58,19 @@ void load_mesh(gfx::Context& ctx, Handle<gfx::Mesh> handle, std::string_view pat
 
 	// Copy from staging buffers to GPU buffers.
 	ph::Queue& transfer = *ctx.get_queue(ph::QueueType::Transfer);
-	ph::Queue& graphics = *ctx.get_queue(ph::QueueType::Graphics);
 
 	ph::CommandBuffer cmd_buf = transfer.begin_single_time(thread);
 	cmd_buf.copy_buffer(vtx_staging, mesh.vertices);
 	cmd_buf.copy_buffer(idx_staging, mesh.indices);
-	cmd_buf.release_ownership(transfer, graphics, mesh.vertices);
-	cmd_buf.release_ownership(transfer, graphics, mesh.indices);
 
 	VkFence fence = ctx.create_fence();
-	VkSemaphore semaphore = ctx.create_semaphore();
-
-	transfer.end_single_time(cmd_buf, nullptr, {}, nullptr, semaphore);
-
-	ph::CommandBuffer gfx_cmd = graphics.begin_single_time(thread);
-	gfx_cmd.acquire_ownership(transfer, graphics, mesh.vertices);
-	gfx_cmd.acquire_ownership(transfer, graphics, mesh.indices);
-	graphics.end_single_time(gfx_cmd, fence, ph::PipelineStage::TopOfPipe, semaphore);
-
+	transfer.end_single_time(cmd_buf, fence);
 	ctx.wait_for_fence(fence);
 
 	ctx.destroy_buffer(vtx_staging);
 	ctx.destroy_buffer(idx_staging);
 	ctx.destroy_fence(fence);
-	ctx.destroy_semaphore(semaphore);
 	transfer.free_single_time(cmd_buf, thread);
-	graphics.free_single_time(gfx_cmd, thread);
 
 	assets::impl::make_ready(handle, std::move(mesh));
 
