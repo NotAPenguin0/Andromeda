@@ -27,7 +27,7 @@ void load_mesh(gfx::Context& ctx, Handle<gfx::Mesh> handle, std::string_view pat
 	assetlib::MeshInfo info = assetlib::read_mesh_info(file);
 
 	if (info.format != assetlib::VertexFormat::PNTV32) {
-		LOG_FORMAT(LogLevel::Error, "Tried to load mesh with unsupported vertex format");
+		LOG_WRITE(LogLevel::Error, "Tried to load mesh with unsupported vertex format");
 		return;
 	}
 

@@ -20,7 +20,7 @@ FetchContent_Declare(
 
 FetchContent_Declare(
 	colorconsole
-	GIT_REPOSITORY https://github.com/imfl/color-console
+	GIT_REPOSITORY https://github.com/NotAPenguin0/color-console
 )
 
 FetchContent_Declare(
