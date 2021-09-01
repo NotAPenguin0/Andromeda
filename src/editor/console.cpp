@@ -57,7 +57,7 @@ Console::Console(gfx::Context& ctx, Window& window)
 		}
 		else {
 			LOG_FORMAT(LogLevel::Error, "Unsupposed asset extension: {}", ext);
-			LOG_FORMAT(LogLevel::Info, "Note that all assets must be converted using the asset tool before loading.");
+			LOG_WRITE(LogLevel::Info, "Note that all assets must be converted using the asset tool before loading.");
 		}
 		}, load_asset_args);
 
