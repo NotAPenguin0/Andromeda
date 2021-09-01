@@ -101,7 +101,7 @@ struct display_component_field {
 
 	template<typename T>
 	void operator()(meta::typed_field<C, T> field) {
-		do_display<T>(field, get_label(field).c_str(), field.get(component));
+		do_display(field, get_label(field).c_str(), field.get(component));
 	}
 
 private:
@@ -111,37 +111,28 @@ private:
 	}
 
 
-	// If you get undefined linker errors about this function not being defined, there is a field type that's not implemented below here.
 	template<typename T>
-	void do_display(meta::typed_field<C, T> const& meta, const char* label, T& value);
-
-	template<>
-	void do_display<Handle<gfx::Mesh>>(meta::typed_field<C, Handle<gfx::Mesh>> const& meta, const char* label, Handle<gfx::Mesh>& value) {
+	void do_display(meta::typed_field<C, Handle<T>> const& meta, const char* label, Handle<T>& value) {
 		ImGui::Text("%s: %d", meta.name().c_str(), value.get_id());
 	}
 
-	template<>
-	void do_display<ecs::entity_t>(meta::typed_field<C, ecs::entity_t> const& meta, const char* label, ecs::entity_t& value) {
+	void do_display(meta::typed_field<C, ecs::entity_t> const& meta, const char* label, ecs::entity_t& value) {
 		ImGui::Text("%s: %d", meta.name().c_str(), value);
 	}
 
-	template<>
-	void do_display<float>(meta::typed_field<C, float> const& meta, const char* label, float& value) {
+	void do_display(meta::typed_field<C, float> const& meta, const char* label, float& value) {
 		ImGui::DragFloat(label, &value, 0.2f);
 	}
 
-	template<>
-	void do_display<glm::vec3>(meta::typed_field<C, glm::vec3> const& meta, const char* label, glm::vec3& value) {
+	void do_display(meta::typed_field<C, glm::vec3> const& meta, const char* label, glm::vec3& value) {
 		ImGui::DragFloat3(label, &value.x, 0.2f);
 	}
 	
-	template<>
-	void do_display<std::string>(meta::typed_field<C, std::string> const& meta, const char* label, std::string& value) {
+	void do_display(meta::typed_field<C, std::string> const& meta, const char* label, std::string& value) {
 		ImGui::Text("%s: %s", meta.name().c_str(), value.c_str());
 	}
 
-	template<>
-	void do_display<std::vector<ecs::entity_t>>(meta::typed_field<C, std::vector<ecs::entity_t>> const& meta, const char* label, std::vector<ecs::entity_t>& value) {
+	void do_display(meta::typed_field<C, std::vector<ecs::entity_t>> const& meta, const char* label, std::vector<ecs::entity_t>& value) {
 		ImGui::Text("%s is a vector (currently unsupported).", meta.name().c_str());
 	}
 };
