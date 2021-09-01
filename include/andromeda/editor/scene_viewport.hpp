@@ -33,6 +33,8 @@ private:
 
 	// Persistent data per viewport
 	struct PerViewportStatic {
+		PerViewportStatic() : is_open(true) {}
+
 		std::unordered_map<std::string, bool> debug_views;
 		bool is_open = true;
 	};
