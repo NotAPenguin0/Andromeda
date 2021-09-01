@@ -35,7 +35,7 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 	// Note that we cannot use make_unique since the constructor is private.
 	auto ctx = std::unique_ptr<Context>{ new Context{ settings, scheduler } };
 	// Log some information about the created context
-	LOG_FORMAT(LogLevel::Info, "Created graphics context.");
+	LOG_WRITE(LogLevel::Info, "Created graphics context.");
 	ph::PhysicalDevice const& gpu = ctx->get_physical_device();
 	LOG_FORMAT(LogLevel::Info, "Selected GPU: {}", gpu.properties.deviceName);
 	uint64_t total_mem_size = 0;

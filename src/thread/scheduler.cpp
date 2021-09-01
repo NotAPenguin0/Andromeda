@@ -72,7 +72,7 @@ TaskScheduler::~TaskScheduler() {
 
 task_id TaskScheduler::schedule(task_function function, std::vector<task_id> dependencies) {
 	if (stopped) {
-		LOG_FORMAT(LogLevel::Error, "Tried to schedule a task but scheduler is stopped.");
+		LOG_WRITE(LogLevel::Error, "Tried to schedule a task but scheduler is stopped.");
 		return -1;
 	}
 
@@ -114,7 +114,7 @@ void TaskScheduler::shutdown() {
 	// Set stopped flag
 	stopped = true;
 
-	LOG_FORMAT(LogLevel::Info, "Shutting down task scheduler");
+	LOG_WRITE(LogLevel::Info, "Shutting down task scheduler");
 }
 
 bool TaskScheduler::is_running(task_id task, std::unique_lock<std::mutex>& lock) {
