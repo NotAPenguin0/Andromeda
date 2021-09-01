@@ -75,7 +75,7 @@ public:
 	*/
 	template<typename... Args>
 	void write_format(LogLevel lvl, std::string_view str, Args&&... args) {
-		write(lvl, fmt::format(str, std::forward<Args>(args)...));
+		write(lvl, fmt::vformat(str, fmt::make_format_args(std::forward<Args>(args)...)));
 	}
 
 	/**
