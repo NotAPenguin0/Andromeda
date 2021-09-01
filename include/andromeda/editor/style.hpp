@@ -39,7 +39,7 @@ struct ScopedStyleVar {
  * @brief Pushes a style color onto the stack and pops it when going out of scope.
 */
 struct ScopedStyleColor {
-	inline [[nodiscard]] ScopedStyleColor(ImGuiCol color, ImVec4 value) {
+	[[nodiscard]] inline ScopedStyleColor(ImGuiCol color, ImVec4 value) {
 		ImGui::PushStyleColor(color, value);
 	}
 
@@ -59,7 +59,7 @@ struct ScopedStyleColor {
  * @brief Pushes an item width value onto the stack with ImGui::PushItemWidth
 */
 struct ScopedWidthModifier {
-	inline [[nodiscard]] ScopedWidthModifier(float value) {
+	[[nodiscard]] inline ScopedWidthModifier(float value) {
 		ImGui::PushItemWidth(value);
 	}
 
