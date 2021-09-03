@@ -27,13 +27,12 @@ add_subdirectory("codegen")
 
 target_include_directories(andromeda PUBLIC ${ANDROMEDA_INCLUDE_DIRECTORIES})
 
-if (WIN32 AND ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-	# Currently, clang on windows does not support concepts, so we have to silence this warning/error
-	target_compile_definitions(andromeda PUBLIC _SILENCE_CLANG_CONCEPTS_MESSAGE)
-endif()
 
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
 	target_compile_options(andromeda PRIVATE -W3 -Werror)
+elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang") 
+    message("Using clang to compile")
+	target_compile_options(andromeda PRIVATE -W3)
 endif()
 
 if (WIN32)

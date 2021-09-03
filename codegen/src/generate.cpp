@@ -32,23 +32,14 @@ void generate_type_list_file(fs::path template_dir, fs::path output_dir, ParseRe
 	mustache::data& includes = must_data["includes"] = mustache::data::type::list;
 	mustache::data& components_data = must_data["component_types"] = mustache::data::type::list;
 
-	// Grab all field types found in the component list, also add all include files while we're at it.
-	std::set<std::string> unique_field_types{};
 	for (auto const& comp : data.components) {
-		for (auto const& field : comp.fields) {
-			unique_field_types.insert(field.type);
-		}
-
 		includes << mustache::data{ "filename", comp.filename };
 	}
-	// flatten to a vector, we need this to remove the comma at the end
-	std::vector<std::string> types(unique_field_types.begin(), unique_field_types.end());
 
-	for (auto it = types.begin(); it != types.end(); ++it) {
+	for (int i = 0; i < data.unique_field_types.size(); ++i) {
 		mustache::data type_data{};
-		type_data["type"] = *it;
-		if (it != types.end() - 1) type_data["comma"] = ",";
-		else type_data["comma"] = "";
+		type_data["type"] = data.unique_field_types[i];
+		type_data["id"] = std::to_string(i);
 
 		types_data << type_data;
 	}
@@ -79,6 +70,14 @@ void generate_reflect_decl_file(fs::path template_dir, fs::path output_dir, Pars
 	output(output_dir, "include/reflect/component_reflect_decl.hpp", must.render(must_data));
 }
 
+static uint32_t find_type_id(ParseResult const& data, std::string const& type) {
+	for (uint32_t i = 0; i < data.unique_field_types.size(); ++i) {
+		if (type == data.unique_field_types[i]) return i;
+	}
+	
+	throw std::runtime_error("Field type not found");
+}
+
 void generate_reflection_source(fs::path template_dir, fs::path output_dir, ParseResult const& data) {
 	std::string tpl = read_file(template_dir / "reflection_cpp.tpl");
 	mustache::mustache must{ tpl };
@@ -94,6 +93,8 @@ void generate_reflection_source(fs::path template_dir, fs::path output_dir, Pars
 			mustache::data field_data{};
 			field_data["type"] = it->type;
 			field_data["name"] = it->name;
+//			field_data["type_id"] = std::to_string(find_type_id(data, it->type));
+			field_data["tooltip"] = it->tooltip;
 
 			if (it != comp.fields.end() - 1) field_data["comma"] = ",";
 			else field_data["comma"] = "";
@@ -101,8 +102,43 @@ void generate_reflection_source(fs::path template_dir, fs::path output_dir, Pars
 			field_list << field_data;
 		}
 
+		mustache::data& flags_list = impl_data["flags"] = mustache::data::type::list;
+		std::vector<std::string> flags_str{};
+
+		// Create type flags, we only add none to make sure the argument is not empty.
+		flags_str.push_back("none");
+		if (comp.editor_hide) {
+			flags_str.push_back("editor_hide");
+		}
+
+		for (int i = 0; i < flags_str.size(); ++i) {
+			mustache::data flag_data{};
+			flag_data["flag"] = flags_str[i];
+			if (i != flags_str.size() - 1) flag_data["or"] = "|";
+			else flag_data["or"] = "";
+
+			flags_list << flag_data;
+		}
+
 		impl_list << impl_data;
 	}
 
 	output(output_dir, "src/reflection.cpp", must.render(must_data));
+}
+
+void generate_dispatch(fs::path template_dir, fs::path output_dir, ParseResult const& data) {
+	std::string tpl = read_file(template_dir / "dispatch_hpp.tpl");
+	mustache::mustache must{ tpl };
+	mustache::data must_data{ mustache::data::type::object };
+
+	mustache::data& types_list = must_data["type_list"] = mustache::data::type::list;
+	for (uint32_t i = 0; i < data.unique_field_types.size(); ++i) {
+		mustache::data type;
+		type["id"] = std::to_string(i);
+		type["type"] = data.unique_field_types[i];
+
+		types_list << type;
+	}
+
+	output(output_dir, "include/reflect/dispatch.hpp", must.render(must_data));
 }

@@ -5,19 +5,19 @@
 namespace andromeda::meta {
 
 template<>
-reflection_info<Camera> reflect<Camera>();
+reflection_info<Camera> const& reflect<Camera>();
 
 template<>
-reflection_info<Hierarchy> reflect<Hierarchy>();
+reflection_info<Hierarchy> const& reflect<Hierarchy>();
 
 template<>
-reflection_info<MeshRenderer> reflect<MeshRenderer>();
+reflection_info<MeshRenderer> const& reflect<MeshRenderer>();
 
 template<>
-reflection_info<Name> reflect<Name>();
+reflection_info<Name> const& reflect<Name>();
 
 template<>
-reflection_info<Transform> reflect<Transform>();
+reflection_info<Transform> const& reflect<Transform>();
 
 
 }

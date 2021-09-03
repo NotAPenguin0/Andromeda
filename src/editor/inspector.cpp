@@ -5,9 +5,13 @@
 
 #include <andromeda/editor/style.hpp>
 #include <andromeda/editor/widgets/input_text.hpp>
+#include <andromeda/editor/widgets/tooltip.hpp>
 
 // We'll use reflection to automatically get components to display in the UI.
 #include <reflect/reflection.hpp>
+
+#include <string>
+using namespace std::literals::string_literals;
 
 namespace andromeda::editor {
 
@@ -99,40 +103,45 @@ struct display_component_field {
 	C& component;
 	meta::reflection_info<C> const& refl;
 
-	template<typename T>
-	void operator()(meta::typed_field<C, T> field) {
-		do_display(field, get_label(field).c_str(), field.get(component));
+	void operator()(meta::field<C> field) {
+		// Dispatch to the proper field type overload, and pass parameters.
+		meta::dispatch(field, component, [this, &field](auto& value) {
+			do_display(value, field, get_label(field).c_str());
+		});
+
+		// After displaying the field, we add a tooltip if one is present
+		if (!field.tooltip().empty()) {
+			show_tooltip(field.tooltip());
+		}
 	}
 
 private:
-	template<typename T>
-	std::string get_label(meta::typed_field<C, T> field) {
+	std::string get_label(meta::field<C> field) const {
 		return field.name() + "##field-display-" + refl.name();
 	}
 
-
 	template<typename T>
-	void do_display(meta::typed_field<C, Handle<T>> const& meta, const char* label, Handle<T>& value) {
+	void do_display(Handle<T>& value, meta::field<C> const& meta, const char* label) {
 		ImGui::Text("%s: %d", meta.name().c_str(), value.get_id());
 	}
 
-	void do_display(meta::typed_field<C, ecs::entity_t> const& meta, const char* label, ecs::entity_t& value) {
+	void do_display(ecs::entity_t& value, meta::field<C> const& meta, const char* label) {
 		ImGui::Text("%s: %d", meta.name().c_str(), value);
 	}
 
-	void do_display(meta::typed_field<C, float> const& meta, const char* label, float& value) {
+	void do_display(float& value, meta::field<C> const& meta, const char* label) {
 		ImGui::DragFloat(label, &value, 0.2f);
 	}
 
-	void do_display(meta::typed_field<C, glm::vec3> const& meta, const char* label, glm::vec3& value) {
+	void do_display(glm::vec3& value, meta::field<C> const& meta, const char* label) {
 		ImGui::DragFloat3(label, &value.x, 0.2f);
 	}
 	
-	void do_display(meta::typed_field<C, std::string> const& meta, const char* label, std::string& value) {
+	void do_display(std::string& value, meta::field<C> const& meta, const char* label) {
 		ImGui::Text("%s: %s", meta.name().c_str(), value.c_str());
 	}
 
-	void do_display(meta::typed_field<C, std::vector<ecs::entity_t>> const& meta, const char* label, std::vector<ecs::entity_t>& value) {
+	void do_display(std::vector<ecs::entity_t>& value, meta::field<C> const& meta, const char* label) {
 		ImGui::Text("%s is a vector (currently unsupported).", meta.name().c_str());
 	}
 };
@@ -141,20 +150,35 @@ private:
 template<typename C>
 struct display_component {
 
+	constexpr const char* get_component_icon() const {
+		if constexpr (std::is_same_v<C, Transform>) return ICON_FA_ARROWS_ALT;
+		if constexpr (std::is_same_v<C, MeshRenderer>) return ICON_FA_CUBES;
+		if constexpr (std::is_same_v<C, Camera>) return ICON_FA_CAMERA;
+
+		return "";
+	}
+
 	// Display a component of type C for a given entity.
 	void operator()(thread::LockedValue<ecs::registry>& ecs, ecs::entity_t entity) {
 		// First, check if this component is present on the entity. If not, we don't want to display anything.
 		if (!ecs->has_component<C>(entity)) return;
 
 		// Now obtain reflection info for the component so we can start displaying it.
-		meta::reflection_info<C> refl = meta::reflect<C>();
+		meta::reflection_info<C> const& refl = meta::reflect<C>();
+
+		// Get flags for this component, maybe we need to hide it.
+		plib::bit_flag<meta::type_flags> flags = refl.flags();
+
+		// Do not display components flagged with editor::hide.
+		if (flags & meta::type_flags::editor_hide) return;
+
 		// Show header for the component with its name.
-		std::string header = refl.name() + "##component-header";
+		std::string header = get_component_icon() + " "s + refl.name() + "##component-header";
 		if (ImGui::CollapsingHeader(header.c_str())) {
 			C& component = ecs->get_component<C>(entity);
-
-			for (meta::field_variant<C> const& field : refl.fields()) {
-				std::visit(display_component_field<C>{ component, refl }, field);
+			display_component_field<C> display_func{ component, refl };
+			for (meta::field<C> const& field : refl.fields()) {
+				display_func(field);
 			}
 		}
 	}

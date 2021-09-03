@@ -12,8 +12,8 @@ target_include_directories(codegen PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include"
 
 FetchContent_Declare(
 	cppast-lib
-	GIT_REPOSITORY https://github.com/foonathan/cppast
-	GIT_TAG 032d48df2ed85ee3984ef317d40e4b14d83198be # master branch is named main
+	GIT_REPOSITORY https://github.com/NotAPenguin0/cppast
+	GIT_TAG ec1160865f76759fc23e6c03e120dd86c5034379
 )
 
 FetchContent_Declare( 
@@ -34,6 +34,7 @@ set(CODEGEN_TEMPLATE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/templates")
 set(CODEGEN_OUTPUT_FILES "")
 list(APPEND CODEGEN_OUTPUT_FILES "${CODEGEN_OUTPUT_DIR}/include/reflect/type_lists.hpp")
 list(APPEND CODEGEN_OUTPUT_FILES "${CODEGEN_OUTPUT_DIR}/include/reflect/component_reflect_decl.hpp")
+list(APPEND CODEGEN_OUTPUT_FILES "${CODEGEN_OUTPUT_DIR}/include/reflect/dispatch.hpp")
 
 # Define list of output sources. These will automatically be added to the list of output files.
 set(CODEGEN_OUTPUT_SOURCES "")

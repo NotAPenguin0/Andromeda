@@ -6,6 +6,7 @@
 #pragma once
 
 #include <functional>
+#include <cstdint>
 
 #include <andromeda/components/camera.hpp>
 #include <andromeda/components/hierarchy.hpp>
@@ -15,11 +16,9 @@
 
 namespace andromeda::meta {
 
-#define ANDROMEDA_META_FIELD_TYPES Handle<gfx::Mesh>, ecs::entity_t, float, glm::vec3, std::string, std::vector<ecs::entity_t> 
 #define ANDROMEDA_META_COMPONENT_TYPES Camera, Hierarchy, MeshRenderer, Name, Transform 
 
-
-namespace detail {
+namespace impl {
 
 template<template<typename> typename, typename...>
 struct for_each_component_impl;
@@ -41,11 +40,50 @@ struct for_each_component_impl<F, CFirst, CNext, CRest ...> {
     }
 };
 
-} // namespace detail
+} // namespace impl
 
 template<template<typename> typename F, typename... Args>
 void for_each_component(Args&&... args) {
-    detail::for_each_component_impl<F, ANDROMEDA_META_COMPONENT_TYPES>{}(std::forward<Args>(args) ...);
+    impl::for_each_component_impl<F, ANDROMEDA_META_COMPONENT_TYPES>{}(std::forward<Args>(args) ...);
 }
+
+
+namespace impl {
+
+template<typename T>
+uint32_t type_id();
+
+template<>
+inline uint32_t type_id<Handle<gfx::Mesh>>() {
+    return 0;
+}
+
+template<>
+inline uint32_t type_id<ecs::entity_t>() {
+    return 1;
+}
+
+template<>
+inline uint32_t type_id<float>() {
+    return 2;
+}
+
+template<>
+inline uint32_t type_id<glm::vec3>() {
+    return 3;
+}
+
+template<>
+inline uint32_t type_id<std::string>() {
+    return 4;
+}
+
+template<>
+inline uint32_t type_id<std::vector<ecs::entity_t>>() {
+    return 5;
+}
+
+
+} // namespace impl
 
 } // namespace andromeda::meta

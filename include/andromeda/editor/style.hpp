@@ -74,6 +74,22 @@ struct ScopedWidthModifier {
 	}
 };
 
+struct ScopedTextWrapModifier {
+	[[nodiscard]] inline ScopedTextWrapModifier(float value) {
+		ImGui::PushTextWrapPos(value);
+	}
+
+	ScopedTextWrapModifier(ScopedTextWrapModifier const&) = delete;
+	ScopedTextWrapModifier(ScopedTextWrapModifier&&) = delete;
+
+	ScopedTextWrapModifier& operator=(ScopedTextWrapModifier const&) = delete;
+	ScopedTextWrapModifier& operator=(ScopedTextWrapModifier&&) = delete;
+
+	~ScopedTextWrapModifier() {
+		ImGui::PopTextWrapPos();
+	}
+};
+
 /**
  * @brief Draw text centered horizontally inside a container.
  * @param text The text to draw. This will be an unformatted text widget.
