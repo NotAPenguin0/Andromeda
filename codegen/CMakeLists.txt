@@ -26,9 +26,12 @@ FetchContent_MakeAvailable(cppast-lib mustache)
 target_link_libraries(codegen PRIVATE cppast)
 target_include_directories(codegen PRIVATE ${mustache_SOURCE_DIR})
 
-set(CODEGEN_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/out")
+set(CODEGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/out")
 set(CODEGEN_INPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include/andromeda/components")
 set(CODEGEN_TEMPLATE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/templates")
+
+file(MAKE_DIRECTORY "${CODEGEN_OUTPUT_DIR}/include/reflect")
+file(MAKE_DIRECTORY "${CODEGEN_OUTPUT_DIR}/src")
 
 # Define list of output files. This only needs to include headers.
 set(CODEGEN_OUTPUT_FILES "")
@@ -52,13 +55,13 @@ file(GLOB CODEGEN_DEPENDENCIES "${CODEGEN_INPUT_DIR}/*.hpp")
 set(CODEGEN_TEMPLATES "")
 file(GLOB CODEGEN_TEMPLATES ${CODEGEN_TEMPLATE_DIR}/".tpl")
 
-
 # Create custom cmake command to execute the code generation program
 set(CODEGEN_BINARY "${CMAKE_CURRENT_BINARY_DIR}/codegen")
 add_custom_command(
 	OUTPUT ${CODEGEN_OUTPUT_FILES}
-	COMMAND ${CODEGEN_BINARY} "${CODEGEN_INPUT_DIR}" "${CODEGEN_OUTPUT_DIR}" "${CODEGEN_TEMPLATE_DIR}" "${ANDROMEDA_INCLUDE_DIRECTORIES}"
+	COMMAND ${CODEGEN_BINARY} "${CODEGEN_INPUT_DIR}" "${CODEGEN_OUTPUT_DIR}" "${CODEGEN_TEMPLATE_DIR}" "$<FILTER:$<TARGET_PROPERTY:andromeda,INCLUDE_DIRECTORIES>,INCLUDE,.+>"
 	DEPENDS ${CODEGEN_DEPENDENCIES} ${CODEGEN_TEMPLATES}
+	VERBATIM
 )
 
 # Create target to execute code generation command.
@@ -70,8 +73,9 @@ add_custom_target(andromeda-do-codegen
 # Create library for andromeda to link to with codegen sources
 add_library(andromeda-codegen-lib STATIC)
 target_sources(andromeda-codegen-lib PRIVATE ${CODEGEN_OUTPUT_SOURCES})
+target_include_directories(andromeda-codegen-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/public")
 target_include_directories(andromeda-codegen-lib PUBLIC "${CODEGEN_OUTPUT_DIR}/include")
-target_include_directories(andromeda-codegen-lib PRIVATE ${ANDROMEDA_INCLUDE_DIRECTORIES})
+target_include_directories(andromeda-codegen-lib PRIVATE $<FILTER:$<TARGET_PROPERTY:andromeda,INCLUDE_DIRECTORIES>,INCLUDE,.+>)
 
 # Setup manual target dependencies.
 add_dependencies(andromeda-do-codegen codegen)
