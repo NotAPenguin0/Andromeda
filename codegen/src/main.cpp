@@ -6,6 +6,8 @@
 #include <codegen/parse.hpp>
 #include <codegen/generate.hpp>
 
+#include <set>
+
 void print_parse_result(ParseResult const& res) {
 	for (auto const& comp : res.components) {
 		std::cout << "Component: " << comp.name << "\n";
@@ -32,6 +34,8 @@ std::vector<std::string> split(std::string const& s, char delim) {
 }
 
 int main(int argc, char** argv) {
+	std::cout << "Starting codegen\n\n";
+
 	fs::path input_dir = fs::path(argv[1]);
 	fs::path output_dir = fs::path(argv[2]);
 	fs::path template_dir = fs::path(argv[3]);
@@ -57,9 +61,20 @@ int main(int argc, char** argv) {
 		parse_file(result, file, parseconfig);
 	}
 
+	// Get all unique field types and add them to the resulting data.
+	std::set<std::string> unique_types{};
+	for (auto const& comp : result.components) {
+		for (auto const& field : comp.fields) {
+			unique_types.insert(field.type);
+		}
+	}
+	// flatten to a vector, because we need indices.
+	result.unique_field_types = std::vector<std::string>(unique_types.begin(), unique_types.end());
+
 	generate_type_list_file(template_dir, output_dir, result);
 	generate_reflect_decl_file(template_dir, output_dir, result);
 	generate_reflection_source(template_dir, output_dir, result);
+	generate_dispatch(template_dir, output_dir, result);
 
 	return 0;
 }

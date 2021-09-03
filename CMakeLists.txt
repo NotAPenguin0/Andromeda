@@ -28,7 +28,7 @@ add_subdirectory("codegen")
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
 	target_compile_options(andromeda PUBLIC -W3 -Werror)
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-	target_compile_options(andromeda PUBLIC -Wno-unknown-attributes)
+	target_compile_options(andromeda PUBLIC -W3 -Wno-unknown-attributes)
 endif()
 
 if (WIN32)

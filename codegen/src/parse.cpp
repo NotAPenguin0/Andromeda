@@ -6,13 +6,8 @@
 
 #include <iostream>
 
-// Check if an entity has an attribute in a given scope with a given name.
-static bool has_attribute(cppast::cpp_entity const& entity, std::string const& scope, std::string const& name) {
-	if (auto attr_opt = cppast::has_attribute(entity, name); attr_opt.has_value()) {
-		auto const& attr = attr_opt.value();
-		return scope == attr.scope().value_or("");
-	}
-	else return false;
+static bool ent_has_attribute(cppast::cpp_entity const& entity, std::string const& a) {
+	return cppast::has_attribute(entity, a).has_value();
 }
 
 // Note that we assume a single component per file.
@@ -40,6 +35,8 @@ struct ast_visitor {
 				component_depth = depth;
 
 				meta.name = entity.name();
+
+				meta.editor_hide = ent_has_attribute(entity, "editor::hide");
 			}
 		}
 
@@ -69,7 +66,7 @@ private:
 	bool inside_component = false;
 
 	bool is_component(cppast::cpp_entity const& entity) {
-		return (entity.kind() == cppast::cpp_entity_kind::class_t) && has_attribute(entity, "", "component");
+		return (entity.kind() == cppast::cpp_entity_kind::class_t) && ent_has_attribute(entity, "component");
 	}
 
 	bool is_field(cppast::cpp_entity const& entity, cppast::visitor_info const& info) {
@@ -83,6 +80,23 @@ private:
 		auto const& field_data = static_cast<cppast::cpp_member_variable const&>(entity);
 		field.name = field_data.name();
 		field.type = cppast::to_string(field_data.type());
+
+		if (ent_has_attribute(entity, "editor::tooltip")) {
+			cppast::cpp_attribute const& attribute = cppast::has_attribute(entity, "editor::tooltip").value();
+			if (auto args = attribute.arguments(); args.has_value() && !args.value().empty()) {
+				// Note that this stil includes the quotes, so we need to remove those.
+				std::string tooltip_str = args.value().front().spelling;
+				// Empty tooltip string.
+				if (tooltip_str.size() == 2) return;
+
+				// remove the quotes.
+				field.tooltip = tooltip_str.substr(1, tooltip_str.size() - 2);
+			}
+			else {
+				std::cout << "Parse error in component " << meta.name << " field " << field.name << ": "
+					<< "editor::tooltip(): expected one argument";
+			}
+		}
 	}
 };
 

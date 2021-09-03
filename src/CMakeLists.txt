@@ -23,6 +23,7 @@ target_sources(andromeda PRIVATE
 	"editor/widgets/input_text.cpp"
 	"editor/widgets/menu_bar.cpp"
 	"editor/widgets/table.cpp"
+	"editor/widgets/tooltip.cpp"
 
 	"graphics/backend/simple.cpp"
 	"graphics/context.cpp"

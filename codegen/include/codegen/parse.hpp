@@ -13,6 +13,7 @@ namespace fs = std::filesystem;
 struct FieldInfo {
 	std::string name{};
 	std::string type{};
+	std::string tooltip{}; // Optional, empty string if not present.
 };
 
 // Stores information for a single component
@@ -23,11 +24,14 @@ struct ComponentInfo {
 	std::string filename{};
 	// Fields present in the component.
 	std::vector<FieldInfo> fields;
+	// Whether the editor::hide attribute was present.
+	bool editor_hide = false;
 };
 
 // This structure stores a list of components that were extraced the from the parse operation.
 struct ParseResult {
 	std::vector<ComponentInfo> components;
+	std::vector<std::string> unique_field_types;
 };
 
 struct Config {

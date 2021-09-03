@@ -1,55 +1,15 @@
 // This file is part of the andromeda reflection API for component types.
 // Many files in this API are automatically generated from the component headers during build.
 // Don't modify these manually, since the changes will be overwritten by the generation program.
-
 // This header is not generated, but modifying it might result in unexpected behaviour.
+// 
 // This header exposes the main reflection API, typically you only need to include this to use it.
-
+// Note that the reflection API is designed to work with component types within the editor, 
+// it's not meant to be a generic solution for reflection.
+// 
 // To obtain reflection information for a type that has it available, call meta::reflect<T>().
-// This function returns a meta::reflection_info<T> struct with all the information. Example usage that prints all the members of a type:
-// 
-// This visitor only supports reflected structures that only have int and float fields.
-// template<typename T>
-// struct print_visitor {
-//    T& instance;
-//
-//    void operator()(typed_field<T, int> const& value) {
-//        std::cout << "(int) = " << value.get(instance);
-//    }
-//
-//    void operator()(typed_field<T, float> const& value) {
-//        std::cout << "(float) = " << value.get(instance);
-//    }
-// };
-// 
-// template<typename T>
-// void print_members(T& instance) {
-//    meta::reflection_info<T> refl = meta::reflect<T>();
-// 
-//    print_visitor<T> visitor{ instance };
-//    for (auto const& field : refl.fields()) {
-//        std::cout << field.name() << " ";
-//        std::visit(visitor, field);
-//        std::cout << std::endl;
-//    }
-// }
+// This function returns a meta::reflection_info<T> struct with all the information.
 
-
-// To add reflection information for your own types, simply specialize the meta::reflect<T>() function for your type.
-// 
-// As an example, here is the meta::reflect() function specialized for an example struct A:
-// struct A {
-//    int x;
-//    float y;
-// };
-// 
-// namespace meta {
-//    template<>
-//    reflection_info<A> reflect<A>() {
-//        return reflection_info("A", { typed_field<A>("x", &A::x), typed_field<A>("y", &A::y) });
-//    }
-// } 
-//
 
 #pragma once
 
@@ -58,81 +18,116 @@
 #include <string>
 #include <string_view>
 
+#include <plib/bit_flag.hpp>
+
 // This included file is a generated file.
 #include <reflect/type_lists.hpp>
 
 namespace andromeda::meta {
 
 /**
- * @struct typed_field 
+ * @struct field 
  * @brief This structure stores a field of a reflected structure, with all meta information. It can also be used to get a reference to that field 
  *        for a specific instance.
  * @tparam T Type of the structure the field belongs to.
- * @tparam U Type of the field.
 */
-template<typename T, typename U>
-struct typed_field {
+template<typename T>
+struct field {
 public:
 
     /**
      * @brief Construct a field with meta information.
+     * @tparam U type of the field.
      * @param ptr Pointer to member for the field to store. For example, in the following struct
      *            struct A { int x; float y; };
      *            this pointer is &A::x for x, and &A::y for y.
      * @param name String name of the field.
+     * @param tooltip String to display when hovering over the field in the editor.
     */
-    typed_field(U T::* ptr, std::string_view name) : ptr(ptr), field_name(std::string{ name }) {
-
+    template<typename U>
+    field(U T::* ptr, std::string_view name, std::string_view tooltip) 
+        : field_name(std::string{ name }), field_tooltip(std::string{ tooltip })
+    {
+        this->ptr = reinterpret_cast<void_t T::*>(ptr);
+        this->field_type = impl::type_id<U>();
     }
 
     /**
      * @brief Obtain a reference to the field in an instance.
+     * @tparam U the type of the field.
      * @param instance Instance of the struct T to return the field for.
      * @return Reference to the stored field in the given instance.
     */
-    U& get(T& instance) {
-        return instance.*ptr;
+    template<typename U>
+    U& as(T& instance) {
+        auto typed = as_type<U>();
+        return instance.*typed;
     }
 
     /**
      * @brief Obtain a reference to the field in an instance.
+     * @tparam U the type of the field.
      * @param instance Instance of the struct T to return the field for.
      * @return Reference to the stored field in the given instance.
     */
-    U const& get(T const& instance) const {
-        return instance.*ptr;
+    template<typename U>
+    U const& as(T const& instance) const {
+        auto const typed = as_type<U>();
+        return instance.*typed;
     }
 
     /**
      * @brief Get the string identifier of the field.
-     * @return String with the name of the field. Lives as long as this typed_field does.
+     * @return String with the name of the field. Lives as long as this field does.
     */
     std::string const& name() const {
         return field_name;
     }
 
+    /**
+     * @brief Get a tooltip string for the field.
+     * @return String with the tooltip for the field. Lives as long as this field does.
+    */
+    std::string const& tooltip() const {
+        return field_tooltip;
+    }
+
+    /**
+     * @brief Get the type id of the field.
+     * @return Unique identifier for the type of this field.
+    */
+    uint32_t type() const {
+        return field_type;
+    }
+
 private:
-    U T::* ptr = nullptr;
+    // We define this struct so we can have a generic pointer type without having to cast to types like unsigned char*.
+    // We can't use void because a pointer to a void member is not allowed.
+    struct void_t {};
+
+    void_t T::* ptr = nullptr;
     std::string field_name;
+    std::string field_tooltip{};
+
+    // For each unique type in the components we will assign an ID. 
+    // This ID is then used in the dispatch function.
+    uint32_t field_type = 0;
+
+    template<typename U>
+    U T::* as_type() {
+        return reinterpret_cast<U T::*>(ptr);
+    }
+
+    template<typename U>
+    U const T::* as_type() const {
+        return reinterpret_cast<U const T::*>(ptr);
+    }
 };
 
-namespace impl {
-
-// Helper structure to define the type of field_variant from the type list.
-template<typename T, typename... Us> 
-struct construct_field_variant_type {
-    using type = std::variant<typed_field<T, Us> ...>;
+enum class type_flags : uint32_t {
+    none = 0x00,
+    editor_hide = 0x01
 };
-
-}
-
-/**
- * @brief This type represents any field of a type T. It's a variant containing typed_fields for every possible field type.
- * @tparam T Structure type the fields are from.
- * @return 
-*/
-template<typename T>
-using field_variant = typename impl::construct_field_variant_type<T, ANDROMEDA_META_FIELD_TYPES>::type;
 
 /**
  * @brief This structure stores reflection info for a type T.
@@ -146,7 +141,8 @@ public:
      * @param name Type name of the type T.
      * @param fields List of fields for type T.
     */
-    reflection_info(std::string_view name, std::vector<field_variant<T>> fields) : type_name(std::string{ name }), type_fields(std::move(fields)) {
+    reflection_info(std::string_view name, std::vector<field<T>> fields, plib::bit_flag<type_flags> flags = {})
+        : type_name(std::string{ name }), type_fields(std::move(fields)), flags_(flags) {
 
     }
 
@@ -162,13 +158,18 @@ public:
      * @brief Obtain the fields of the type.
      * @return A list of field_variant<T>, each with a single field. Lives as long as the reflection_info structure does.
     */
-    std::vector<field_variant<T>> const& fields() const {
+    std::vector<field<T>> const& fields() const {
         return type_fields;
+    }
+
+    plib::bit_flag<type_flags> flags() const {
+        return flags_;
     }
 
 private:
     std::string type_name;
-    std::vector<field_variant<T>> type_fields;
+    std::vector<field<T>> type_fields;
+    plib::bit_flag<type_flags> flags_;
 };
 
 /**
@@ -176,9 +177,14 @@ private:
  * @tparam T Type of the structure to obtain reflection info for.
 */
 template<typename T>
-reflection_info<T> reflect();
+reflection_info<T> const& reflect();
 
 } // namespace andromeda::meta
 
 // This is a generated header file containing declarations for specializations of reflect<T> for all components.
 #include <reflect/component_reflect_decl.hpp>
+
+// This is a generated file containing the implementation for dispatch() a function that will extract the type information from a meta::field<T>
+// and use it to correctly cast to the proper type using the .as<U>() function, and then call a visitor on it.
+// Do not include this header manually, as it depends on this header being included.
+#include <reflect/dispatch.hpp>

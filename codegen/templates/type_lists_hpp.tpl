@@ -6,6 +6,7 @@
 #pragma once
 
 #include <functional>
+#include <cstdint>
 
 {{#includes}}
 #include <andromeda/components/{{filename}}>
@@ -13,11 +14,9 @@
 
 namespace andromeda::meta {
 
-#define ANDROMEDA_META_FIELD_TYPES {{#field_types}}{{{type}}}{{comma}} {{/field_types}}
 #define ANDROMEDA_META_COMPONENT_TYPES {{#component_types}}{{{type}}}{{comma}} {{/component_types}}
 
-
-namespace detail {
+namespace impl {
 
 template<template<typename> typename, typename...>
 struct for_each_component_impl;
@@ -39,11 +38,27 @@ struct for_each_component_impl<F, CFirst, CNext, CRest ...> {
     }
 };
 
-} // namespace detail
+} // namespace impl
 
 template<template<typename> typename F, typename... Args>
 void for_each_component(Args&&... args) {
-    detail::for_each_component_impl<F, ANDROMEDA_META_COMPONENT_TYPES>{}(std::forward<Args>(args) ...);
+    impl::for_each_component_impl<F, ANDROMEDA_META_COMPONENT_TYPES>{}(std::forward<Args>(args) ...);
 }
+
+
+namespace impl {
+
+template<typename T>
+uint32_t type_id();
+
+{{#field_types}}
+template<>
+inline uint32_t type_id<{{{type}}}>() {
+    return {{id}};
+}
+
+{{/field_types}}
+
+} // namespace impl
 
 } // namespace andromeda::meta

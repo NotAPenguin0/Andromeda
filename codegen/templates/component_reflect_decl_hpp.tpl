@@ -6,7 +6,7 @@ namespace andromeda::meta {
 
 {{#decl}}
 template<>
-reflection_info<{{component}}> reflect<{{component}}>();
+reflection_info<{{component}}> const& reflect<{{component}}>();
 
 {{/decl}}
 
