@@ -17,7 +17,7 @@ set(BUILD_SHARED_LIBS OFF)
 
 add_executable(andromeda "")
 
-set(ANDROMEDA_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(andromeda PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_subdirectory("external")
 add_subdirectory("src")
@@ -25,15 +25,10 @@ add_subdirectory("shaders")
 
 add_subdirectory("codegen")
 
-target_include_directories(andromeda PUBLIC ${ANDROMEDA_INCLUDE_DIRECTORIES})
-
-if (WIN32 AND ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-	# Currently, clang on windows does not support concepts, so we have to silence this warning/error
-	target_compile_definitions(andromeda PUBLIC _SILENCE_CLANG_CONCEPTS_MESSAGE)
-endif()
-
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
-	target_compile_options(andromeda PRIVATE -W3 -Werror)
+	target_compile_options(andromeda PUBLIC -W3 -Werror)
+elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+	target_compile_options(andromeda PUBLIC -Wno-unknown-attributes)
 endif()
 
 if (WIN32)
