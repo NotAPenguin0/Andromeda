@@ -97,6 +97,39 @@ private:
 					<< "editor::tooltip(): expected one argument";
 			}
 		}
+
+		if (ent_has_attribute(entity, "editor::min")) {
+			cppast::cpp_attribute const& attribute = cppast::has_attribute(entity, "editor::min").value();
+			if (auto args = attribute.arguments(); args.has_value() && !args.value().empty()) {
+				field.min = args.value().front().spelling;
+			}
+			else {
+				std::cout << "Parse error in component " << meta.name << " field " << field.name << ": "
+					<< "editor::min(): expected one argument";
+			}
+		}
+
+		if (ent_has_attribute(entity, "editor::max")) {
+			cppast::cpp_attribute const& attribute = cppast::has_attribute(entity, "editor::max").value();
+			if (auto args = attribute.arguments(); args.has_value() && !args.value().empty()) {
+				field.max = args.value().front().spelling;
+			}
+			else {
+				std::cout << "Parse error in component " << meta.name << " field " << field.name << ": "
+					<< "editor::max(): expected one argument";
+			}
+		}
+
+		if (ent_has_attribute(entity, "editor::drag_speed")) {
+			cppast::cpp_attribute const& attribute = cppast::has_attribute(entity, "editor::drag_speed").value();
+			if (auto args = attribute.arguments(); args.has_value() && !args.value().empty()) {
+				field.drag_speed = args.value().front().spelling;
+			}
+			else {
+				std::cout << "Parse error in component " << meta.name << " field " << field.name << ": "
+					<< "editor::drag_speed(): expected one argument";
+			}
+		}
 	}
 };
 

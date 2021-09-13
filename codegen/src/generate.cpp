@@ -78,6 +78,11 @@ static uint32_t find_type_id(ParseResult const& data, std::string const& type) {
 	throw std::runtime_error("Field type not found");
 }
 
+static std::string max_value_string(std::string const& type) {
+	if (type == "float") return std::to_string(std::numeric_limits<float>::max());
+	else return "{}";
+}
+
 void generate_reflection_source(fs::path template_dir, fs::path output_dir, ParseResult const& data) {
 	std::string tpl = read_file(template_dir / "reflection_cpp.tpl");
 	mustache::mustache must{ tpl };
@@ -96,8 +101,33 @@ void generate_reflection_source(fs::path template_dir, fs::path output_dir, Pars
 //			field_data["type_id"] = std::to_string(find_type_id(data, it->type));
 			field_data["tooltip"] = it->tooltip;
 
+			// Default construct
+			if (it->min.empty()) field_data["min"] = "{}";
+			else field_data["min"] = it->min;
+
+			if (it->max.empty()) field_data["max"] = max_value_string(it->type);
+			else field_data["max"] = it->max;
+
+			if (it->drag_speed.empty()) field_data["drag_speed"] = "1.0f";
+			else field_data["drag_speed"] = it->drag_speed;
+
 			if (it != comp.fields.end() - 1) field_data["comma"] = ",";
 			else field_data["comma"] = "";
+
+			std::vector<std::string> field_flags{};
+			mustache::data& flags_list = field_data["flags"] = mustache::data::type::list;
+
+			field_flags.push_back("none");
+			if (it->min.empty() && it->max.empty()) field_flags.push_back("no_limits");
+
+			for (int i = 0; i < field_flags.size(); ++i) {
+				mustache::data flag_data{};
+				flag_data["flag"] = field_flags[i];
+				if (i != field_flags.size() - 1) flag_data["or"] = "|";
+				else flag_data["or"] = "";
+
+				flags_list << flag_data;
+			}
 
 			field_list << field_data;
 		}

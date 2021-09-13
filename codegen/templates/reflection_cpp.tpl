@@ -13,7 +13,19 @@ reflection_info<{{component}}> const& reflect<{{component}}>() {
 		"{{component}}",
 		{
 			{{#fields}}
-			field<{{component}}>(&{{component}}::{{name}}, "{{name}}", "{{{tooltip}}}"){{comma}}
+			field<{{component}}>(
+				&{{component}}::{{name}}, 
+				"{{name}}", 
+				"{{{tooltip}}}",
+				{{#flags}}
+				plib::bit_flag<field_flags>(field_flags::{{flag}}) {{or}}
+				{{/flags}},
+				field<{{component}}>::editor_values {
+					.min = {{{min}}},
+					.max = {{{max}}},
+					.drag_speed = {{{drag_speed}}}
+				}
+			){{comma}}
 			{{/fields}}
 		},
 		{{#flags}}

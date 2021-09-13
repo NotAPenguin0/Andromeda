@@ -14,6 +14,11 @@ struct FieldInfo {
 	std::string name{};
 	std::string type{};
 	std::string tooltip{}; // Optional, empty string if not present.
+
+	// Stringified versions of editor values. Empty strings if not present.
+	std::string min{};
+	std::string max{};
+	std::string drag_speed{};
 };
 
 // Stores information for a single component

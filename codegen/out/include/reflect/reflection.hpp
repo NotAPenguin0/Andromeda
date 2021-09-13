@@ -25,6 +25,12 @@
 
 namespace andromeda::meta {
 
+enum class field_flags : uint32_t {
+    none = 0x00,
+    editor_hide = 0x01,
+    no_limits = 0x02
+};
+
 /**
  * @struct field 
  * @brief This structure stores a field of a reflected structure, with all meta information. It can also be used to get a reference to that field 
@@ -34,6 +40,12 @@ namespace andromeda::meta {
 template<typename T>
 struct field {
 public:
+    struct editor_values {
+        float min{};
+        float max{};
+
+        float drag_speed{};
+    };
 
     /**
      * @brief Construct a field with meta information.
@@ -45,8 +57,9 @@ public:
      * @param tooltip String to display when hovering over the field in the editor.
     */
     template<typename U>
-    field(U T::* ptr, std::string_view name, std::string_view tooltip) 
-        : field_name(std::string{ name }), field_tooltip(std::string{ tooltip })
+    field(U T::* ptr, std::string_view name, std::string_view tooltip, plib::bit_flag<field_flags> flags, 
+        editor_values values = {})
+        : field_name(std::string{ name }), field_tooltip(std::string{ tooltip }), flags_(flags), values(values)
     {
         this->ptr = reinterpret_cast<void_t T::*>(ptr);
         this->field_type = impl::type_id<U>();
@@ -100,14 +113,32 @@ public:
         return field_type;
     }
 
+    plib::bit_flag<field_flags> flags() const {
+        return flags_;
+    }
+
+    float const& min() const {
+        return values.min;
+    }
+
+    float const& max() const {
+        return values.max;
+    }
+
+    float const& drag_speed() const {
+        return values.drag_speed;
+    }
+
 private:
     // We define this struct so we can have a generic pointer type without having to cast to types like unsigned char*.
     // We can't use void because a pointer to a void member is not allowed.
     struct void_t {};
 
     void_t T::* ptr = nullptr;
-    std::string field_name;
+    std::string field_name{};
     std::string field_tooltip{};
+    plib::bit_flag<field_flags> flags_;
+    editor_values values{};
 
     // For each unique type in the components we will assign an ID. 
     // This ID is then used in the dispatch function.

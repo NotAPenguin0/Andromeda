@@ -104,6 +104,10 @@ struct display_component_field {
 	meta::reflection_info<C> const& refl;
 
 	void operator()(meta::field<C> field) {
+		
+		// Only actually display if the editor_hide flag was not set
+		if (field.flags() & meta::field_flags::editor_hide) return;
+
 		// Dispatch to the proper field type overload, and pass parameters.
 		meta::dispatch(field, component, [this, &field](auto& value) {
 			do_display(value, field, get_label(field).c_str());
@@ -130,11 +134,31 @@ private:
 	}
 
 	void do_display(float& value, meta::field<C> const& meta, const char* label) {
-		ImGui::DragFloat(label, &value, 0.2f);
+		if (meta.flags() & meta::field_flags::no_limits) {
+			ImGui::DragFloat(label, &value, meta.drag_speed());
+		}
+		else {
+			if (meta.max() > meta.min()) {
+				ImGui::DragFloat(label, &value, meta.drag_speed(), meta.min(), meta.max());
+			}
+			else {
+				ImGui::DragFloat(label, &value, meta.drag_speed(), meta.min());
+			}
+		}
 	}
 
 	void do_display(glm::vec3& value, meta::field<C> const& meta, const char* label) {
-		ImGui::DragFloat3(label, &value.x, 0.2f);
+		if (meta.flags() & meta::field_flags::no_limits) {
+			ImGui::DragFloat3(label, &value.x, meta.drag_speed());
+		}
+		else {
+			if (meta.max() > meta.min()) {
+				ImGui::DragFloat(label, &value.x, meta.drag_speed(), meta.min(), meta.max());
+			}
+			else {
+				ImGui::DragFloat(label, &value.x, meta.drag_speed(), meta.min());
+			}
+		}
 	}
 	
 	void do_display(std::string& value, meta::field<C> const& meta, const char* label) {
