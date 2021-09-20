@@ -17,7 +17,7 @@ set(BUILD_SHARED_LIBS OFF)
 
 add_executable(andromeda "")
 
-set(ANDROMEDA_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(andromeda PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_subdirectory("external")
 add_subdirectory("src")
@@ -25,14 +25,14 @@ add_subdirectory("shaders")
 
 add_subdirectory("codegen")
 
-target_include_directories(andromeda PUBLIC ${ANDROMEDA_INCLUDE_DIRECTORIES})
-
-
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
-	target_compile_options(andromeda PRIVATE -W3 -Werror)
-elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang") 
-    message("Using clang to compile")
-	target_compile_options(andromeda PRIVATE -W3)
+	message(STATUS "Using MSVC config")
+	target_compile_options(andromeda PUBLIC -W3 -Werror)
+elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "(Clang)|(GNU)")
+	message(STATUS "Using Clang/GNU config")
+	target_compile_options(andromeda PUBLIC -Wall -Wpedantic -Werror -Wno-attributes)
+else()
+	message(FATAL_ERROR "Unknown compiler with ID ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
 if (WIN32)

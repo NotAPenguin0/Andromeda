@@ -50,6 +50,12 @@ int main(int argc, char** argv) {
 	// Split on ';', as this is how cmake splits the list elements
 	parseconfig.include_directories = split(include_dir_str, ';');
 
+	std::cout << "Include dirs:\n";
+	for(auto const& include : parseconfig.include_directories) {
+		std::cout << include << '\n';
+	}
+	std::cout << std::endl;
+
 	ParseResult result;
 	for (fs::directory_entry file : fs::directory_iterator(input_dir)) {
 		parse_file(result, file, parseconfig);

@@ -6,6 +6,7 @@
 #include <andromeda/graphics/imgui.hpp>
 
 #include <filesystem>
+
 namespace fs = std::filesystem;
 
 namespace andromeda::editor {
@@ -29,6 +30,8 @@ static ImVec4 log_level_color(LogLevel level) {
 		return rgb_to_norm(233, 120, 124);
 	case LogLevel::Fatal:
 		return rgb_to_norm(243, 101, 101);
+	default:
+		throw std::runtime_error("Invalid logging level");
 	}
 }
 
@@ -46,8 +49,8 @@ Console::Console(gfx::Context& ctx, Window& window)
 		{.name = "path", .description = "The path of the asset to load."},
 	};
 
-	command_parser.add_command("load-asset", [this, &ctx](std::vector<std::string> args) {
-		fs::path path = args[1];
+	command_parser.add_command("load-asset", [&ctx](std::vector<std::string> args) {
+		auto path = fs::path(args[1]);
 		std::string ext = path.extension().generic_string();
 		if (ext == ".tx") {
 			assets::load<gfx::Texture>(ctx, path.generic_string());
@@ -112,7 +115,7 @@ void Console::display() {
 		ImGui::Checkbox("Auto-scroll##console", &auto_scroll);
 		ImGui::SameLine();
 		if (ImGui::Button("Clear##console")) clear();	
-		for (int i = 0; i < show_levels.size(); ++i) {
+		for (std::size_t i = 0; i < show_levels.size(); ++i) {
 			ImGui::SameLine();
 			LogLevel lvl = static_cast<LogLevel>(i);
 			std::string str = std::string(log_level_string(lvl)) + "##console";

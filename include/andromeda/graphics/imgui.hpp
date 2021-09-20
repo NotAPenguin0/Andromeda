@@ -8,9 +8,7 @@
 
 #include <IconsFontAwesome5.h>
 
-namespace andromeda {
-namespace gfx {
-namespace imgui {
+namespace andromeda::gfx::imgui {
 
 /**
  * @brief Initializes the imgui rendering backend. Must be called on the main thread.
@@ -49,6 +47,4 @@ ImTextureID get_texture_id(ph::ImageView view);
 */
 void reload_fonts();
 
-} // namespace imgui
-} // namespace gfx
-} // namespace andromeda
+} // namespace andromeda::gfx::imgui

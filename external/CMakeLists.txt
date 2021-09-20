@@ -56,14 +56,11 @@ FetchContent_MakeAvailable(glm)
 FetchContent_MakeAvailable(iconfonts)
 FetchContent_MakeAvailable(plib)
 
-target_link_libraries(andromeda PUBLIC Phobos glfw assetlib imgui)
+target_link_libraries(andromeda PRIVATE Phobos glfw assetlib imgui plib)
 
-set(ANDROMEDA_INCLUDE_DIRECTORIES
-	${ANDROMEDA_INCLUDE_DIRECTORIES}
+target_include_directories(andromeda PRIVATE
 	"${colorconsole_SOURCE_DIR}/include" 
 	"${imgui_docking_SOURCE_DIR}/include"
 	"${glm_SOURCE_DIR}"
 	"${iconfonts_SOURCE_DIR}/include"
-	"${plib_SOURCE_DIR}/include"
-	PARENT_SCOPE
 )

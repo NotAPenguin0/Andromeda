@@ -54,7 +54,7 @@ int Application::run() {
 	{
 		ecs::entity_t cam = world->create_entity();
 		thread::LockedValue<ecs::registry> ecs = world->ecs();
-		auto& c = ecs->add_component<Camera>(cam);
+		ecs->add_component<Camera>(cam);
 
 		Transform& trans = ecs->get_component<Transform>(cam);
 		trans.position = glm::vec3(-3.0f, 0.0f, 0.0f);

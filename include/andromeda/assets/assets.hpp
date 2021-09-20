@@ -237,7 +237,7 @@ T* get(Handle<T> handle) {
 		}
 		return &element.data;
 	}
-	catch (std::out_of_range not_found) {
+	catch (std::out_of_range const& not_found) {
 		LOG_WRITE(LogLevel::Error, "Tried to get asset for invalid handle");
 	}
 	return nullptr;
