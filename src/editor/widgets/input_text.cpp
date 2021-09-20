@@ -119,7 +119,7 @@ void InputText::history_select_event(ImGuiInputTextCallbackData* data) {
 		if (current_history_index != std::nullopt) {
 			uint32_t most_recent_index = (first_history_element + num_history_elements - 1) % history_buffer_size;
 			// Already most recent, can't go further. Instead we disable history mode again (select none).
-			if (current_history_index.value() == most_recent_index) {
+			if (current_history_index.value() == static_cast<int>(most_recent_index)) {
 				current_history_index = std::nullopt;
 			}
 			else {
@@ -156,7 +156,7 @@ void InputText::autocomplete_event(ImGuiInputTextCallbackData* data) {
 		while (true) {
 			bool all_match = true;
 			char c = {};
-			for (int i = 0; i < matches.size(); ++i) {
+			for (std::size_t i = 0; i < matches.size(); ++i) {
 				std::string const& match = matches[i];
 				if (i == 0) c = match[match_len];
 				if (match_len >= match.size()) {

@@ -126,11 +126,11 @@ private:
 
 	template<typename T>
 	void do_display(Handle<T>& value, meta::field<C> const& meta, const char* label) {
-		ImGui::Text("%s: %d", meta.name().c_str(), value.get_id());
+		ImGui::Text("%s: %ld", meta.name().c_str(), value.get_id());
 	}
 
 	void do_display(ecs::entity_t& value, meta::field<C> const& meta, const char* label) {
-		ImGui::Text("%s: %d", meta.name().c_str(), value);
+		ImGui::Text("%s: %ld", meta.name().c_str(), value);
 	}
 
 	void do_display(float& value, meta::field<C> const& meta, const char* label) {

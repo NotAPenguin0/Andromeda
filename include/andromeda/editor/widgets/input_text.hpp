@@ -3,6 +3,10 @@
 #include <andromeda/graphics/imgui.hpp>
 
 #include <string>
+#include <vector>
+#include <plib/bit_flag.hpp>
+#include <functional>
+#include <array>
 
 namespace andromeda::editor {
 

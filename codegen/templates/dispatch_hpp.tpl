@@ -21,7 +21,7 @@ void dispatch(field<T>& field, T& instance, F&& func, Args&&... args) {
 	switch(type_id) {
 		{{#type_list}}
 		case {{id}}:
-			func(field.as<{{{type}}}>(instance), std::forward<Args>(args)...);
+			func(field.template as<{{{type}}}>(instance), std::forward<Args>(args)...);
 			break;
 		{{/type_list}}
 		default:
@@ -43,7 +43,7 @@ void dispatch(field<T> const& field, T const& instance, F&& func, Args&&... args
 	switch(type_id) {
 		{{#type_list}}
 		case {{id}}:
-			func(field.as<{{{type}}}>(instance), std::forward<Args>(args)...);
+			func(field.template as<{{{type}}}>(instance), std::forward<Args>(args)...);
 			break;
 		{{/type_list}}
 		default:

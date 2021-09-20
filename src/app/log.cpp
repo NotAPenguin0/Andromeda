@@ -20,9 +20,9 @@ std::string_view log_level_string(LogLevel lvl) {
 		return "Error";
 	case LogLevel::Fatal:
 		return "Fatal";
+	default:
+		throw std::runtime_error("Invalid logging level");
 	}
-
-	throw std::runtime_error("Invalid logging level");
 }
 
 static std::ostream& dye_log_level(LogLevel lvl, std::ostream& out) {
@@ -40,9 +40,9 @@ static std::ostream& dye_log_level(LogLevel lvl, std::ostream& out) {
 		return out << hue::light_red << "[" << string << "]";
 	case LogLevel::Fatal:
 		return out << hue::red << "[" << string << "]";
+	default:
+		throw std::runtime_error("Invalid logging level");
 	}
-
-	throw std::runtime_error("Invalid logging level");
 }
 
 static LogLevel ph_to_log_level(ph::LogSeverity sev) {
@@ -57,9 +57,9 @@ static LogLevel ph_to_log_level(ph::LogSeverity sev) {
 		return LogLevel::Error;
 	case ph::LogSeverity::Fatal:
 		return LogLevel::Fatal;
+	default:
+		throw std::runtime_error("Invalid logging level");
 	}
-
-	throw std::runtime_error("Invalid logging level");
 }
 
 // Initialize the default logger
