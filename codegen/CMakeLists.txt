@@ -30,7 +30,7 @@ set(CODEGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/out")
 set(CODEGEN_INPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include/andromeda/components")
 set(CODEGEN_TEMPLATE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/templates")
 
-file(MAKE_DIRECTORY "${CODEGEN_OUTPUT_DIR}/include/reflect")
+file(MAKE_DIRECTORY "${CODEGEN_OUTPUT_DIR}/include/public/reflect")
 file(MAKE_DIRECTORY "${CODEGEN_OUTPUT_DIR}/src")
 
 # Define list of output files. This only needs to include headers.

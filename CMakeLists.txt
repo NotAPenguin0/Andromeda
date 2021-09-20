@@ -25,10 +25,10 @@ add_subdirectory("shaders")
 
 add_subdirectory("codegen")
 
-if (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	message(STATUS "Using MSVC config")
-	target_compile_options(andromeda PUBLIC -W3 -Werror)
-elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "(Clang)|(GNU)")
+	target_compile_options(andromeda PUBLIC -W3 -WX) # -WX is -Werror
+elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Clang)|(GNU)")
 	message(STATUS "Using Clang/GNU config")
 	target_compile_options(andromeda PUBLIC -Wall -Wpedantic -Werror -Wno-attributes)
 else()

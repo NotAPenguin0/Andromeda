@@ -173,7 +173,6 @@ private:
 // Note that this needs to be a special functor, since for_each_component can't accept function pointers.
 template<typename C>
 struct display_component {
-
 	constexpr const char* get_component_icon() const {
 		if constexpr (std::is_same_v<C, Transform>) return ICON_FA_ARROWS_ALT;
 		if constexpr (std::is_same_v<C, MeshRenderer>) return ICON_FA_CUBES;
