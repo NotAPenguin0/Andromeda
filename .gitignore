@@ -3,3 +3,5 @@ zconf.h.included
 docs/
 .cache/
 .vscode/
+out/
+dump.txt
