@@ -81,6 +81,7 @@ Handle<gfx::Texture> Context::request_texture(std::string const& path) {
 	});
 	// Store load task so we can give the unload task a proper dependency.
 	assets::impl::set_load_task(handle, task);
+	assets::impl::set_path(handle, path);
 	return handle;
 }
 
@@ -96,6 +97,7 @@ Handle<gfx::Mesh> Context::request_mesh(std::string const& path) {
 		}
 	});
 	assets::impl::set_load_task(handle, task);
+	assets::impl::set_path(handle, path);
 	return handle;
 }
 

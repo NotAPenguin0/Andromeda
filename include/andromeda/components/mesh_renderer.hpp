@@ -8,6 +8,9 @@ namespace andromeda {
 struct [[component]] MeshRenderer {
 	[[editor::tooltip("Mesh asset to render.")]]
 	Handle<gfx::Mesh> mesh{};
+
+	[[editor::tooltip("Material to use when rendering this mesh.")]]
+	Handle<gfx::Material> material{};
 };
 
 }

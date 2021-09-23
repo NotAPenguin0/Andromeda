@@ -36,9 +36,9 @@ private:
 
 	thread::TaskScheduler& scheduler;
 
-	// load() needs access to the request_XXX() functions.
+	// load_priv() needs access to the request_XXX() functions.
 	template<typename T>
-	friend Handle<T> assets::load(gfx::Context&, std::string const&);
+	friend Handle<T> assets::impl::load_priv(gfx::Context&, std::string const&);
 
 	// So does unload()
 	template<typename T>

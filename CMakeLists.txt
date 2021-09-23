@@ -25,6 +25,9 @@ add_subdirectory("shaders")
 
 add_subdirectory("codegen")
 
+# Copy over build data
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/build/data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	message(STATUS "Using MSVC config")
 	target_compile_options(andromeda PUBLIC -W3 -WX) # -WX is -Werror

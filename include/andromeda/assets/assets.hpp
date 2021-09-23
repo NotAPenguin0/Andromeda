@@ -7,12 +7,14 @@
 #include <andromeda/app/log.hpp>
 
 #include <concepts>
+#include <filesystem>
 #include <mutex>
 #include <string_view>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+namespace fs = std::filesystem;
 
 namespace andromeda {
 
@@ -53,6 +55,8 @@ struct asset_storage_type {
 
 	// Additional information
 	thread::task_id load_task_id = static_cast<thread::task_id>(-1);
+	// Path to the asset file. This will be used to prevent loading the same asset multiple times.
+	fs::path path;
 };
 
 template<typename T>
@@ -81,7 +85,7 @@ thread::LockedValue<container<T>> acquire() {
  * @return Handle referring to the asset to delete.
 */
 template<typename T>
-Handle<T> insert_pending() requires std::default_initializable<T>&& std::movable<T> {
+Handle<T> insert_pending() requires std::default_initializable<T> && std::movable<T> {
 	// Implementation similar to take()
 
 	auto [_, storage] = acquire<T>();
@@ -157,6 +161,34 @@ thread::task_id get_load_task(Handle<T> handle) {
 	return element.load_task_id;
 }
 
+/**
+ * @brief Sets the path of an asset.
+ * @tparam T Type of the asset.
+ * @param handle Handle referring to the asset to set the path of.
+ * @param path Path of the asset on disk.
+*/
+template<typename T>
+void set_path(Handle<T> handle, fs::path const& path) {
+	if (!handle) {
+		LOG_WRITE(LogLevel::Error, "Tried to set path of a null handle");
+		return;
+	}
+
+	auto [_, storage] = acquire<T>();
+	asset_storage_type<T>& element = storage.at(handle);
+	element.path = path;
+}
+
+/**
+ * @brief Specialize this function for each type T assets need to be loaded.
+ * @tparam T Type of the asset to load.
+ * @param ctx Reference to the graphics context.
+ * @param path Path to the asset file.
+ * @return Handle referring to the loaded asset.
+*/
+template<typename T>
+Handle<T> load_priv(gfx::Context& ctx, std::string const& path);
+
 } // namespace impl
 
 /**
@@ -168,7 +200,20 @@ thread::task_id get_load_task(Handle<T> handle) {
  * @return Handle referring to the loaded asset.
 */
 template<typename T>
-Handle<T> load(gfx::Context& ctx, std::string const& path);
+Handle<T> load(gfx::Context& ctx, std::string const& path) {
+	// First we look for the asset in the list of already loaded assets by comparing paths.
+	{
+		fs::path path_fs = path;
+		auto [_, storage] = impl::acquire<T>();
+		for (auto const& [handle, element] : storage) {
+			if (fs::equivalent(path_fs, element.path)) return handle;
+		}
+	}
+
+	// Asset wasn't found, we'll call the private load function to actually load it.
+	Handle<T> handle = impl::load_priv<T>(ctx, path);
+	return handle;
+}
 
 /**
  * @brief Unload an asset.
