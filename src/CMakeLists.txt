@@ -6,6 +6,7 @@ target_sources(andromeda PRIVATE
 	"app/wsi.cpp"
 
 	"assets/assets.cpp"
+	"assets/material_loader.cpp"
 	"assets/mesh_loader.cpp"
 	"assets/texture_loader.cpp"
 

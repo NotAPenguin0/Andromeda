@@ -26,7 +26,14 @@ add_subdirectory("shaders")
 add_subdirectory("codegen")
 
 # Copy over build data
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/build/data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(GLOB DATA_FILES "build/data/*")
+add_custom_command(
+	TARGET andromeda POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/build/data/" $<TARGET_FILE_DIR:andromeda>/data
+	DEPENDS ${DATA_FILES}
+	COMMENT "Copying build data"
+	VERBATIM
+)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	message(STATUS "Using MSVC config")

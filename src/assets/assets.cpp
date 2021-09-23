@@ -17,6 +17,12 @@ Handle<gfx::Mesh> load_priv<gfx::Mesh>(gfx::Context& ctx, std::string const& pat
 	return ctx.request_mesh(path);
 }
 
+
+template<>
+Handle<gfx::Material> load_priv<gfx::Material>(gfx::Context& ctx, std::string const& path) {
+	return ctx.request_material(path);
+}
+
 }
 
 template<>
@@ -27,6 +33,11 @@ void unload<gfx::Texture>(gfx::Context& ctx, Handle<gfx::Texture> handle) {
 template<>
 void unload<gfx::Mesh>(gfx::Context& ctx, Handle<gfx::Mesh> handle) {
 	ctx.free_mesh(handle);
+}
+
+template<>
+void unload<gfx::Material>(gfx::Context& ctx, Handle<gfx::Material> handle) {
+	// Do nothing, materials don't actually own any resources.
 }
 
 } // namespace assets

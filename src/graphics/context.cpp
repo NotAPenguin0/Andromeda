@@ -101,6 +101,23 @@ Handle<gfx::Mesh> Context::request_mesh(std::string const& path) {
 	return handle;
 }
 
+Handle<gfx::Material> Context::request_material(std::string const& path) {
+	LOG_FORMAT(LogLevel::Info, "Loading material at path {}", path);
+	Handle<gfx::Material> handle = assets::impl::insert_pending<gfx::Material>();
+	thread::task_id task = scheduler.schedule([this, handle, path](uint32_t thread) {
+		try {
+			impl::load_material(*this, handle, path, thread + 1);
+		}
+		catch (std::exception const& e) {
+			LOG_FORMAT(LogLevel::Error, "Exception while loading material {}: {}", path, e.what());
+		}
+	});
+
+	// No need to set load task, as materials don't get unloaded explicitly.
+	assets::impl::set_path(handle, path);
+	return handle;
+}
+
 void Context::free_texture(Handle<gfx::Texture> handle) {
 	try {
 		// If we free a texture before it is fully loaded we will get an error, unless

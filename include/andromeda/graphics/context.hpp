@@ -8,6 +8,7 @@
 #include <andromeda/assets/assets.hpp>
 #include <andromeda/graphics/mesh.hpp>
 #include <andromeda/graphics/texture.hpp>
+#include <andromeda/graphics/material.hpp>
 #include <andromeda/thread/scheduler.hpp>
 #include <andromeda/util/handle.hpp>
 
@@ -57,6 +58,13 @@ private:
 	 * @return A handle referring to the mesh in the asset system
 	*/
 	Handle<gfx::Mesh> request_mesh(std::string const& path);
+
+	/**
+	 * @brief Request a material to be loaded. This will be done asynchronously.
+	 * @param path Path to the material file.
+	 * @return A handle referring to the material in the asset system.
+	*/
+	Handle<gfx::Material> request_material(std::string const& path);
 
 	/**
 	 * @brief Frees a texture. This will be done asynchronously.

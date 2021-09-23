@@ -33,18 +33,20 @@ Application::Application(int argc, char** argv) {
 int Application::run() {
 	Handle<gfx::Mesh> m1 = assets::load<gfx::Mesh>(*graphics, "data/meshes/cube.mesh");
 
+	Handle<gfx::Material> mat = assets::load<gfx::Material>(*graphics, "data/materials/simple.mat");
+
 	ecs::entity_t cube = world->create_entity();
 	{
 		// Get thread-safe access to the ecs and add a MeshRenderer component pointing to mesh m1.
 		thread::LockedValue<ecs::registry> ecs = world->ecs();
-		ecs->add_component<MeshRenderer>(cube, m1);
+		ecs->add_component<MeshRenderer>(cube, m1, mat);
 		ecs->get_component<Name>(cube).name = "Parent cube";
 	}
 
 	ecs::entity_t cube2 = world->create_entity(cube);
 	{
 		thread::LockedValue<ecs::registry> ecs = world->ecs();
-		ecs->add_component<MeshRenderer>(cube2, m1);
+		ecs->add_component<MeshRenderer>(cube2, m1, mat);
 		auto& transform = ecs->get_component<Transform>(cube2);
 		transform.position.z = 2.0f;
 		transform.scale = glm::vec3(0.3f, 0.3f, 0.3f);

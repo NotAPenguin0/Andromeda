@@ -45,6 +45,11 @@ FetchContent_Declare(
 	GIT_TAG e4c6b0e7bbba588e15195315a2f754e48cec3de1 # branch is named 'main', not 'master'
 )
 
+FetchContent_Declare( 
+	simplejson
+	GIT_REPOSITORY https://github.com/NotAPenguin0/SimpleJSON
+)
+
 #set(PHOBOS_ENABLE_RAY_TRACING ON)
 
 FetchContent_MakeAvailable(phobos)
@@ -55,6 +60,7 @@ FetchContent_MakeAvailable(imgui_docking)
 FetchContent_MakeAvailable(glm)
 FetchContent_MakeAvailable(iconfonts)
 FetchContent_MakeAvailable(plib)
+FetchContent_MakeAvailable(simplejson)
 
 target_link_libraries(andromeda PRIVATE Phobos glfw assetlib imgui plib)
 
@@ -63,4 +69,5 @@ target_include_directories(andromeda PRIVATE
 	"${imgui_docking_SOURCE_DIR}/include"
 	"${glm_SOURCE_DIR}"
 	"${iconfonts_SOURCE_DIR}/include"
+	"${simplejson_SOURCE_DIR}/include"
 )
