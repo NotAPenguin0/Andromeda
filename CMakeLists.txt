@@ -19,6 +19,8 @@ add_executable(andromeda "")
 
 target_include_directories(andromeda PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -EHa")
+
 add_subdirectory("external")
 add_subdirectory("src")
 add_subdirectory("shaders")
@@ -40,7 +42,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	target_compile_options(andromeda PUBLIC -W3 -WX) # -WX is -Werror
 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Clang)|(GNU)")
 	message(STATUS "Using Clang/GNU config")
-	target_compile_options(andromeda PUBLIC -Wall -Wpedantic -Werror -Wno-attributes)
+	target_compile_options(andromeda PUBLIC
+			-Wall -Wpedantic -Werror -Wno-attributes -Wno-nullability-completeness
+			-fcxx-exceptions
+			)
 else()
 	message(FATAL_ERROR "Unknown compiler with ID ${CMAKE_CXX_COMPILER_ID}")
 endif()
@@ -48,6 +53,7 @@ endif()
 if (WIN32)
     # Truly a classic
 	target_compile_definitions(andromeda PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
+
 endif()
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")

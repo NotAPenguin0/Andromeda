@@ -29,6 +29,9 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 	settings.gpu_requirements.features.shaderInt64 = true;
 	settings.gpu_requirements.features_1_2.scalarBlockLayout = true;
 	settings.gpu_requirements.features_1_2.bufferDeviceAddress = true;
+	// Enable descriptor indexing as this is the method we'll use to bind all our textures.
+	settings.gpu_requirements.features_1_2.descriptorIndexing = true;
+	settings.gpu_requirements.features_1_2.descriptorBindingPartiallyBound = true;
 	settings.scratch_ibo_size = 1024 * 1024;
 	settings.scratch_vbo_size = 1024 * 1024;
 	settings.present_mode = VK_PRESENT_MODE_MAILBOX_KHR;

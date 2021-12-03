@@ -13,7 +13,7 @@ target_include_directories(codegen PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include"
 FetchContent_Declare(
 	cppast-lib
 	GIT_REPOSITORY https://github.com/NotAPenguin0/cppast
-	GIT_TAG ec1160865f76759fc23e6c03e120dd86c5034379
+	GIT_TAG origin/main
 )
 
 FetchContent_Declare( 
@@ -81,8 +81,8 @@ target_include_directories(andromeda-codegen-lib PRIVATE $<FILTER:$<TARGET_PROPE
 # Setup manual target dependencies.
 add_dependencies(andromeda-do-codegen codegen)
 add_dependencies(andromeda-codegen-lib andromeda-do-codegen)
-add_dependencies(andromeda codegen)
-add_dependencies(andromeda andromeda-do-codegen)
+#add_dependencies(andromeda codegen)
+#add_dependencies(andromeda andromeda-do-codegen)
 
 # Link main executable to our generated reflection library
 target_link_libraries(andromeda PRIVATE andromeda-codegen-lib)

@@ -33,13 +33,13 @@ ecs::entity_t World::create_entity(ecs::entity_t parent) {
 }
 
 void World::initialize_entity(ecs::entity_t entity, ecs::entity_t parent) {
-	Hierarchy& hierarchy = entities.add_component<Hierarchy>(entity);
+	auto& hierarchy = entities.add_component<Hierarchy>(entity);
 	hierarchy.parent = parent;
 	hierarchy.this_entity = entity;
 
 	// If this entity is not the root entity, update the children member of the parent
 	if (entity != root()) {
-		Hierarchy& parent_hierarchy = entities.get_component<Hierarchy>(parent);
+		auto& parent_hierarchy = entities.get_component<Hierarchy>(parent);
 		parent_hierarchy.children.push_back(entity);
 	}
 

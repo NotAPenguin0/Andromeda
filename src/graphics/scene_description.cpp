@@ -1,4 +1,7 @@
 #include <andromeda/graphics/scene_description.hpp>
+#include <andromeda/graphics/material.hpp>
+#include <andromeda/graphics/texture.hpp>
+#include <andromeda/assets/assets.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -6,8 +9,19 @@
 
 namespace andromeda::gfx {
 
-void SceneDescription::add_draw(Handle<gfx::Mesh> mesh, glm::mat4 const& transform) {
-	draws.emplace_back(mesh, transform);
+void SceneDescription::add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, glm::mat4 const& transform) {
+	draws.push_back(Draw{mesh, material, transform});
+}
+
+void SceneDescription::add_material(Handle<gfx::Material> material) {
+	// Check if valid handle
+	if (material == Handle<gfx::Material>::none) return;
+	// Check is_ready() before calling get()
+	if (!assets::is_ready(material)) return;
+
+	gfx::Material* mat = assets::get(material);
+	// Add each material texture individually
+	add_texture(mat->albedo);
 }
 
 void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& cam_transform, Camera const& cam) {
@@ -46,10 +60,37 @@ void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& ca
 
 void SceneDescription::reset() {
 	draws.clear();
+	textures.views.clear();
+	textures.id_to_index.clear();
 
 	for (auto& cam : cameras) {
 		cam.active = false;
 	}
 }
+
+SceneDescription::MaterialTextures SceneDescription::get_material_textures(Handle<gfx::Material> material) const {
+	if (material == Handle<gfx::Material>::none) return {};
+	if (!assets::is_ready(material)) return {};
+
+	gfx::Material* mat = assets::get(material);
+
+	return MaterialTextures{
+		.albedo = textures.id_to_index[mat->albedo]
+	};
+}
+
+void SceneDescription::add_texture(Handle<gfx::Texture> texture) {
+	// Don't add empty textures, they will be given a default value instead
+	if (texture == Handle<gfx::Texture>::none) return;
+	// Don't add textures that are still loading
+	if (!assets::is_ready(texture)) return;
+
+	gfx::Texture* tex = assets::get(texture);
+
+	// Add it to the list and set the index mapping
+	textures.views.push_back(tex->view);
+	textures.id_to_index[texture] = textures.views.size() - 1;
+}
+
 
 }

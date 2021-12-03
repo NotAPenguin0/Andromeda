@@ -20,6 +20,8 @@ void output(fs::path const& dir, std::string const& filename, std::string const&
 	create_file(dir / filename);
 	std::ofstream file(dir / filename, std::ostream::trunc);
 	file << content;
+
+    std::cout << "Writing output to file: " << (dir / filename).generic_string() << std::endl;
 }
 
 void generate_type_list_file(fs::path template_dir, fs::path output_dir, ParseResult const& data) {

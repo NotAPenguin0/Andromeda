@@ -158,14 +158,14 @@ static glm::mat4 local_to_world(ecs::entity_t ent, thread::LockedValue<ecs::regi
 	Hierarchy const& hierarchy = ecs->get_component<Hierarchy>(ent);
 	ecs::entity_t parent = hierarchy.parent;
 
-	glm::mat4 parent_transform = glm::mat4(1.0);
-
-	if (parent != ecs::no_entity) {
-		parent_transform = local_to_world(parent, ecs, lookup);
-	}
 
 	// The following algorithm is based on section 2 from
 	// https://docs.unity3d.com/Packages/com.unity.entities@0.0/manual/transform_system.html
+
+	glm::mat4 parent_transform = glm::mat4(1.0);
+	if (parent != ecs::no_entity) {
+		parent_transform = local_to_world(parent, ecs, lookup);
+	}
 
 	// Now that we have the parent to world matrix (or an identity matrix if this entity has no parent),
 	// we simply apply this entity's transformation.
@@ -186,17 +186,20 @@ static glm::mat4 local_to_world(ecs::entity_t ent, thread::LockedValue<ecs::regi
 }
 
 void Renderer::fill_scene_description(World const& world) {
-	// TODO: Transform entities based on their parent transform.
-
 	// Access the ECS.
 	auto ecs = world.ecs();
 	
 	std::unordered_map<ecs::entity_t, glm::mat4> transform_lookup{};
 
+	// Register all used materials
+	for (auto [_, mesh] : ecs->view<Transform, MeshRenderer>()) {
+		scene.add_material(mesh.material);
+	}
+
 	// Add all meshes in the world to the draw list
 	for (auto [_, mesh, hierarchy] : ecs->view<Transform, MeshRenderer, Hierarchy>()) {
 		glm::mat4 transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
-		scene.add_draw(mesh.mesh, transform);
+		scene.add_draw(mesh.mesh, mesh.material, transform);
 	}
 
 	// Add every camera/viewport combo.

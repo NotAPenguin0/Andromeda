@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 
 	// Create directories for output files if they don't exist already.
 	fs::create_directories(output_dir / "src");
-	fs::create_directories(output_dir / "include");
+	fs::create_directories(output_dir / "include/reflect");
 
 	// Grab include directories from command-line arguments.
 	Config parseconfig{};

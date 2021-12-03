@@ -6,6 +6,8 @@
 #include <andromeda/graphics/viewport.hpp>
 #include <andromeda/util/handle.hpp>
 
+#include <phobos/image.hpp>
+
 #include <glm/mat4x4.hpp>
 
 #include <array>
@@ -26,6 +28,14 @@ namespace backend {
 */
 class SceneDescription {
 public:
+
+	/**
+	 * @brief Each field in this structure stores an index into the textures array.
+	*/
+	struct MaterialTextures {
+		uint32_t const albedo = 0;
+	};
+
 	/**
 	 * @brief Creates an empty scene description
 	*/
@@ -34,9 +44,16 @@ public:
 	/**
 	 * @brief Add a mesh to draw. 
 	 * @param mesh Handle to the mesh to draw.
+	 * @param material Handle to the material to draw this mesh with.
 	 * @param transform Transformation matrix.
 	*/
-	void add_draw(Handle<gfx::Mesh> mesh, glm::mat4 const& transform);
+	void add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, glm::mat4 const& transform);
+
+	/**
+	 * @brief Register a material. All used materials must be added through this function.
+	 * @param material Handle to the material to register.
+	*/
+	void add_material(Handle<gfx::Material> material);
 
 	/**
 	 * @brief Adds a viewport + camera to the system.
@@ -52,6 +69,14 @@ public:
 	*/
 	void reset();
 
+	/**
+	 * @brief Get indices for reach texture in the material. The material must be added with 
+	 *        add_material() before calling this.
+	 * @param material Material to query textures for.
+	 * @return An instance of MaterialTextures holding all indices.
+	*/
+	MaterialTextures get_material_textures(Handle<gfx::Material> material) const;
+
 private:
 	friend class backend::RendererBackend;
 	friend class backend::SimpleRenderer;
@@ -64,6 +89,12 @@ private:
 		 * @brief Handle to the mesh to draw.
 		*/
 		Handle<gfx::Mesh> mesh;
+
+		/**
+		 * @brief Handle to the material to be used for drawing this mesh.
+		*/
+		Handle<gfx::Material> material;
+
 		/**
 		 * @brief Transformation matrix.
 		*/
@@ -88,6 +119,18 @@ private:
 
 	// Each camera is indexed by a viewport index.
 	std::array<CameraMatrices, gfx::MAX_VIEWPORTS> cameras;
+
+	struct {
+		// Array of all image views ready to send to the GPU.
+		std::vector<ph::ImageView> views;
+		// Map texture ID to an index in the above list.
+		mutable std::unordered_map<Handle<gfx::Texture>, uint32_t> id_to_index;
+	} textures;
+
+	/**
+	 * @brief Adds an individual texture to the system.
+	*/
+	void add_texture(Handle<gfx::Texture> texture);
 };
 
 } // namespace andromeda::gfx

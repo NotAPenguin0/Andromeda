@@ -46,9 +46,11 @@ void SimpleRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightContext& i
 	builder.add_attachment(color, ph::LoadOp::Clear, ph::ClearValue{ .color = {0.0f, 0.0f, 0.0f, 1.0f} });
 	builder.add_depth_attachment(depth, ph::LoadOp::Clear, ph::ClearValue{ .depth_stencil = {1.0f, 0u} });
 
+	auto& texture_views = scene.textures.views;
+
 	// Only add the draw commands if a camera is set.
 	if (viewport.camera() != ecs::no_entity) {
-		builder.execute([this, &ifc, viewport, &scene](ph::CommandBuffer& cmd) {
+		builder.execute([this, &ifc, viewport, &scene, &texture_views](ph::CommandBuffer& cmd) {
 			cmd.bind_pipeline("simple_pipeline");
 			cmd.auto_viewport_scissor();
 
@@ -57,8 +59,16 @@ void SimpleRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightContext& i
 			ph::TypedBufferSlice<glm::mat4> cam = ifc.allocate_scratch_ubo(sizeof(glm::mat4));
 			*cam.data = camera.proj_view;
 
+			VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_info{};
+			variable_count_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+			uint32_t counts[1]{ 4096 };
+			variable_count_info.descriptorSetCount = 1;
+			variable_count_info.pDescriptorCounts = counts;
+
 			VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
 				.add_uniform_buffer("camera", cam)
+				.add_sampled_image_array("textures", texture_views, ctx.basic_sampler())
+				.add_pNext(&variable_count_info)
 				.get();
 			cmd.bind_descriptor_set(set);
 
@@ -72,6 +82,8 @@ void SimpleRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightContext& i
 
 				// Don't draw the mesh if it's not ready yet.
 				if (!assets::is_ready(draw.mesh)) continue;
+				// Don't draw if the material isn't ready yet.
+				if (!assets::is_ready(draw.material)) continue;
 
 				gfx::Mesh const& mesh = *assets::get(draw.mesh);
 
@@ -79,9 +91,11 @@ void SimpleRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightContext& i
 				cmd.bind_index_buffer(mesh.indices, VK_INDEX_TYPE_UINT32);
 
 				cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(glm::mat4), &draw.transform);
+				auto textures = scene.get_material_textures(draw.material);
+				cmd.push_constants(ph::ShaderStage::Fragment, sizeof(glm::mat4), sizeof(uint32_t), &textures.albedo);
 				cmd.draw_indexed(mesh.num_indices, 1, 0, 0, 0);
 			}
-			});
+		});
 	}
 
 	graph.add_pass(std::move(builder.get()));
