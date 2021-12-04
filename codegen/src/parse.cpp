@@ -148,6 +148,7 @@ void parse_file(ParseResult& result, fs::path path, Config const& configuration)
 	cppast::libclang_compile_config config;
 	cppast::compile_flags flags{};
 	flags |= cppast::compile_flag::ms_compatibility;
+    
 	config.set_flags(cppast::cpp_standard::cpp_20, flags);
 
 	// Set include directories based on configuration

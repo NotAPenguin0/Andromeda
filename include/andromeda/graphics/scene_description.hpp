@@ -2,6 +2,7 @@
 
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/camera.hpp>
+#include <andromeda/components/point_light.hpp>
 #include <andromeda/graphics/forward.hpp>
 #include <andromeda/graphics/viewport.hpp>
 #include <andromeda/util/handle.hpp>
@@ -9,6 +10,9 @@
 #include <phobos/image.hpp>
 
 #include <glm/mat4x4.hpp>
+
+#include <glsl/limits.glsl>
+#include <glsl/types.glsl>
 
 #include <array>
 #include <vector>
@@ -18,6 +22,7 @@ namespace andromeda::gfx {
 namespace backend {
 	class RendererBackend;
 	class SimpleRenderer;
+    class ForwardPlusRenderer;
 }
 
 /**
@@ -55,6 +60,13 @@ public:
 	*/
 	void add_material(Handle<gfx::Material> material);
 
+    /**
+     * @brief Register a point light.
+     * @param light Reference to the PointLight component.
+     * @param position World position of the light object.
+     */
+    void add_light(PointLight const& light, glm::vec3 const& position);
+
 	/**
 	 * @brief Adds a viewport + camera to the system.
 	 * @param vp Viewport to add
@@ -80,6 +92,7 @@ public:
 private:
 	friend class backend::RendererBackend;
 	friend class backend::SimpleRenderer;
+    friend class backend::ForwardPlusRenderer;
 
 	/**
 	 * @brief Describes a single draw command.
@@ -126,6 +139,8 @@ private:
 		// Map texture ID to an index in the above list.
 		mutable std::unordered_map<Handle<gfx::Texture>, uint32_t> id_to_index;
 	} textures;
+
+    std::vector<gpu::PointLight> point_lights;
 
 	/**
 	 * @brief Adds an individual texture to the system.

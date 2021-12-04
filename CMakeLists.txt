@@ -17,7 +17,10 @@ set(BUILD_SHARED_LIBS OFF)
 
 add_executable(andromeda "")
 
-target_include_directories(andromeda PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(andromeda PRIVATE
+		"${CMAKE_CURRENT_SOURCE_DIR}/include"
+		"${CMAKE_CURRENT_SOURCE_DIR}/shaders/include"
+		)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -EHa")
 

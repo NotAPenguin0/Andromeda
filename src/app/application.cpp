@@ -1,11 +1,9 @@
 #include <andromeda/app/application.hpp>
 
-#include <andromeda/assets/assets.hpp>
-#include <andromeda/graphics/imgui.hpp>
+
 #include <andromeda/components/mesh_renderer.hpp>
 #include <andromeda/components/name.hpp>
-
-#include <andromeda/components/camera.hpp>
+#include <andromeda/components/point_light.hpp>
 
 #include <reflect/reflection.hpp>
 
@@ -64,6 +62,13 @@ int Application::run() {
 
 		renderer->create_viewport(100, 100, cam); // Will be resized anyway
 	}
+
+    {
+        ecs::entity_t light = world->create_entity();
+        thread::LockedValue<ecs::registry> ecs = world->ecs();
+        auto& info = ecs->add_component<PointLight>(light);
+        ecs->get_component<Name>(light).name = "Light";
+    }
 
 	while (window->is_open()) {	
 		window->poll_events();

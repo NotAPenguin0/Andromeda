@@ -24,6 +24,13 @@ void SceneDescription::add_material(Handle<gfx::Material> material) {
 	add_texture(mat->albedo);
 }
 
+void SceneDescription::add_light(PointLight const& light, glm::vec3 const& position) {
+    gpu::PointLight info {};
+    info.pos_radius = glm::vec4(position, light.radius);
+    info.color_intensity = glm::vec4(light.color, light.intensity);
+    point_lights.push_back(info);
+}
+
 void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& cam_transform, Camera const& cam) {
 	CameraMatrices& camera = cameras[vp.index()];
 	camera.active = true;
@@ -62,6 +69,7 @@ void SceneDescription::reset() {
 	draws.clear();
 	textures.views.clear();
 	textures.id_to_index.clear();
+    point_lights.clear();
 
 	for (auto& cam : cameras) {
 		cam.active = false;

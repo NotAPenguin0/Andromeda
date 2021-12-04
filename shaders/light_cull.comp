@@ -1,0 +1,12 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : enable
+
+#include "include/glsl/limits.glsl"
+#include "include/glsl/types.glsl"
+
+layout(local_size_x = ANDROMEDA_TILE_SIZE, local_size_y = ANDROMEDA_TILE_SIZE, local_size_z = 1) in;
+
+void main() {
+
+}

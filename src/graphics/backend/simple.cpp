@@ -1,8 +1,5 @@
 #include <andromeda/graphics/backend/simple.hpp>
 
-#include <andromeda/assets/assets.hpp>
-#include <andromeda/graphics/mesh.hpp>
-
 
 using namespace std::literals::string_literals;
 

@@ -1,6 +1,7 @@
 #include <andromeda/graphics/renderer.hpp>
 
 #include <andromeda/graphics/backend/simple.hpp>
+#include <andromeda/graphics/backend/forward_plus.hpp>
 #include <andromeda/graphics/imgui.hpp>
 
 #include <andromeda/components/transform.hpp>
@@ -22,8 +23,7 @@ mat4 rotate(mat4 const& mat, vec3 euler) {
 }
 }
 
-namespace andromeda{
-namespace gfx {
+namespace andromeda::gfx {
 
 Renderer::Renderer(gfx::Context& ctx, Window& window) {
 	gfx::imgui::init(ctx, window);
@@ -39,7 +39,7 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
 		ctx.create_attachment(vp.target(), { vp.width(), vp.height() }, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
-	impl = std::make_unique<backend::SimpleRenderer>(ctx);
+	impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
 }
 
 void Renderer::shutdown(gfx::Context& ctx) {
@@ -198,9 +198,16 @@ void Renderer::fill_scene_description(World const& world) {
 
 	// Add all meshes in the world to the draw list
 	for (auto [_, mesh, hierarchy] : ecs->view<Transform, MeshRenderer, Hierarchy>()) {
-		glm::mat4 transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
-		scene.add_draw(mesh.mesh, mesh.material, transform);
+		glm::mat4 const world_transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
+		scene.add_draw(mesh.mesh, mesh.material, world_transform);
 	}
+
+    // Add lighting information
+    for (auto[_, light, hierarchy] : ecs->view<Transform, PointLight, Hierarchy>()) {
+        glm::mat4 const world_transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
+        glm::vec3 const position = world_transform[3]; // Position is stored in the last column
+        scene.add_light(light, position);
+    }
 
 	// Add every camera/viewport combo.
 	for (auto const& viewport : viewports) {
@@ -213,5 +220,4 @@ void Renderer::fill_scene_description(World const& world) {
 	}
 }
 
-} // namespace gfx
-} // namespace andromeda
+} // namespace andromeda::gfx
