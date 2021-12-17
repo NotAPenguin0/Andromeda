@@ -11,6 +11,12 @@
 - Environment maps
 - PBR shading model
 
+## Asset pipeline
+
+- Make `assettool` take a single file as argument
+- Extend `assettool` with command line options
+  - RGB/sRGB color space
+- Make `assettool` work for images that have fewer channels.
 
 ## UI
 

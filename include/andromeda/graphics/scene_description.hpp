@@ -39,6 +39,10 @@ public:
 	*/
 	struct MaterialTextures {
 		uint32_t const albedo = 0;
+        uint32_t const normal = 0;
+        uint32_t const metallic = 0;
+        uint32_t const roughness = 0;
+        uint32_t const occlusion = 0;
 	};
 
 	/**
@@ -74,6 +78,36 @@ public:
 	 * @param cam Camera component of the camera entity;
 	*/
 	void add_viewport(gfx::Viewport const& vp, Transform const& cam_transform, Camera const &cam);
+
+    /**
+     * @brief Sets the default albedo texture. This will be used as a placeholder if no albedo texture was loaded.
+     * @param handle Handle to the default albedo texture to use. This may not be a null handle.
+    */
+    void set_default_albedo(Handle<gfx::Texture> handle);
+
+    /**
+     * @brief Sets the default normal map. This will be used as a placeholder if no normal map was loaded.
+     * @param handle Handle to the default normal map to use. This may not be a null handle.
+    */
+    void set_default_normal(Handle<gfx::Texture> handle);
+
+    /**
+     * @brief Sets the default metallic map. This will be used as a placeholder if no metallic map was loaded.
+     * @param handle Handle to the default metallic map to use. This may not be a null handle.
+    */
+    void set_default_metallic(Handle<gfx::Texture> handle);
+
+    /**
+     * @brief Sets the default roughness map. This will be used as a placeholder if no roughness map was loaded.
+     * @param handle Handle to the default roughness map to use. This may not be a null handle.
+    */
+    void set_default_roughness(Handle<gfx::Texture> handle);
+
+    /**
+     * @brief Sets the default ambient occlusion map. This will be used as a placeholder if no ambient occlusion map was loaded.
+     * @param handle Handle to the default ambient occlusion map to use. This may not be a null handle.
+    */
+    void set_default_occlusion(Handle<gfx::Texture> handle);
 
 	/**
 	 * @brief Clears all data except things that are persistent across frames (such as
@@ -126,6 +160,7 @@ private:
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 proj_view;
+        glm::vec3 position;
 
 		bool active = false;
 	};
@@ -138,6 +173,13 @@ private:
 		std::vector<ph::ImageView> views;
 		// Map texture ID to an index in the above list.
 		mutable std::unordered_map<Handle<gfx::Texture>, uint32_t> id_to_index;
+
+        // Default textures that can be set by using set_default_xxx(). These are not reset when calling reset().
+        Handle<gfx::Texture> default_albedo;
+        Handle<gfx::Texture> default_normal;
+        Handle<gfx::Texture> default_metallic;
+        Handle<gfx::Texture> default_roughness;
+        Handle<gfx::Texture> default_occlusion;
 	} textures;
 
     std::vector<gpu::PointLight> point_lights;

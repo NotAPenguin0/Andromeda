@@ -16,7 +16,9 @@ struct alignas(8 * sizeof(float)) PointLight {
 };
 
 #ifdef __cplusplus // C++, undefine and end namespace
+
 #undef vec4
 #undef vec3
 } // namespace gpu
+
 #endif

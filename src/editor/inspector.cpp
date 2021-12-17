@@ -177,6 +177,7 @@ struct display_component {
 		if constexpr (std::is_same_v<C, Transform>) return ICON_FA_ARROWS_ALT;
 		if constexpr (std::is_same_v<C, MeshRenderer>) return ICON_FA_CUBES;
 		if constexpr (std::is_same_v<C, Camera>) return ICON_FA_CAMERA;
+        if constexpr (std::is_same_v<C, PointLight>) return ICON_FA_LIGHTBULB;
 
 		return "";
 	}

@@ -32,8 +32,11 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 	// Enable descriptor indexing as this is the method we'll use to bind all our textures.
 	settings.gpu_requirements.features_1_2.descriptorIndexing = true;
 	settings.gpu_requirements.features_1_2.descriptorBindingPartiallyBound = true;
+    settings.gpu_requirements.features_1_2.descriptorBindingVariableDescriptorCount = true;
+    settings.gpu_requirements.features_1_2.runtimeDescriptorArray = true;
 	settings.scratch_ibo_size = 1024 * 1024;
 	settings.scratch_vbo_size = 1024 * 1024;
+    settings.scratch_ssbo_size = 16 * 1024 * 1024; // 16 MiB
 	settings.present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	// Note that we cannot use make_unique since the constructor is private.
 	auto ctx = std::unique_ptr<Context>{ new Context{ settings, scheduler } };

@@ -21,6 +21,12 @@ static uint32_t format_byte_size(VkFormat format) {
 	case VK_FORMAT_R8G8B8_UNORM:
 	case VK_FORMAT_R8G8B8_SRGB:
 		return 3;
+    case VK_FORMAT_R8G8_UNORM:
+    case VK_FORMAT_R8G8_SRGB:
+            return 2;
+    case VK_FORMAT_R8_UNORM:
+    case VK_FORMAT_R8_SRGB:
+        return 1;
 	default:
 		return 0;
 	}
@@ -35,6 +41,33 @@ static uint32_t get_full_image_byte_size(uint32_t width, uint32_t height, uint32
 	return pixels * format_byte_size(format);
 }
 
+static VkFormat get_format(assetlib::TextureFormat format, assetlib::ColorSpace space) {
+    if (space == assetlib::ColorSpace::sRGB) {
+        switch(format) {
+            case assetlib::TextureFormat::RGBA8:
+                return VK_FORMAT_R8G8B8A8_SRGB;
+            case assetlib::TextureFormat::RGB8:
+                return VK_FORMAT_R8G8B8_SRGB;
+            case assetlib::TextureFormat::RG8:
+                return VK_FORMAT_R8G8_SRGB;
+            case assetlib::TextureFormat::R8:
+                return VK_FORMAT_R8_SRGB;
+        }
+    } else if (space == assetlib::ColorSpace::RGB) {
+        switch(format) {
+            case assetlib::TextureFormat::RGBA8:
+                return VK_FORMAT_R8G8B8A8_UNORM;
+            case assetlib::TextureFormat::RGB8:
+                return VK_FORMAT_R8G8B8_UNORM;
+            case assetlib::TextureFormat::RG8:
+                return VK_FORMAT_R8G8_UNORM;
+            case assetlib::TextureFormat::R8:
+                return VK_FORMAT_R8_UNORM;
+        }
+    }
+
+    return VK_FORMAT_UNDEFINED;
+}
 
 void load_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, std::string_view path, uint32_t thread) {
 	using namespace std::literals::string_literals;
@@ -48,7 +81,7 @@ void load_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, std::string_vi
 	}
 
 	assetlib::TextureInfo info = assetlib::read_texture_info(file);
-	VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+	VkFormat format = get_format(info.format, info.colorspace);
 
 	gfx::Texture texture{};
 	texture.image = ctx.create_image(ph::ImageType::Texture, 
@@ -73,7 +106,7 @@ void load_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, std::string_vi
 	cmd_buf.transition_layout(
 		// Newly created image
 		ph::PipelineStage::TopOfPipe, VK_ACCESS_NONE_KHR,
-		// Next usage is the copy buffer to image command, so tranfer and write access.
+		// Next usage is the copy buffer to image command, so transfer and write access.
 		ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
 		// For the copy command to work the image needs to be in the TransferDstOptimal layout.
 		texture.view, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);

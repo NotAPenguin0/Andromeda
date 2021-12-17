@@ -22,6 +22,10 @@ void SceneDescription::add_material(Handle<gfx::Material> material) {
 	gfx::Material* mat = assets::get(material);
 	// Add each material texture individually
 	add_texture(mat->albedo);
+    add_texture(mat->normal);
+    add_texture(mat->metallic);
+    add_texture(mat->roughness);
+    add_texture(mat->occlusion);
 }
 
 void SceneDescription::add_light(PointLight const& light, glm::vec3 const& position) {
@@ -63,6 +67,29 @@ void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& ca
 
 	// Precompute projection-view matrix as its commonly used.
 	camera.proj_view = camera.projection * camera.view;
+
+    // Other values
+    camera.position = cam_transform.position;
+}
+
+void SceneDescription::set_default_albedo(Handle<gfx::Texture> handle) {
+    textures.default_albedo = handle;
+}
+
+void SceneDescription::set_default_normal(Handle<gfx::Texture> handle) {
+    textures.default_normal = handle;
+}
+
+void SceneDescription::set_default_metallic(Handle<gfx::Texture> handle) {
+    textures.default_metallic = handle;
+}
+
+void SceneDescription::set_default_roughness(Handle<gfx::Texture> handle) {
+    textures.default_roughness = handle;
+}
+
+void SceneDescription::set_default_occlusion(Handle<gfx::Texture> handle) {
+    textures.default_occlusion = handle;
 }
 
 void SceneDescription::reset() {
@@ -74,6 +101,13 @@ void SceneDescription::reset() {
 	for (auto& cam : cameras) {
 		cam.active = false;
 	}
+
+    // Push default textures to the texture map
+    add_texture(textures.default_albedo);
+    add_texture(textures.default_normal);
+    add_texture(textures.default_metallic);
+    add_texture(textures.default_roughness);
+    add_texture(textures.default_occlusion);
 }
 
 SceneDescription::MaterialTextures SceneDescription::get_material_textures(Handle<gfx::Material> material) const {
@@ -83,7 +117,11 @@ SceneDescription::MaterialTextures SceneDescription::get_material_textures(Handl
 	gfx::Material* mat = assets::get(material);
 
 	return MaterialTextures{
-		.albedo = textures.id_to_index[mat->albedo]
+		.albedo = textures.id_to_index[mat->albedo ? mat->albedo : textures.default_albedo],
+        .normal = textures.id_to_index[mat->normal ? mat->normal : textures.default_normal],
+        .metallic = textures.id_to_index[mat->metallic ? mat->metallic : textures.default_metallic],
+        .roughness = textures.id_to_index[mat->roughness ? mat->roughness : textures.default_roughness],
+        .occlusion = textures.id_to_index[mat->occlusion ? mat->occlusion : textures.default_occlusion]
 	};
 }
 

@@ -19,14 +19,12 @@ void load_material(gfx::Context& ctx, Handle<gfx::Material> handle, std::string_
 	file.read<char>(json_string.data(), file.size());
 
 	json::JSON json = json::JSON::Load(json_string);
-	
-	if (!json.hasKey("albedo")) {
-		LOG_FORMAT(LogLevel::Error, "Error while loading material at path {}: Required key 'albedo' not present.", path);
-		return;
-	}
-	std::string albedo_path = json["albedo"].ToString();
 
-	material.albedo = assets::load<gfx::Texture>(ctx, albedo_path);
+    if (json.hasKey("albedo")) material.albedo = assets::load<gfx::Texture>(ctx, json["albedo"].ToString());
+    if (json.hasKey("normal")) material.normal = assets::load<gfx::Texture>(ctx, json["normal"].ToString());
+    if (json.hasKey("metallic")) material.metallic = assets::load<gfx::Texture>(ctx, json["metallic"].ToString());
+    if (json.hasKey("roughness")) material.roughness = assets::load<gfx::Texture>(ctx, json["roughness"].ToString());
+    if (json.hasKey("occlusion")) material.occlusion = assets::load<gfx::Texture>(ctx, json["occlusion"].ToString());
 
 	assets::impl::make_ready(handle, std::move(material));
 }

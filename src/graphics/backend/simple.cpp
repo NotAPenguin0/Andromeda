@@ -11,7 +11,7 @@ SimpleRenderer::SimpleRenderer(gfx::Context& ctx) : RendererBackend(ctx) {
 	for (uint32_t i = 0; i < gfx::MAX_VIEWPORTS; ++i) {
 		depth_attachments[i] = gfx::Viewport::local_string(i, "simple_renderer_depth");
 		// Create with size 1, 1 for now, we'll resize according to viewport width/height after.
-		ctx.create_attachment(depth_attachments[i], VkExtent2D{ 1, 1 }, VK_FORMAT_D32_SFLOAT);
+		ctx.create_attachment(depth_attachments[i], VkExtent2D{ 1, 1 }, VK_FORMAT_D32_SFLOAT, ph::ImageType::DepthStencilAttachment);
 	}
 
 	// Create simple rendering pipeline

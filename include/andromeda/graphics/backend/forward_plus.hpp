@@ -38,20 +38,36 @@ public:
     */
     void resize_viewport(gfx::Viewport viewport, uint32_t width, uint32_t height) override;
 private:
+    inline static constexpr uint32_t MAX_TEXTURES = 4096;
+
+    // HDR color attachments for every viewport
+    std::array<std::string, gfx::MAX_VIEWPORTS> color_attachments;
     // Depth attachments for every viewport
     std::array<std::string, gfx::MAX_VIEWPORTS> depth_attachments;
+    // Heatmap attachments
+    std::array<std::string, gfx::MAX_VIEWPORTS> heatmaps;
 
     // This structure owns buffers and storage images shared by the pipeline.
     struct RenderData {
-        ph::TypedBufferSlice<glm::mat4> camera_ubo;
-        ph::TypedBufferSlice<gpu::PointLight> point_lights; // SSBO
-        ph::BufferSlice culled_lights; // SSBO
+        // Per-viewport render data, indexed by viewport ID.
+        struct PerViewport {
+            ph::BufferSlice camera;
+            ph::BufferSlice culled_lights;
+            uint32_t n_tiles_x = 0;
+            uint32_t n_tiles_y = 0;
+        } vp[gfx::MAX_VIEWPORTS];
+
+        // Can be shared by all viewports.
+        ph::TypedBufferSlice<gpu::PointLight> point_lights;
+        ph::TypedBufferSlice<glm::mat4> transforms;
     } render_data;
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
 
     ph::Pass depth_prepass(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
     ph::Pass light_cull(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
+    ph::Pass shading(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
+    ph::Pass tonemap(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
 };
 
 }

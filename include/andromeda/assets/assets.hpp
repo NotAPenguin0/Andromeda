@@ -206,6 +206,8 @@ Handle<T> load(gfx::Context& ctx, std::string const& path) {
 		fs::path path_fs = path;
 		auto [_, storage] = impl::acquire<T>();
 		for (auto const& [handle, element] : storage) {
+            // Do not compare assets with empty paths (these can be created internally).
+            if (element.path == "") continue;
 			if (fs::equivalent(path_fs, element.path)) return handle;
 		}
 	}

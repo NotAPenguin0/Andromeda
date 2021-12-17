@@ -25,6 +25,62 @@ mat4 rotate(mat4 const& mat, vec3 euler) {
 
 namespace andromeda::gfx {
 
+/**
+ * @brief Creates a 1x1 texture and returns a handle to it.
+ *        May only be called from the main thread.
+ * @param ctx Reference to the graphics context.
+ * @param format Format of the texture image.
+ * @param color Color to fill the single pixel of the image with.
+ * @param size Size of the color buffer (in bytes). This isn't fixed so we can create different image formats with a single function.
+ * @return A handle to the 1x1 texture in the asset system.
+ */
+static Handle<gfx::Texture> create_1x1_texture(gfx::Context& ctx, VkFormat format, uint8_t const* color, uint32_t size) {
+    ph::RawImage image = ctx.create_image(ph::ImageType::Texture, {1, 1}, format);
+    ph::ImageView view = ctx.create_image_view(image);
+
+    // Fill image data. For this we'll need a command buffer. Since this function runs on the main thread thread_index is zero.
+    ph::Queue& transfer = *ctx.get_queue(ph::QueueType::Transfer);
+    ph::CommandBuffer cmd = transfer.begin_single_time(0);
+
+    // Record transfer commands
+    ph::RawBuffer staging = ctx.create_buffer(ph::BufferType::TransferBuffer, size);
+    std::byte* memory = ctx.map_memory(staging);
+    std::memcpy(memory, color, size);
+    ctx.unmap_memory(staging);
+
+    // Issue copy layout transitions and copy commands
+    cmd.transition_layout(
+        // Newly created image
+        ph::PipelineStage::TopOfPipe, VK_ACCESS_NONE_KHR,
+        // Next usage is the copy buffer to image command, so transfer and write access.
+        ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
+        // For the copy command to work the image needs to be in the TransferDstOptimal layout.
+        view, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    cmd.copy_buffer_to_image(staging, view);
+    cmd.transition_layout(
+        // Right after the copy operation
+        ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
+        // We don't use it anymore this submission
+        ph::PipelineStage::BottomOfPipe, VK_ACCESS_MEMORY_READ_BIT,
+        // Next usage will be a shader read operation.
+        view, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+
+    VkFence fence = ctx.create_fence();
+    transfer.end_single_time(cmd, fence);
+    ctx.wait_for_fence(fence);
+    ctx.destroy_fence(fence);
+    transfer.free_single_time(cmd, 0);
+    ctx.destroy_buffer(staging);
+
+    gfx::Texture texture {
+        .image = image,
+        .view = view
+    };
+
+    return assets::take(texture);
+}
+
 Renderer::Renderer(gfx::Context& ctx, Window& window) {
 	gfx::imgui::init(ctx, window);
 
@@ -36,8 +92,38 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
 		vp.width_px = window.width();
 		vp.height_px = window.height();
 		
-		ctx.create_attachment(vp.target(), { vp.width(), vp.height() }, VK_FORMAT_R8G8B8A8_SRGB);
+		ctx.create_attachment(vp.target(), { vp.width(), vp.height() }, VK_FORMAT_R8G8B8A8_SRGB, ph::ImageType::ColorAttachment);
 	}
+
+    // Create default textures and add them to the scene
+    {
+        uint8_t magenta[4] { 255, 0, 255, 255 };
+        uint8_t up[4] { 0, 255, 0, 255 };
+        uint8_t black[1] { 0 };
+        uint8_t white[1] { 255 };
+        Handle<gfx::Texture> albedo = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_SRGB, magenta, sizeof(magenta));
+        Handle<gfx::Texture> normal = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, up, sizeof(up));
+        Handle<gfx::Texture> metallic = create_1x1_texture(ctx, VK_FORMAT_R8_UNORM, black, sizeof(black));
+        Handle<gfx::Texture> roughness = metallic; // We can re-use the same image for these, since we want both to be simply black (0 metallic, 0 roughness)
+        Handle<gfx::Texture> occlusion = create_1x1_texture(ctx, VK_FORMAT_R8_UNORM, white, sizeof(white));
+
+        auto name_default_tex = [&ctx](Handle<gfx::Texture> t, std::string const& base) {
+            gfx::Texture* tex = assets::get(t);
+            ctx.name_object(tex->image, "default_" + base + " - image");
+            ctx.name_object(tex->view, "default_" + base + " - view");
+        };
+
+        name_default_tex(albedo, "albedo");
+        name_default_tex(normal, "normal");
+        name_default_tex(metallic, "metal/rough");
+        name_default_tex(occlusion, "occlusion");
+
+        scene.set_default_albedo(albedo);
+        scene.set_default_normal(normal);
+        scene.set_default_metallic(metallic);
+        scene.set_default_roughness(roughness);
+        scene.set_default_occlusion(occlusion);
+    }
 
 	impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
 }

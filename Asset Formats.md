@@ -36,11 +36,17 @@ The JSON section has a number of fields with metadata about the texture.
     - `y`: Height of the texture in pixels
 - `format`: Texture format. This is a string describing the pixel format. For more information see (c) Pixel formats.
 - `mip_levels`: Amount of mip levels stored in the binary blob.
+- `color_space`: Color space of the texture. This is optional and will default to `RGB` if not present. Possible values are:
+  - `RGB`
+  - `sRGB`
 
 ### c) Pixel formats
 
 Currently, the following pixel formats are supported:
 	
+- `R8`: 8 bits per component, 1 component.
+- `RG8`: 8 bits per component, 2 components.
+- `RGB8`: 8 bits per component, 3 components. Note that not many GPUs support this formay for images.
 - `RGBA8`: 8 bits per component, 4 components.
 
 ### d) Binary blob
@@ -92,6 +98,13 @@ Unlike the previous file types, material files are not binary files. They are si
 Currently, the following properties are always present:
 
 - `albedo`: path to the albedo texture. For more information on paths, see *(b) Relative paths*.
+
+Additionally, there are a number of optional properties to further refine a material and make a full PBR-compatible material.
+
+- `normal`: path to the normal map texture.
+- `metallic`: path to a metallic map texture.
+- `roughness`: path to a roughness map texture.
+- `occlusion`: path to an ambient occlusion map texture.
 
 ### b) Relative paths
 

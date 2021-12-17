@@ -4,9 +4,250 @@
 
 #include "include/glsl/limits.glsl"
 #include "include/glsl/types.glsl"
+#include "include/glsl/inputs.glsl"
+#include "include/glsl/common.glsl"
 
 layout(local_size_x = ANDROMEDA_TILE_SIZE, local_size_y = ANDROMEDA_TILE_SIZE, local_size_z = 1) in;
 
-void main() {
+struct ViewFrustum {
+    // The 6 planes of the view frustum. Planes are stored as their equation Cax + Cay + Caz + Cd = 0, so
+    // planes[i] = (Ca, Cb, Cc, Cd)
+    vec4 planes[6];
+    // The 6 points defining the view frustum. The first 4 points define the near plane, the last 4 the far plane.
+    vec3 points[8];
+};
 
+// Shared data for this thread group
+shared struct SharedData {
+    // view frustum for this tile
+    ViewFrustum frustum;
+
+    // These are stored as uints only to do the min/max computation (because atomicMin()/atomicMax() take a uint)
+
+    // min depth across this tile
+    uint min_depth_int;
+    // max depth across this tile
+    uint max_depth_int;
+
+    float min_depth;
+    float max_depth;
+
+    // Amount of lights in this tile
+    uint num_lights;
+
+    // will be written to the output buffer by the main thread after processing
+    uint visible_lights[ANDROMEDA_MAX_LIGHTS_PER_TILE];
+} share;
+
+layout(push_constant) uniform PC {
+    uvec2 viewport_size;
+    uvec2 num_tiles;
+} pc;
+
+
+layout(set = 0, binding = 1) uniform sampler2D scene_depth;
+
+layout(std430, set = 0, binding = 2) buffer readonly Lights {
+    PointLight l[];
+} lights;
+
+layout(std430, set = 0, binding = 3) buffer writeonly LightVisibility {
+    uint data[];
+} visible_lights;
+
+// This is a debug attachment that will display a heatmap of the visible light buffer.
+layout(set = 0, binding = 4, rgba8) uniform image2D light_heatmap;
+
+ViewFrustum create_frustum(ivec2 tile_id, float min_depth, float max_depth) {
+    ViewFrustum frustum;
+
+    // We need the inverse of the PV matrix to unproject points from NDC back to world space.
+    const mat4 i_pv = inverse(camera.pv);
+    // Size of a tile in NDC
+    const vec2 ndc_tile_size = 2.0 * vec2(ANDROMEDA_TILE_SIZE, ANDROMEDA_TILE_SIZE) / pc.viewport_size;
+    // Corners of a tile in NDC
+    vec2 ndc_tile_points[4];
+
+    // Vulkan NDC
+    const vec2 ndc_top_left = vec2(-1.0, -1.0);
+    const float ndc_near_plane = 0.0;
+    const float ndc_far_plane = 1.0;
+
+    // Compute the tile points in NDC
+    ndc_tile_points[0] = ndc_top_left + tile_id * ndc_tile_size;  // Top left
+    ndc_tile_points[1] = vec2(ndc_tile_points[0].x + ndc_tile_size.x, ndc_tile_points[0].y); // Top right
+    ndc_tile_points[2] = ndc_tile_points[0] + ndc_tile_size; // Bottom right
+    ndc_tile_points[3] = vec2(ndc_tile_points[0].x, ndc_tile_points[0].y + ndc_tile_size.y); // Top left
+
+    // Compute frustum points
+    for (int i = 0; i < 4; ++i) {
+        // We take the NDC coordinate after projection, unproject it and then apply perspective division
+        vec4 point = i_pv * vec4(ndc_tile_points[i], min_depth, 1.0);
+        frustum.points[i] = point.xyz / point.w;
+        // Same thing for the set of far points
+        point = i_pv * vec4(ndc_tile_points[i], max_depth, 1.0); // Note the difference here: using max_depth instead of min_depth because far plane
+        frustum.points[i + 4] = point.xyz / point.w;
+    }
+
+    // Now that we have the points we can compute the equations of each plane
+
+    // Top, bottom, left and right planes
+    for (int i = 0; i < 4; ++i) {
+        vec3 normal = normalize(cross(frustum.points[i] - camera.position.xyz, frustum.points[i + 1] - camera.position.xyz));
+        frustum.planes[i] = vec4(normal, -dot(normal, frustum.points[i]));
+    }
+    // near plane
+    {
+        vec3 normal = normalize(cross(frustum.points[1] - frustum.points[0], frustum.points[3] - frustum.points[0]));
+        frustum.planes[4] = vec4(normal, -dot(normal, frustum.points[0]));
+    }
+    // far plane
+    {
+        vec3 normal = normalize(cross(frustum.points[7] - frustum.points[4], frustum.points[5] - frustum.points[4]));
+        frustum.planes[5] = vec4(normal, -dot(normal, frustum.points[4]));
+    }
+
+    return frustum;
+}
+
+void compute_pixel_depth(ivec2 pixel) {
+    float depth = texelFetch(scene_depth, pixel, 0).x; // Use texelFetch instead of texture() to sample depth to avoid wrapping
+
+    // Convert to uint and use atomicMin()/atomicMax() to set min/max values
+    uint depth_int = floatBitsToUint(depth);
+    atomicMin(share.min_depth_int, depth_int);
+    atomicMax(share.max_depth_int, depth_int);
+}
+
+// https://github.com/WindyDarian/Vulkan-Forward-Plus-Renderer/blob/95287e550a629a138b25b1eaca534ff984dbeb31/src/shaders/light_culling.comp.glsl#L117
+bool light_inside_frustum(uint light_index) {
+    bool result = true;
+    vec3 position = lights.l[light_index].pos_radius.xyz;
+    float radius = lights.l[light_index].pos_radius.w;
+
+    // Step 1: simple plane-sphere test
+    for (int i = 0; i < 6; i++) {
+        if (dot(position, share.frustum.planes[i].xyz) + share.frustum.planes[i].w < -radius) {
+            result = false;
+            break;
+        }
+    }
+
+    if (!result) {
+        return false;
+    }
+
+
+    // Step 2: bbox corner test to reduce false positives
+    vec3 light_bbox_max = position + vec3(radius);
+    vec3 light_bbox_min = position - vec3(radius);
+    int probe;
+    probe = 0; for(int i = 0; i < 8; i++) probe += ((share.frustum.points[i].x > light_bbox_max.x) ? 1 : 0); if (probe == 8) return false;
+    probe = 0; for(int i = 0; i < 8; i++) probe += ((share.frustum.points[i].x < light_bbox_min.x) ? 1 : 0); if (probe == 8) return false;
+    probe = 0; for(int i = 0; i < 8; i++) probe += ((share.frustum.points[i].y > light_bbox_max.y) ? 1 : 0); if (probe == 8) return false;
+    probe = 0; for(int i = 0; i < 8; i++) probe += ((share.frustum.points[i].y < light_bbox_min.y) ? 1 : 0); if (probe == 8) return false;
+    probe = 0; for(int i = 0; i < 8; i++) probe += ((share.frustum.points[i].z > light_bbox_max.z) ? 1 : 0); if (probe == 8) return false;
+    probe = 0; for(int i = 0; i < 8; i++) probe += ((share.frustum.points[i].z < light_bbox_min.z) ? 1 : 0); if (probe == 8) return false;
+
+    return true;
+}
+
+void cull_lights() {
+    const uint num_threads = gl_WorkGroupSize.x * gl_WorkGroupSize.y;
+    const uint num_lights = lights.l.length();
+    const uint num_passes = (num_lights + num_threads - 1) / num_threads;
+
+    for (int pass = 0; pass < num_passes; ++pass) {
+        // Get index of the light we need to test
+        uint light_index = pass * num_threads + gl_LocalInvocationIndex; // = pass * num_threads + thread_index
+        // If this index is out of range, stop testing lights
+        if (light_index >= num_lights) break;
+        // Do the intersection test, and if it succeeds add the light to the next free slot in the visiblility buffer
+        if (light_inside_frustum(light_index)) {
+            const uint slot = atomicAdd(share.num_lights, 1);
+            // Make sure we don't exceed our available memory.
+            // This will cause excess lights to simply be ignored
+            if (slot >= ANDROMEDA_MAX_LIGHTS_PER_TILE) break;
+
+            // Intermediate buffer for results
+            share.visible_lights[slot] = light_index;
+        }
+    }
+}
+
+vec4 heatmap_color(uint num_lights) {
+    float value = float(num_lights) / ANDROMEDA_MAX_LIGHTS_PER_TILE;
+    float h = ((1.0 - value) * 240.0 / 360.0); // hue must be normalized to 0...1
+    vec3 hsl = vec3(h, 1.0, 0.5);
+    return vec4(hsl2rgb(hsl), 1.0);
+}
+
+void main() {
+    const ivec2 tile_id = ivec2(gl_WorkGroupID.xy);
+    const uint tile_index = tile_id.y * pc.num_tiles.x + tile_id.x;
+    const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+
+    // Initialize shared data, this can only happen on one thread
+    if (gl_LocalInvocationIndex == 0) {
+        share.min_depth_int = 0xFFFFFFFF;
+        share.max_depth_int = 0;
+        share.num_lights = 0;
+    }
+    // Barrier after initialization
+    barrier();
+
+    // Now we will compute the min and max depth across this tile.
+    // Each thread in the workgroup will sample one pixel
+    // Note that we can't use this condition to return out of the shader because of the barrier() calls.
+    if (pixel_coords.x < pc.viewport_size.x && pixel_coords.y < pc.viewport_size.y)
+        compute_pixel_depth(pixel_coords);
+
+    // Make sure all pixels in the tile have been sampled.
+    barrier();
+
+    // Convert min and max depth back to floats.
+    if (gl_LocalInvocationIndex == 0) {
+        share.min_depth = uintBitsToFloat(share.min_depth_int);
+        share.max_depth = uintBitsToFloat(share.max_depth_int);
+
+        if (share.min_depth >= share.max_depth) share.min_depth = share.max_depth;
+    }
+
+    barrier();
+
+    // Only execute the following part if there was geometry on the tile
+    // Note that the barrier() calls are not a problem here, because all threads take this path (there is no divergence)
+    if (share.min_depth != 1.0 && share.min_depth_int != 0xFFFFFFFF) {
+        // Create the frustum, we'll only do this on one thread and then use the shared result value.
+        if (gl_LocalInvocationIndex == 0) {
+            share.frustum = create_frustum(tile_id, share.min_depth, share.max_depth);
+        }
+
+        barrier();
+
+        // Now each thread will check one light against the frustum. This will happen in multiple passes if there are more than num_threads lights.
+        // Note that we don't need to check for the pixel coordinates here, as each thread is used to cull lights and not to sample pixels.
+        cull_lights();
+
+        barrier();
+    }
+
+    // As a final step we mark the end of this tile's light buffer
+    if (gl_LocalInvocationIndex == 0) {
+        // Write output data
+        const uint offset = ANDROMEDA_MAX_LIGHTS_PER_TILE * tile_index;
+        for (int i = 0; i < share.num_lights; ++i) {
+            visible_lights.data[offset + i] = share.visible_lights[i];
+        }
+
+        // If we're not at the max number of lights, we need to mark the end of the buffer using a -1
+        if (share.num_lights != ANDROMEDA_MAX_LIGHTS_PER_TILE) {
+            visible_lights.data[offset + share.num_lights] = uint(-1);
+        }
+    }
+
+    // Each thread can write one pixel in the heatmap
+    if (pixel_coords.x < pc.viewport_size.x && pixel_coords.y < pc.viewport_size.y)
+//        imageStore(light_heatmap, pixel_coords, vec4(share.min_depth, share.max_depth, 0.0, 1.0));
+        imageStore(light_heatmap, pixel_coords, heatmap_color(share.num_lights));
 }
