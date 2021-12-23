@@ -1,3 +1,0 @@
-repository='https://github.com/g-truc/glm'
-module=''
-tag='origin'

@@ -1,3 +1,0 @@
-repository='https://github.com/foonathan/type_safe'
-module=''
-tag='origin'
