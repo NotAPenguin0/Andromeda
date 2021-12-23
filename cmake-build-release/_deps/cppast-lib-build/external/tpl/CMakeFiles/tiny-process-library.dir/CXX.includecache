@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process.cpp
+process.hpp
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process.hpp
+
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process.hpp
+functional
+-
+memory
+-
+mutex
+-
+string
+-
+thread
+-
+unordered_map
+-
+vector
+-
+sys/wait.h
+-
+
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process_win.cpp
+process.hpp
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process.hpp
+windows.h
+-
+tlhelp32.h
+-
+cstring
+-
+stdexcept
+-
+

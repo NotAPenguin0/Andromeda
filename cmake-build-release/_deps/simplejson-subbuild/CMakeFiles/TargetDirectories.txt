@@ -1,0 +1,3 @@
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/simplejson-subbuild/CMakeFiles/simplejson-populate.dir
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/simplejson-subbuild/CMakeFiles/edit_cache.dir
+C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/simplejson-subbuild/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/CMakeFiles/cppast-lib-populate"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/CMakeFiles/cppast-lib-populate.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/CMakeFiles/cppast-lib-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-subbuild/cppast-lib-populate-prefix/src/cppast-lib-populate-stamp/cppast-lib-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"cppast-lib-populate"
+		],
+		"name" : "cppast-lib-populate"
+	}
+}

@@ -1,0 +1,7 @@
+{
+  "albedo": "data/textures/green_metal_rust_diff_2k.tx",
+  "metallic": "data/textures/green_metal_rust_metal.tx",
+  "normal": "data/textures/green_metal_rust_nor_gl_2k.tx",
+  "roughness": "data/textures/green_metal_rust_rough_2k.tx",
+  "occlusion": "data/textures/green_metal_rust_ao_2k.tx"
+}

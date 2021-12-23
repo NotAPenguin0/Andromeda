@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="cppast"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="clang"/>
+		<Option virtualFolders="CMake Files\;CMake Files\cmake-build-release\;CMake Files\cmake-build-release\_deps\;CMake Files\cmake-build-release\_deps\type_safe-src\;CMake Files\cmake-build-release\_deps\type_safe-src\external\;CMake Files\cmake-build-release\_deps\type_safe-src\external\debug_assert\;CMake Files\cmake-build-release\_deps\fmt-src\;CMake Files\cmake-build-release\_deps\fmt-src\support\;CMake Files\cmake-build-release\_deps\fmt-src\support\cmake\;CMake Files\cmake-build-release\_deps\glfw-src\;CMake Files\cmake-build-release\_deps\glfw-src\CMake\;CMake Files\cmake-build-release\_deps\glfw-src\src\;CMake Files\cmake-build-release\_deps\glfw-src\docs\;CMake Files\cmake-build-release\_deps\phobos-src\;CMake Files\cmake-build-release\_deps\phobos-src\src\;CMake Files\cmake-build-release\_deps\phobos-src\external\;CMake Files\cmake-build-release\_deps\phobos-src\cmake\;CMake Files\cmake-build-release\_deps\plib-src\;CMake Files\cmake-build-release\_deps\vma-src\;CMake Files\cmake-build-release\_deps\spirv_cross-src\;CMake Files\cmake-build-release\_deps\spirv_cross-src\cmake\;CMake Files\cmake-build-release\_deps\assetlib-src\;CMake Files\cmake-build-release\_deps\imgui_docking-src\;CMake Files\cmake-build-release\_deps\glm-src\;CMake Files\cmake-build-release\_deps\glm-src\glm\;CMake Files\cmake-build-release\_deps\cppast-lib-src\;CMake Files\cmake-build-release\_deps\cppast-lib-src\external\;CMake Files\cmake-build-release\_deps\cppast-lib-src\external\tpl\;CMake Files\cmake-build-release\_deps\cppast-lib-src\src\;CMake Files\cmake-build-release\_deps\mustache-src\;CMake Files\cmake\;CMake Files\cmake\FetchContent\;CMake Files\external\;CMake Files\src\;CMake Files\shaders\;CMake Files\codegen\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\Makefile VERBOSE=1 all"/>
+					<CompileFile command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\Makefile VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\Makefile VERBOSE=1 clean"/>
+					<DistClean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\Makefile VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tiny-process-library">
+				<Option output="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/external/tpl/tiny-process-library.lib" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/external/tpl"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 tiny-process-library"/>
+					<CompileFile command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 clean"/>
+					<DistClean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tiny-process-library/fast">
+				<Option output="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/external/tpl/tiny-process-library.lib" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/external/tpl"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 tiny-process-library/fast"/>
+					<CompileFile command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 clean"/>
+					<DistClean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\external\tpl\Makefile VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="cppast">
+				<Option output="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/src/cppast.lib" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/src"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add option="-DCPPAST_VERSION_MINOR=&quot;0&quot;"/>
+					<Add option="-DCPPAST_VERSION_MAJOR=&quot;0&quot;"/>
+					<Add option="-DCPPAST_VERSION_STRING=&quot;0.0&quot;"/>
+					<Add option="-DTYPE_SAFE_ENABLE_ASSERTIONS=0"/>
+					<Add option="-DTYPE_SAFE_ENABLE_PRECONDITION_CHECKS=1"/>
+					<Add option="-DTYPE_SAFE_ENABLE_WRAPPER=1"/>
+					<Add option="-DTYPE_SAFE_ARITHMETIC_POLICY=1"/>
+					<Add option="-DCPPAST_CLANG_BINARY=&quot;C:/Program Files/LLVM/bin/clang.exe&quot;"/>
+					<Add option="-DCPPAST_CLANG_VERSION_STRING=&quot;12.0.1&quot;"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/../include"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/SYSTEM"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/external/debug_assert"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl"/>
+					<Add directory="C:/Program Files/LLVM/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 cppast"/>
+					<CompileFile command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 clean"/>
+					<DistClean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="cppast/fast">
+				<Option output="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/src/cppast.lib" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-build/src"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add option="-DCPPAST_VERSION_MINOR=&quot;0&quot;"/>
+					<Add option="-DCPPAST_VERSION_MAJOR=&quot;0&quot;"/>
+					<Add option="-DCPPAST_VERSION_STRING=&quot;0.0&quot;"/>
+					<Add option="-DTYPE_SAFE_ENABLE_ASSERTIONS=0"/>
+					<Add option="-DTYPE_SAFE_ENABLE_PRECONDITION_CHECKS=1"/>
+					<Add option="-DTYPE_SAFE_ENABLE_WRAPPER=1"/>
+					<Add option="-DTYPE_SAFE_ARITHMETIC_POLICY=1"/>
+					<Add option="-DCPPAST_CLANG_BINARY=&quot;C:/Program Files/LLVM/bin/clang.exe&quot;"/>
+					<Add option="-DCPPAST_CLANG_VERSION_STRING=&quot;12.0.1&quot;"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/../include"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/SYSTEM"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/external/debug_assert"/>
+					<Add directory="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl"/>
+					<Add directory="C:/Program Files/LLVM/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 cppast/fast"/>
+					<CompileFile command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 clean"/>
+					<DistClean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\cppast-lib-build\src\Makefile VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process.cpp">
+			<Option target="tiny-process-library"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process.hpp">
+			<Option target="tiny-process-library"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/process_win.cpp">
+			<Option target="tiny-process-library"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/code_generator.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/compile_config.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_alias_template.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_array_type.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_attribute.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_class.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_class_template.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_decltype_type.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_entity.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_entity_container.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_entity_index.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_entity_kind.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_entity_ref.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_enum.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_expression.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_file.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_forward_declarable.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_friend.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_function.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_function_template.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_function_type.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_language_linkage.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_member_function.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_member_variable.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_namespace.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_preprocessor.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_static_assert.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_storage_class_specifiers.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_template.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_template_parameter.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_token.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_type.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_type_alias.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_variable.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_variable_base.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/cpp_variable_template.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/detail/assert.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/detail/intrusive_list.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/diagnostic.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/diagnostic_logger.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/libclang_parser.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/parser.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/include/cppast/visitor.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/code_generator.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_alias_template.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_attribute.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_class.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_class_template.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_entity.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_entity_index.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_entity_kind.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_enum.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_expression.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_file.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_forward_declarable.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_friend.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_function.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_function_template.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_language_linkage.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_member_function.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_member_variable.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_namespace.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_preprocessor.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_static_assert.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_template_parameter.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_token.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_type.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_type_alias.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_variable.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/cpp_variable_template.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/diagnostic_logger.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/class_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/cxtokenizer.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/cxtokenizer.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/debug_helper.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/debug_helper.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/enum_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/expression_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/friend_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/function_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/language_linkage_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/libclang_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/libclang_visitor.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/namespace_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/parse_error.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/parse_functions.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/parse_functions.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/preprocessor.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/preprocessor.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/raii_wrapper.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/template_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/type_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/libclang/variable_parser.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/visitor.cpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/external/debug_assert/debug_assert.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/arithmetic_policy.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/boolean.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/bounded_type.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/compact_optional.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/config.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/constrained_type.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/deferred_construction.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/aligned_union.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/all_of.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/assert.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/assign_or_construct.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/constant_parser.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/copy_move_control.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/force_inline.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/is_nothrow_swappable.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/map_invoke.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/detail/variant_impl.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/downcast.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/flag.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/flag_set.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/floating_point.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/index.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/integer.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/narrow_cast.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/optional.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/optional_ref.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/output_parameter.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/reference.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/strong_typedef.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/tagged_union.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/types.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/variant.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/include/type_safe/visitor.hpp">
+			<Option target="cppast"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\type_safe-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/external/external.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\type_safe-src\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/external/debug_assert/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\type_safe-src\external\debug_assert\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/fmt-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\fmt-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/fmt-src/support/cmake/JoinPaths.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\fmt-src\support\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/fmt-src/support/cmake/cxx14.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\fmt-src\support\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMake/cmake_uninstall.cmake.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\CMake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMake/glfw3.pc.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\CMake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMake/glfw3Config.cmake.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\CMake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/docs/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\docs\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/docs/Doxyfile.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\docs\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/external/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/cmake/FindPackageHandleStandardArgs.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/cmake/FindPackageMessage.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/cmake/FindVulkan.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/plib-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\plib-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/vma-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\vma-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/spirv_cross-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\spirv_cross-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/spirv_cross-src/cmake/gitversion.in.h">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\spirv_cross-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/assetlib-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\assetlib-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/imgui_docking-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\imgui_docking-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glm-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glm-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glm-src/glm/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glm-src\glm\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/external.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\external\tpl\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/mustache-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\mustache-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake/FetchContent.cmake">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake/FetchContent/CMakeLists.cmake.in">
+			<Option virtualFolder="CMake Files\cmake\FetchContent\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/external/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/shaders/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\shaders\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/codegen/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\codegen\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

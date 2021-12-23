@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="glm"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="clang"/>
+		<Option virtualFolders="CMake Files\;CMake Files\cmake-build-release\;CMake Files\cmake-build-release\_deps\;CMake Files\cmake-build-release\_deps\type_safe-src\;CMake Files\cmake-build-release\_deps\type_safe-src\external\;CMake Files\cmake-build-release\_deps\type_safe-src\external\debug_assert\;CMake Files\cmake-build-release\_deps\fmt-src\;CMake Files\cmake-build-release\_deps\fmt-src\support\;CMake Files\cmake-build-release\_deps\fmt-src\support\cmake\;CMake Files\cmake-build-release\_deps\glfw-src\;CMake Files\cmake-build-release\_deps\glfw-src\CMake\;CMake Files\cmake-build-release\_deps\glfw-src\src\;CMake Files\cmake-build-release\_deps\glfw-src\docs\;CMake Files\cmake-build-release\_deps\phobos-src\;CMake Files\cmake-build-release\_deps\phobos-src\src\;CMake Files\cmake-build-release\_deps\phobos-src\external\;CMake Files\cmake-build-release\_deps\phobos-src\cmake\;CMake Files\cmake-build-release\_deps\plib-src\;CMake Files\cmake-build-release\_deps\vma-src\;CMake Files\cmake-build-release\_deps\spirv_cross-src\;CMake Files\cmake-build-release\_deps\spirv_cross-src\cmake\;CMake Files\cmake-build-release\_deps\assetlib-src\;CMake Files\cmake-build-release\_deps\imgui_docking-src\;CMake Files\cmake-build-release\_deps\glm-src\;CMake Files\cmake-build-release\_deps\glm-src\glm\;CMake Files\cmake-build-release\_deps\cppast-lib-src\;CMake Files\cmake-build-release\_deps\cppast-lib-src\external\;CMake Files\cmake-build-release\_deps\cppast-lib-src\external\tpl\;CMake Files\cmake-build-release\_deps\cppast-lib-src\src\;CMake Files\cmake-build-release\_deps\mustache-src\;CMake Files\cmake\;CMake Files\cmake\FetchContent\;CMake Files\external\;CMake Files\src\;CMake Files\shaders\;CMake Files\codegen\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glm-build"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\glm-build\Makefile VERBOSE=1 all"/>
+					<CompileFile command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\glm-build\Makefile VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\glm-build\Makefile VERBOSE=1 clean"/>
+					<DistClean command="nmake /NOLOGO /f C:\Users\Michiel\Documents\dev\andromeda\cmake-build-release\_deps\glm-build\Makefile VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\type_safe-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/external/external.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\type_safe-src\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-src/external/debug_assert/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\type_safe-src\external\debug_assert\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/fmt-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\fmt-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/fmt-src/support/cmake/JoinPaths.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\fmt-src\support\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/fmt-src/support/cmake/cxx14.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\fmt-src\support\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMake/cmake_uninstall.cmake.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\CMake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMake/glfw3.pc.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\CMake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/CMake/glfw3Config.cmake.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\CMake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/docs/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\docs\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glfw-src/docs/Doxyfile.in">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glfw-src\docs\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/external/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/cmake/FindPackageHandleStandardArgs.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/cmake/FindPackageMessage.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/phobos-src/cmake/FindVulkan.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\phobos-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/plib-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\plib-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/vma-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\vma-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/spirv_cross-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\spirv_cross-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/spirv_cross-src/cmake/gitversion.in.h">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\spirv_cross-src\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/assetlib-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\assetlib-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/imgui_docking-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\imgui_docking-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glm-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glm-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/glm-src/glm/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\glm-src\glm\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/external.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/external/tpl/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\external\tpl\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/cppast-lib-src/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\cppast-lib-src\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/mustache-src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\cmake-build-release\_deps\mustache-src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake/FetchContent.cmake">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/cmake/FetchContent/CMakeLists.cmake.in">
+			<Option virtualFolder="CMake Files\cmake\FetchContent\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/external/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\external\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/shaders/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\shaders\"/>
+		</Unit>
+		<Unit filename="C:/Users/Michiel/Documents/dev/andromeda/codegen/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\codegen\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

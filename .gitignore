@@ -6,5 +6,5 @@ docs/
 out/
 dump.txt
 .idea/
-cmake-build-debug/*
-cmake-build-release/*
+cmake-build-debug/
+cmake-build-release/

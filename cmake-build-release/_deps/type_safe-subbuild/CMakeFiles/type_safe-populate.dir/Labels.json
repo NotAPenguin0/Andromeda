@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/CMakeFiles/type_safe-populate"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/CMakeFiles/type_safe-populate.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/CMakeFiles/type_safe-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/Michiel/Documents/dev/andromeda/cmake-build-release/_deps/type_safe-subbuild/type_safe-populate-prefix/src/type_safe-populate-stamp/type_safe-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"type_safe-populate"
+		],
+		"name" : "type_safe-populate"
+	}
+}
