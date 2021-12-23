@@ -28,6 +28,11 @@ float saturate(float x) {
     return max(0.0, min(x, 1.0));
 }
 
+// Quadratically eases a value between 0 and 1.
+// This implements the easing function at https://easings.net/#easeOutQuad
+float ease_out_quadratic(float x) {
+    return 1.0 - (x - 1.0) * (x - 1.0);
+}
 
 vec3 uncharted2_tonemap_partial(vec3 x) {
     float A = 0.15f;

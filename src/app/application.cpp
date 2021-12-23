@@ -22,6 +22,8 @@ Application::Application(int argc, char** argv) {
 	graphics = gfx::Context::init(*window, *log, *scheduler);
 	world = std::make_unique<World>();
 
+    assets::impl::set_global_pointers(graphics.get(), world.get());
+
 	ImGui::CreateContext();
 	
 	editor = std::make_unique<editor::Editor>(*graphics, *window);
@@ -29,63 +31,38 @@ Application::Application(int argc, char** argv) {
 }
 
 int Application::run() {
-	Handle<gfx::Mesh> m1 = assets::load<gfx::Mesh>(*graphics, "data/meshes/cube.mesh");
-    Handle<gfx::Mesh> m2 = assets::load<gfx::Mesh>(*graphics, "data/meshes/sphere.mesh");
+//    Handle<ecs::entity_t> sphere_bp = assets::load<ecs::entity_t>("data/scene/spheres.ent");
+    Handle<ecs::entity_t> lights_bp = assets::load<ecs::entity_t>("data/scene/lights.ent");
+    Handle<ecs::entity_t> camera_bp = assets::load<ecs::entity_t>("data/scene/camera.ent");
 
-	Handle<gfx::Material> mat = assets::load<gfx::Material>(*graphics, "data/materials/pbr.mat");
+//    world->import_entity(*assets::get(sphere_bp));
+//    world->import_entity(*assets::get(lights_bp));
+    ecs::entity_t camera = world->import_entity(*assets::get(camera_bp));
+    renderer->create_viewport(1, 1, camera);
 
-	ecs::entity_t sphere = world->create_entity();
-	{
-		// Get thread-safe access to the ecs and add a MeshRenderer component pointing to mesh m1.
-		thread::LockedValue<ecs::registry> ecs = world->ecs();
-		ecs->add_component<MeshRenderer>(sphere, m2, mat);
-		ecs->get_component<Name>(sphere).name = "Parent sphere";
-	}
+    Handle<ecs::entity_t> sponza = assets::load<ecs::entity_t>("data/sponza/Sponza.ent");
+    world->import_entity(*assets::get(sponza));
 
-	ecs::entity_t sphere2 = world->create_entity(sphere);
-	{
-		thread::LockedValue<ecs::registry> ecs = world->ecs();
-		ecs->add_component<MeshRenderer>(sphere2, m2, mat);
-		auto& transform = ecs->get_component<Transform>(sphere2);
-		transform.position.z = 2.0f;
-		transform.scale = glm::vec3(0.3f, 0.3f, 0.3f);
-		ecs->get_component<Name>(sphere2).name = "Child sphere";
-	}
 
-	{
-		ecs::entity_t cam = world->create_entity();
-		thread::LockedValue<ecs::registry> ecs = world->ecs();
-		ecs->add_component<Camera>(cam);
+    {
+        srand(time(nullptr));
+        auto ecs = world->ecs();
+        for (int i = 0; i < 1; ++i) {
+            auto l = world->create_entity(ecs);
+            const int concentration = 40;
+            auto &pos = ecs->get_component<Transform>(l).position;
+            pos.x = rand() % (concentration * 2) - concentration;
+            pos.y = rand() % concentration;
+            pos.z = rand() % (concentration * 2) - concentration;
 
-		Transform& trans = ecs->get_component<Transform>(cam);
-		trans.position = glm::vec3(-3.0f, 1.0f, 0.0f);
-		ecs->get_component<Name>(cam).name = "Main camera";
-
-		renderer->create_viewport(100, 100, cam); // Will be resized anyway
-	}
-
-    srand(time(nullptr));
-    for (int i = 0; i < 1; ++i) {
-        ecs::entity_t light = world->create_entity();
-        thread::LockedValue<ecs::registry> ecs = world->ecs();
-        auto& info = ecs->add_component<PointLight>(light);
-        info.radius = rand() % 5 + 3;
-        info.intensity = rand() % 3 + 2;
-        auto& pos = ecs->get_component<Transform>(light).position;
-        const int concentration = 10;
-        pos.x = rand() % concentration - concentration / 2.0;
-        pos.y = rand() % concentration - concentration / 2.0;
-        pos.z = rand() % concentration - concentration / 2.0;
-        ecs->get_component<Name>(light).name = "Light" + std::to_string(i);
-
-        info.radius = 10;
-        info.intensity = 50;
-        pos.x = -1;
-        pos.y = 3;
-        pos.z = 0;
+            auto& light = ecs->add_component<PointLight>(l);
+            light.intensity = 10;
+            light.radius = rand() % (3 * concentration) + concentration / 2.0f;
+            light.color = glm::vec3(rand() % 255 / 255.0, rand() % 255 / 255.0, rand() % 255 / 255.0);
+        }
     }
 
-	while (window->is_open()) {	
+	while (window->is_open()) {
 		window->poll_events();
 		gfx::imgui::new_frame();
 

@@ -32,8 +32,7 @@ layout(push_constant) uniform PC {
     uvec2 num_tiles;
     uint albedo_idx;
     uint normal_idx;
-    uint metallic_idx;
-    uint roughness_idx;
+    uint metal_rough_idx;
     uint occlusion_idx;
 } pc;
 
@@ -85,6 +84,32 @@ float geometry_smith(vec3 N, vec3 V, vec3 L, float roughness) {
     return ggx1 * ggx2;
 }
 
+// Computes the specular falloff of a point at a certain distance to a light with a given radius.
+// Note that this value isn't completely physically accurate, it's only there to mitigate the issue
+// where part of a specular highlight is culled by the light radius.
+// This function returns a value that is then multiplied with the specular strength to get the final result
+// (so we return 1.0 when there is no falloff, and 0.0 when the light is completely dark).
+// An explanation of the math used below:
+//
+// We define d as the falloff point, the ratio of the light's radius where the falloff will start.
+// The input to the system is x = distance / radius.
+// Let e(x) be any easing function. We'll start by inverting this easing function to get a value from 1 to 0 instead,
+// so we use 1 - e(x).
+// The falloff function f(x) is then 1.0 when x <= d, and 1 - e(x) when x > d.
+// We will now squish e(x) along the x-axis to fit the [d, 1] range and name this function e'(x) Additionally we'll move it
+// to the right so that e'(d) = 1.
+// This gives e'(x) = 1 - e(ax - d). a is the scaling factor, and logically follows that a = 1 / (1 - d).
+// Thus e'(x) = 1 - e(x / (1 - d) - d).
+// Finally we need to plug this into a singular function by combining this with the values of f(x) for x <= d.
+// Since we know the values of e'(x) are in the range [1, 0], we can simply say that
+// f(x) = min(1, e'(x)).
+float specular_falloff(float distance, float radius) {
+    const float d = 0.7; // falloff point
+    float x = distance / radius;
+    float e = 1.0 - ease_out_quadratic(x / (1.0 - d) - d);
+    return min(1.0, e);
+}
+
 // Apply metallic/roughness PBR shading
 vec3 apply_point_light(PointLight light, vec3 normal, vec3 albedo, float metallic, float roughness) {
     vec3 light_dir = normalize(light.pos_radius.xyz - world_pos);
@@ -105,6 +130,9 @@ vec3 apply_point_light(PointLight light, vec3 normal, vec3 albedo, float metalli
     float denom = 4.0 * max(dot(normal, view_dir), 0.0) * max(dot(normal, light_dir), 0.0);
     vec3 specular = num / max(denom, 0.001); // Make sure to not divide by zero
 
+    // Note that we are guaranteed that distance <= radius due to the light culling algorithm.
+    specular = specular * specular_falloff(length(light.pos_radius.xyz - world_pos), light.pos_radius.w);
+
     vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - metallic;
@@ -122,16 +150,12 @@ void main() {
     vec3 albedo = texture(textures[pc.albedo_idx], UV).rgb;
     vec3 color = vec3(0.0);
 
-    /*
-    vec3 normal = normalize(TBN * (textureLod(textures[pc.normal_idx], UV, 0).rgb * 2.0f - 1.0f));
-    float metallic = textureLod(textures[pc.metallic_idx], UV, 0).r;
-    float roughness = textureLod(textures[pc.roughness_idx], UV, 0).r;
-    float ao = textureLod(textures[pc.occlusion_idx], UV, 0).r;
-    */
     vec3 normal = normalize(TBN * (texture(textures[pc.normal_idx], UV).rgb * 2.0f - 1.0f));
-    float metallic = textureLod(textures[pc.metallic_idx], UV, 0).r;
-    float roughness = textureLod(textures[pc.roughness_idx], UV, 0).r;
-    float ao = textureLod(textures[pc.occlusion_idx], UV, 0).r;
+    vec2 rough_metal = texture(textures[pc.metal_rough_idx], UV).gb;
+    float metallic = rough_metal.y;
+    float roughness = rough_metal.x;
+    float ao = texture(textures[pc.occlusion_idx], UV).r;
+
     // Offset for this tile's information in the visible_lights array
     const uint offset = ANDROMEDA_MAX_LIGHTS_PER_TILE * tile;
     // Loop over every entry in the visible_lights array
@@ -145,4 +169,5 @@ void main() {
     color += albedo * ao * vec3(0.03);
 
     FragColor = vec4(color, 1.0);
+//    FragColor = vec4(normalize(TBN * texture(textures[pc.normal_idx], UV).rgb), 1.0);
 }

@@ -16,8 +16,7 @@ layout(push_constant) uniform PC {
     uvec2 num_tiles;
     uint albedo_idx;
     uint normal_idx;
-    uint metallic_idx;
-    uint roughness_idx;
+    uint metal_rough_idx;
     uint occlusion_idx;
 } pc;
 

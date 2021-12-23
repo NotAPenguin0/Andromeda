@@ -7,6 +7,7 @@ layout(push_constant) uniform uPushConstant {
     vec2 uScale;
     vec2 uTranslate;
     int uDepth;
+//    int uUserTex;
 } pc;
 
 out gl_PerVertex {

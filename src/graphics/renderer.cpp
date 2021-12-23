@@ -103,8 +103,7 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
         uint8_t white[1] { 255 };
         Handle<gfx::Texture> albedo = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_SRGB, magenta, sizeof(magenta));
         Handle<gfx::Texture> normal = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, up, sizeof(up));
-        Handle<gfx::Texture> metallic = create_1x1_texture(ctx, VK_FORMAT_R8_UNORM, black, sizeof(black));
-        Handle<gfx::Texture> roughness = metallic; // We can re-use the same image for these, since we want both to be simply black (0 metallic, 0 roughness)
+        Handle<gfx::Texture> metal_rough = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, black, sizeof(black));
         Handle<gfx::Texture> occlusion = create_1x1_texture(ctx, VK_FORMAT_R8_UNORM, white, sizeof(white));
 
         auto name_default_tex = [&ctx](Handle<gfx::Texture> t, std::string const& base) {
@@ -115,13 +114,12 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
 
         name_default_tex(albedo, "albedo");
         name_default_tex(normal, "normal");
-        name_default_tex(metallic, "metal/rough");
+        name_default_tex(metal_rough, "metal/rough");
         name_default_tex(occlusion, "occlusion");
 
         scene.set_default_albedo(albedo);
         scene.set_default_normal(normal);
-        scene.set_default_metallic(metallic);
-        scene.set_default_roughness(roughness);
+        scene.set_default_metal_rough(metal_rough);
         scene.set_default_occlusion(occlusion);
     }
 

@@ -40,8 +40,7 @@ public:
 	struct MaterialTextures {
 		uint32_t const albedo = 0;
         uint32_t const normal = 0;
-        uint32_t const metallic = 0;
-        uint32_t const roughness = 0;
+        uint32_t const metal_rough = 0;
         uint32_t const occlusion = 0;
 	};
 
@@ -92,16 +91,10 @@ public:
     void set_default_normal(Handle<gfx::Texture> handle);
 
     /**
-     * @brief Sets the default metallic map. This will be used as a placeholder if no metallic map was loaded.
+     * @brief Sets the default metal/rough map. This will be used as a placeholder if no metallic map was loaded.
      * @param handle Handle to the default metallic map to use. This may not be a null handle.
     */
-    void set_default_metallic(Handle<gfx::Texture> handle);
-
-    /**
-     * @brief Sets the default roughness map. This will be used as a placeholder if no roughness map was loaded.
-     * @param handle Handle to the default roughness map to use. This may not be a null handle.
-    */
-    void set_default_roughness(Handle<gfx::Texture> handle);
+    void set_default_metal_rough(Handle<gfx::Texture> handle);
 
     /**
      * @brief Sets the default ambient occlusion map. This will be used as a placeholder if no ambient occlusion map was loaded.
@@ -177,8 +170,7 @@ private:
         // Default textures that can be set by using set_default_xxx(). These are not reset when calling reset().
         Handle<gfx::Texture> default_albedo;
         Handle<gfx::Texture> default_normal;
-        Handle<gfx::Texture> default_metallic;
-        Handle<gfx::Texture> default_roughness;
+        Handle<gfx::Texture> default_metal_rough;
         Handle<gfx::Texture> default_occlusion;
 	} textures;
 

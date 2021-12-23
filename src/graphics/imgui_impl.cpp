@@ -257,6 +257,10 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
                     }
                     cmd_buf.push_constants(ph::ShaderStage::Fragment, 4 * sizeof(float), sizeof(int), &depth_val);
 
+/*                    int user_tex_val = 0;
+                    if (img_view != impl::font_view) user_tex_val = 1;
+                    cmd_buf.push_constants(ph::ShaderStage::Fragment, 4 * sizeof(float) + sizeof(int), sizeof(int), &user_tex_val);
+*/
                     VkDescriptorSet set = ph::DescriptorBuilder::create(*impl::context, 
                         cmd_buf.get_bound_pipeline())
                         .add_sampled_image("sTexture", img_view, impl::sampler)

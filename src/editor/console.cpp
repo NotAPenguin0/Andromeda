@@ -53,10 +53,10 @@ Console::Console(gfx::Context& ctx, Window& window)
 		auto path = fs::path(args[1]);
 		std::string ext = path.extension().generic_string();
 		if (ext == ".tx") {
-			assets::load<gfx::Texture>(ctx, path.generic_string());
+			assets::load<gfx::Texture>(path.generic_string());
 		}
 		else if (ext == ".mesh") {
-			assets::load<gfx::Mesh>(ctx, path.generic_string());
+			assets::load<gfx::Mesh>(path.generic_string());
 		}
 		else {
 			LOG_FORMAT(LogLevel::Error, "Unsupposed asset extension: {}", ext);

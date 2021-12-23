@@ -47,6 +47,8 @@ public:
         float drag_speed{};
     };
 
+    field() = default;
+
     /**
      * @brief Construct a field with meta information.
      * @tparam U type of the field.
@@ -63,6 +65,22 @@ public:
     {
         this->ptr = reinterpret_cast<void_t T::*>(ptr);
         this->field_type = impl::type_id<U>();
+    }
+
+    /**
+     * @brief Test whether the field contains a valid pointer.
+     * @return True if the field is valid and may be dereferenced using as<U>(), false otherwise.
+     */
+    [[nodiscard]] bool valid() const {
+        return ptr != nullptr;
+    }
+
+    /**
+     * @brief Test whether the field contains a valid pointer.
+     * @return True if the field is valid and may be dereferenced using as<U>(), false otherwise.
+     */
+    [[nodiscard]] explicit operator bool() const {
+        return valid();
     }
 
     /**
@@ -173,7 +191,7 @@ public:
      * @param fields List of fields for type T.
     */
     reflection_info(std::string_view name, std::vector<field<T>> fields, plib::bit_flag<type_flags> flags = {})
-        : type_name(std::string{ name }), type_fields(std::move(fields)), flags_(flags) {
+        : type_name(std::string{ name }), type_fields(std::move(fields)), flags_(flags), invalid_field() {
 
     }
 
@@ -181,18 +199,35 @@ public:
      * @brief Obtain the type name.
      * @return A string with the type name. This string lives as long as the reflection_info structure does.
     */
-    std::string const& name() const {
+    [[nodiscard]] std::string const& name() const {
         return type_name;
     }
 
     /**
      * @brief Obtain the fields of the type.
-     * @return A list of field_variant<T>, each with a single field. Lives as long as the reflection_info structure does.
+     * @return A list of field<T>, each with a single field. Lives as long as the reflection_info structure does.
     */
     std::vector<field<T>> const& fields() const {
         return type_fields;
     }
 
+    /**
+     * @brief Obtain a field of the type with a given name. Returns an invalid field if none was found.
+     * @param name
+     * @return
+     */
+    field<T> const& field_with_name(std::string_view name) const {
+        for (auto const& field : type_fields) {
+            if (field.name() == name) return field;
+        }
+
+        return invalid_field;
+    }
+
+    /**
+     * @brief Obtain the flags of this type.
+     * @return A bit flag type representing this type's flags.
+     */
     plib::bit_flag<type_flags> flags() const {
         return flags_;
     }
@@ -200,6 +235,7 @@ public:
 private:
     std::string type_name;
     std::vector<field<T>> type_fields;
+    field<T> invalid_field;
     plib::bit_flag<type_flags> flags_;
 };
 

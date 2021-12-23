@@ -5,6 +5,7 @@
 #include <andromeda/thread/scheduler.hpp>
 
 #include <andromeda/app/log.hpp>
+#include <andromeda/world.hpp>
 
 #include <concepts>
 #include <filesystem>
@@ -67,6 +68,10 @@ container<T> data;
 
 template<typename T>
 std::mutex data_mutex;
+
+// Global pointers to graphics context and world structure. This is to minimize the amount of parameters given to load() calls
+extern gfx::Context* gfx_context;
+extern World* world;
 
 /**
  * @brief Get thread safe access to the asset storage for asset type T.
@@ -182,12 +187,21 @@ void set_path(Handle<T> handle, fs::path const& path) {
 /**
  * @brief Specialize this function for each type T assets need to be loaded.
  * @tparam T Type of the asset to load.
- * @param ctx Reference to the graphics context.
  * @param path Path to the asset file.
  * @return Handle referring to the loaded asset.
 */
 template<typename T>
-Handle<T> load_priv(gfx::Context& ctx, std::string const& path);
+Handle<T> load_priv(std::string const& path);
+
+/**
+ * @brief The asset system uses a few global pointers to reduce common parameters to load functions
+ * @param ctx Pointer to the graphics context.
+ * @param wrld Pointer to the scene world.
+ */
+inline void set_global_pointers(gfx::Context* ctx, World* wrld) {
+    gfx_context = ctx;
+    world = wrld;
+}
 
 } // namespace impl
 
@@ -200,7 +214,7 @@ Handle<T> load_priv(gfx::Context& ctx, std::string const& path);
  * @return Handle referring to the loaded asset.
 */
 template<typename T>
-Handle<T> load(gfx::Context& ctx, std::string const& path) {
+Handle<T> load(std::string const& path) {
 	// First we look for the asset in the list of already loaded assets by comparing paths.
 	{
 		fs::path path_fs = path;
@@ -213,7 +227,7 @@ Handle<T> load(gfx::Context& ctx, std::string const& path) {
 	}
 
 	// Asset wasn't found, we'll call the private load function to actually load it.
-	Handle<T> handle = impl::load_priv<T>(ctx, path);
+	Handle<T> handle = impl::load_priv<T>(path);
 	return handle;
 }
 
@@ -224,7 +238,7 @@ Handle<T> load(gfx::Context& ctx, std::string const& path) {
  * @param handle Handle referring to the asset to unload.
 */
 template<typename T>
-void unload(gfx::Context& ctx, Handle<T> handle);
+void unload(Handle<T> handle);
 
 /**
  * @brief Consumes an asset object. This will store it inside the asset system and return a handle
@@ -291,6 +305,26 @@ T* get(Handle<T> handle) {
 }
 
 /**
+ * @brief Get the path of an asset.
+ * @tparam T Type of the asset.
+ * @param handle Handle to the asset.
+ * @return std::nullopt if no path was set or if the handle was null, the path otherwise.
+ */
+template<typename T>
+std::optional<fs::path> get_path(Handle<T> handle) {
+    if (!handle) return std::nullopt;
+
+    auto [_, storage] = impl::acquire<T>();
+    try {
+        impl::asset_storage_type<T>& element = storage.at(handle);
+        return element.path;
+    }
+    catch(std::out_of_range const& not_found) {
+        return std::nullopt;
+    }
+}
+
+/**
  * @brief Unloads all assets of a given type.
  * @tparam T Type of the assets to unload.
  * @param ctx Reference to the graphics context.
@@ -308,7 +342,7 @@ void unload_all(gfx::Context& ctx) {
 		}
 	}
 	for (auto handle : handles) {
-		unload(ctx, handle);
+		unload(handle);
 	}
 }
 

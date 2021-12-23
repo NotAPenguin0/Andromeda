@@ -7,6 +7,7 @@ layout(push_constant) uniform uPushConstant {
     vec2 uScale;
     vec2 uTranslate;
     int uDepth;
+//    int uUserTex; // color correct if false
 } pc;
 
 layout(location = 0) in struct {
@@ -16,9 +17,12 @@ layout(location = 0) in struct {
 
 void main()
 {
-    vec4 color_corrected = vec4(pow(In.Color.rgb, vec3(2.2f)), In.Color.a);
+    vec4 color = In.Color;
+//    if (pc.uUserTex == 0) {
+        color = vec4(pow(color.rgb, vec3(2.2f)), color.a);
+//    }
     if (pc.uDepth == 1)
-        fColor = color_corrected * texture(sTexture, In.UV.st).rrra;
+        fColor = color * vec4(texture(sTexture, In.UV.st).rrr, 1.0);
     else
-        fColor = color_corrected * texture(sTexture, In.UV.st);
+        fColor = color * texture(sTexture, In.UV.st);
 }

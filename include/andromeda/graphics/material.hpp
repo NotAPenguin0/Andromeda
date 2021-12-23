@@ -10,10 +10,8 @@ struct Material {
 	Handle<Texture> albedo;
     // Normal map
     Handle<Texture> normal;
-    // Metallic map
-    Handle<Texture> metallic;
-    // Roughness map
-    Handle<Texture> roughness;
+    // Metallic/roughness map. Roughness in G component, metallic in B component
+    Handle<Texture> metal_rough;
     // Ambient occlusion map
     Handle<Texture> occlusion;
 };

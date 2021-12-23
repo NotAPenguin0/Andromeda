@@ -39,11 +39,11 @@ private:
 
 	// load_priv() needs access to the request_XXX() functions.
 	template<typename T>
-	friend Handle<T> assets::impl::load_priv(gfx::Context&, std::string const&);
+	friend Handle<T> assets::impl::load_priv(std::string const&);
 
 	// So does unload()
 	template<typename T>
-	friend void assets::unload(gfx::Context&, Handle<T>);
+	friend void assets::unload(Handle<T>);
 
 	/**
 	 * @brief Request a texture to be loaded. This will be done asynchronously.

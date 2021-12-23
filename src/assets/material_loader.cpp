@@ -20,11 +20,10 @@ void load_material(gfx::Context& ctx, Handle<gfx::Material> handle, std::string_
 
 	json::JSON json = json::JSON::Load(json_string);
 
-    if (json.hasKey("albedo")) material.albedo = assets::load<gfx::Texture>(ctx, json["albedo"].ToString());
-    if (json.hasKey("normal")) material.normal = assets::load<gfx::Texture>(ctx, json["normal"].ToString());
-    if (json.hasKey("metallic")) material.metallic = assets::load<gfx::Texture>(ctx, json["metallic"].ToString());
-    if (json.hasKey("roughness")) material.roughness = assets::load<gfx::Texture>(ctx, json["roughness"].ToString());
-    if (json.hasKey("occlusion")) material.occlusion = assets::load<gfx::Texture>(ctx, json["occlusion"].ToString());
+    if (json.hasKey("albedo")) material.albedo = assets::load<gfx::Texture>(json["albedo"].ToString());
+    if (json.hasKey("normal")) material.normal = assets::load<gfx::Texture>(json["normal"].ToString());
+    if (json.hasKey("metal_rough")) material.metal_rough = assets::load<gfx::Texture>(json["metal_rough"].ToString());
+    if (json.hasKey("occlusion")) material.occlusion = assets::load<gfx::Texture>(json["occlusion"].ToString());
 
 	assets::impl::make_ready(handle, std::move(material));
 }

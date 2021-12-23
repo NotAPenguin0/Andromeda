@@ -23,8 +23,7 @@ void SceneDescription::add_material(Handle<gfx::Material> material) {
 	// Add each material texture individually
 	add_texture(mat->albedo);
     add_texture(mat->normal);
-    add_texture(mat->metallic);
-    add_texture(mat->roughness);
+    add_texture(mat->metal_rough);
     add_texture(mat->occlusion);
 }
 
@@ -80,12 +79,8 @@ void SceneDescription::set_default_normal(Handle<gfx::Texture> handle) {
     textures.default_normal = handle;
 }
 
-void SceneDescription::set_default_metallic(Handle<gfx::Texture> handle) {
-    textures.default_metallic = handle;
-}
-
-void SceneDescription::set_default_roughness(Handle<gfx::Texture> handle) {
-    textures.default_roughness = handle;
+void SceneDescription::set_default_metal_rough(Handle<gfx::Texture> handle) {
+    textures.default_metal_rough = handle;
 }
 
 void SceneDescription::set_default_occlusion(Handle<gfx::Texture> handle) {
@@ -105,8 +100,7 @@ void SceneDescription::reset() {
     // Push default textures to the texture map
     add_texture(textures.default_albedo);
     add_texture(textures.default_normal);
-    add_texture(textures.default_metallic);
-    add_texture(textures.default_roughness);
+    add_texture(textures.default_metal_rough);
     add_texture(textures.default_occlusion);
 }
 
@@ -119,8 +113,7 @@ SceneDescription::MaterialTextures SceneDescription::get_material_textures(Handl
 	return MaterialTextures{
 		.albedo = textures.id_to_index[mat->albedo ? mat->albedo : textures.default_albedo],
         .normal = textures.id_to_index[mat->normal ? mat->normal : textures.default_normal],
-        .metallic = textures.id_to_index[mat->metallic ? mat->metallic : textures.default_metallic],
-        .roughness = textures.id_to_index[mat->roughness ? mat->roughness : textures.default_roughness],
+        .metal_rough = textures.id_to_index[mat->metal_rough ? mat->metal_rough : textures.default_metal_rough],
         .occlusion = textures.id_to_index[mat->occlusion ? mat->occlusion : textures.default_occlusion]
 	};
 }

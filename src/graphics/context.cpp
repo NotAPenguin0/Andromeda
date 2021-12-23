@@ -36,7 +36,7 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
     settings.gpu_requirements.features_1_2.runtimeDescriptorArray = true;
 	settings.scratch_ibo_size = 1024 * 1024;
 	settings.scratch_vbo_size = 1024 * 1024;
-    settings.scratch_ssbo_size = 16 * 1024 * 1024; // 16 MiB
+    settings.scratch_ssbo_size = 32 * 1024 * 1024; // 32 MiB
 	settings.present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	// Note that we cannot use make_unique since the constructor is private.
 	auto ctx = std::unique_ptr<Context>{ new Context{ settings, scheduler } };
@@ -110,7 +110,7 @@ Handle<gfx::Mesh> Context::request_mesh(std::string const& path) {
 Handle<gfx::Material> Context::request_material(std::string const& path) {
 	LOG_FORMAT(LogLevel::Info, "Loading material at path {}", path);
 	Handle<gfx::Material> handle = assets::impl::insert_pending<gfx::Material>();
-	thread::task_id task = scheduler.schedule([this, handle, path](uint32_t thread) {
+	scheduler.schedule([this, handle, path](uint32_t thread) {
 		try {
 			impl::load_material(*this, handle, path, thread + 1);
 		}

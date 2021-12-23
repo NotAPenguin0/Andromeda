@@ -264,14 +264,13 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport vi
                     vp_data.n_tiles_y,
                     textures.albedo,
                     textures.normal,
-                    textures.metallic,
-                    textures.roughness,
+                    textures.metal_rough,
                     textures.occlusion
                 };
 
                 cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(uint32_t), vtx_pc);
                 // Note: Due to padding rules in the PC block the transform index in the vertex shader is followed by 4 bytes of padding.
-                cmd.push_constants(ph::ShaderStage::Fragment, 2 * sizeof(uint32_t), 7 * sizeof(uint32_t), frag_pc);
+                cmd.push_constants(ph::ShaderStage::Fragment, 2 * sizeof(uint32_t), 6 * sizeof(uint32_t), frag_pc);
 
                 cmd.draw_indexed(mesh.num_indices, 1, 0, 0, 0);
             }

@@ -102,11 +102,34 @@ Currently, the following properties are always present:
 Additionally, there are a number of optional properties to further refine a material and make a full PBR-compatible material.
 
 - `normal`: path to the normal map texture.
-- `metallic`: path to a metallic map texture.
-- `roughness`: path to a roughness map texture.
+- `metal_rough`: path to the metallic/roughness texture.
 - `occlusion`: path to an ambient occlusion map texture.
 
 ### b) Relative paths
 
 When a relative path is encountered, it will be seen as relative to the root of the asset system. Currently, (with no project files existing) this is
 the executable folder. Once project files are added this will be the `assets` folder in the project directory.
+
+# 4. Entity files (.ent)
+
+### a) Identification
+
+Entity files, just like material files, are JSON files. They contain a single JSON object representing the entity and its components,
+as well as a list of child entities (each defining components and children). `.ent` files are the result of
+processing a model using `assettool` or of exporting an entity or scene.
+
+### b) Components
+
+Valid components and their attributes are listed below:
+
+- `MeshRenderer`: Holds material and other rendering information for this entity.
+  - `material`: Path to the relevant `.mtl` file relative to **the assets folder**.
+  - `mesh`: Path to the `.mesh` file of the mesh to be rendered.
+- `Name`: Stores a string name for this entity
+  - `name`: String with the name of the entity
+- `Transform`: Transformation info for the entity.
+  - `position`: List of 3 values containing the position relative to its parent
+  - `rotation`: List of 3 values describing the rotation (in degrees) relative to its parent.
+  - `scale`: List of 3 values describing the scale factor relative to its parent's scale.
+
+**Important note: All paths inside the entity components are relative the main assets folder, not to their own file.**
