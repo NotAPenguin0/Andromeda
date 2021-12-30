@@ -64,7 +64,7 @@ static LogLevel ph_to_log_level(ph::LogSeverity sev) {
 
 // Initialize the default logger
 log_write_fun Log::stdout_log_func = [](LogLevel lvl, std::string_view msg) {
-	dye_log_level(lvl, std::cout) << ": " << msg << hue::reset << std::endl;
+	dye_log_level(lvl, std::cout) << ": " << msg << hue::reset << "\n";
 };
 
 void Log::set_output(log_write_fun func) {
@@ -78,9 +78,37 @@ void Log::write(ph::LogSeverity sev, std::string_view str) {
 }
 
 void Log::write(LogLevel lvl, std::string_view str) {
-	std::lock_guard lock(mutex);
+    mutex.lock();
 
-	output_func(lvl, str);
+    // We need a flush
+	if (buffer_index >= bufsize) {
+        mutex.unlock(); // Unlock before calling flush as flush() locks too
+        flush();
+        mutex.lock();
+    }
+    uint32_t const index = buffer_index++;
+    // Store new entry in buffer and increment index
+    message_buffer[index] = BufferedMessage{ .lvl = lvl, .str = std::string{ str } };
+    mutex.unlock();
+}
+
+void Log::write_now(LogLevel lvl, std::string_view str) {
+    std::lock_guard lock(mutex);
+    write_unlocked(lock, lvl, str);
+}
+
+void Log::flush() {
+    // Note that during a flush no messages can be written.
+    std::lock_guard lock(mutex);
+    // Write out messages from oldest to newest and reset buffer index
+    for (uint32_t i = 0; i < buffer_index; ++i) {
+        output_func(message_buffer[i].lvl, message_buffer[i].str);
+    }
+    buffer_index = 0;
+}
+
+void Log::write_unlocked(std::lock_guard<std::mutex> const& lock, LogLevel lvl, std::string_view str) {
+    output_func(lvl, str);
 }
 
 namespace impl {

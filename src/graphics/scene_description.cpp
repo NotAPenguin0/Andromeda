@@ -35,8 +35,9 @@ void SceneDescription::add_light(PointLight const& light, glm::vec3 const& posit
 }
 
 void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& cam_transform, Camera const& cam) {
-	CameraMatrices& camera = cameras[vp.index()];
+	CameraInfo& camera = cameras[vp.index()];
 	camera.active = true;
+    camera.environment = cam.environment;
 
 	// Projection matrix
 
@@ -87,6 +88,14 @@ void SceneDescription::set_default_occlusion(Handle<gfx::Texture> handle) {
     textures.default_occlusion = handle;
 }
 
+void SceneDescription::set_default_environment(Handle<gfx::Environment> handle) {
+    default_env = handle;
+}
+
+void SceneDescription::set_brdf_lut(Handle<gfx::Texture> handle) {
+    textures.brdf_lut = handle;
+}
+
 void SceneDescription::reset() {
 	draws.clear();
 	textures.views.clear();
@@ -95,6 +104,7 @@ void SceneDescription::reset() {
 
 	for (auto& cam : cameras) {
 		cam.active = false;
+        cam.environment = Handle<gfx::Environment>::none;
 	}
 
     // Push default textures to the texture map

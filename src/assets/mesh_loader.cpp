@@ -1,12 +1,10 @@
 #include <andromeda/assets/loaders.hpp>
 
 #include <andromeda/graphics/context.hpp>
-#include <andromeda/graphics/mesh.hpp>
 
 #include <assetlib/asset_file.hpp>
 #include <assetlib/mesh.hpp>
 
-#include <plib/stream.hpp>
 
 #include <string>
 

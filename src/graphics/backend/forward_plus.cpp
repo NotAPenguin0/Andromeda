@@ -151,7 +151,6 @@ ph::Pass ForwardPlusRenderer::depth_prepass(ph::InFlightContext& ifc, gfx::Viewp
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                     .add_uniform_buffer("camera", render_data.vp[viewport.index()].camera)
-
                     .get();
             cmd.bind_descriptor_set(set);
 
@@ -172,7 +171,7 @@ ph::Pass ForwardPlusRenderer::depth_prepass(ph::InFlightContext& ifc, gfx::Viewp
                 cmd.bind_vertex_buffer(0, mesh.vertices);
                 cmd.bind_index_buffer(mesh.indices, VK_INDEX_TYPE_UINT32);
 
-                cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(glm::mat4), &draw.transform);
+                cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(glm::mat4), &draw.transform); // TODO: Use transforms SSBO like in main pass
                 cmd.draw_indexed(mesh.num_indices, 1, 0, 0, 0);
             }
         })
@@ -215,6 +214,10 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport vi
         .add_depth_attachment(depth_attachments[viewport.index()], ph::LoadOp::Load, {})
         .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader)
         .execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
+            // We can skip this entire function if there are no draws.
+            // We still want to set up a renderpass to make sure attachments are properly cleared.
+            if (scene.draws.empty()) return;
+
             cmd.bind_pipeline("shading");
             cmd.auto_viewport_scissor();
 
@@ -224,11 +227,22 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport vi
             variable_count_info.descriptorSetCount = 1;
             variable_count_info.pDescriptorCounts = counts;
 
+            Handle<gfx::Environment> env = scene.cameras[viewport.index()].environment;
+            if (!env || !assets::is_ready(env)) env = scene.default_env;
+            gfx::Environment* environment = assets::get(env);
+
+            Handle<gfx::Texture> brdf_lut_handle = scene.textures.brdf_lut;
+            if (!brdf_lut_handle || !assets::is_ready(brdf_lut_handle)) brdf_lut_handle = scene.textures.default_metal_rough; // default metal-rough is black
+            gfx::Texture* brdf_lut = assets::get(brdf_lut_handle);
+
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                 .add_uniform_buffer("camera", vp_data.camera)
                 .add_storage_buffer("lights", render_data.point_lights)
                 .add_storage_buffer("visible_lights", vp_data.culled_lights)
                 .add_storage_buffer("transforms", render_data.transforms)
+                .add_sampled_image("irradiance_map", environment->irradiance_view, ctx.basic_sampler())
+                .add_sampled_image("specular_map", environment->specular_view, ctx.basic_sampler())
+                .add_sampled_image("brdf_lut", brdf_lut->view, ctx.basic_sampler())
                 .add_sampled_image_array("textures", scene.textures.views, ctx.basic_sampler())
                 .add_pNext(&variable_count_info)
                 .get();

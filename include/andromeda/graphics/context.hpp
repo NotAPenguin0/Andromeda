@@ -9,6 +9,7 @@
 #include <andromeda/graphics/mesh.hpp>
 #include <andromeda/graphics/texture.hpp>
 #include <andromeda/graphics/material.hpp>
+#include <andromeda/graphics/environment.hpp>
 #include <andromeda/thread/scheduler.hpp>
 #include <andromeda/util/handle.hpp>
 
@@ -66,6 +67,13 @@ private:
 	*/
 	Handle<gfx::Material> request_material(std::string const& path);
 
+    /**
+     * @brief Request an environment to be loaded asynchronously.
+     * @param path Path to the environment (.env) file.
+     * @return A handle referring to the environment in the asset system
+     */
+    Handle<gfx::Environment> request_environment(std::string const& path);
+
 	/**
 	 * @brief Frees a texture. This will be done asynchronously.
 	 * @param handle A handle referring to the texture to free
@@ -77,6 +85,12 @@ private:
 	 * @param handle A handle referring to the mesh to free.
 	*/
 	void free_mesh(Handle<gfx::Mesh> handle);
+
+    /**
+     * @brief Free an environment asynchronously.
+     * @param handle A handle referring to the environment to free.
+     */
+    void free_environment(Handle<gfx::Environment> handle);
 };
 
 } // namespace gfx

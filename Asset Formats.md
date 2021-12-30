@@ -46,7 +46,7 @@ Currently, the following pixel formats are supported:
 	
 - `R8`: 8 bits per component, 1 component.
 - `RG8`: 8 bits per component, 2 components.
-- `RGB8`: 8 bits per component, 3 components. Note that not many GPUs support this formay for images.
+- `RGB8`: 8 bits per component, 3 components. Note that not many GPUs support this format for images.
 - `RGBA8`: 8 bits per component, 4 components.
 
 ### d) Binary blob
@@ -133,3 +133,45 @@ Valid components and their attributes are listed below:
   - `scale`: List of 3 values describing the scale factor relative to its parent's scale.
 
 **Important note: All paths inside the entity components are relative the main assets folder, not to their own file.**
+
+# 5. Environment files (.env)
+
+### a) Identification
+
+Environment files are binary files consisting of a JSON header and a binary blob. The first 16 bytes in the file are used to 
+identify it. 
+
+- Bytes 0-4: Magic number `IENV` identifying the file type.
+- Bytes 5-8: 32-bit unsigned integer representing file version
+- Bytes 9-12: 32-bit unsigned integer containing the length of the JSON header
+- Bytes 13-16: 32-bit unsigned integer containing the length of the binary blob
+
+Inside the binary blob 3 images will be stored: A HDR cubemap with the environment image and its mip levels,
+a convoluted irradiance cubemap with no mip levels, and a prefiltered specular cubemap with different roughness values in 
+each mip level. 
+
+Cube maps are laid out in memory in a specific way: First are all faces at mip level 0, then all faces at level 1, etc. 
+Faces must always be in the same order: +X, -X, +Y, -Y, +Z, -Z.
+
+In environment files, all images are stored with a 32-bit float, 4 channels format.
+
+### b) JSON metadata
+
+The following fields are always present in the JSON metadata:
+
+- `compression_mode`: Compression mode used by the asset packer
+- `hdr_extents`: Size of each face of the HDR cubemap in pixels
+  - `x`: Width of the image
+  - `y`: Height of the image
+- `hdr_bytes`: Size in bytes of the uncompressed HDR cubemap.
+- `irradiance_size`: Size of the cubemap faces of the irradiance map.
+- `irradiance_bytes`: Size in bytes of the irradiance map.
+- `irradiance_offset`: Offset in bytes in the binary blob where the irradiance cubemap begins.
+- `specular_size`: Size of the cubemap faces of the specular map.
+- `specular_bytes`: Size in bytes of the entire specular map.
+- `specular_offset`: Offset in bytes of the specular map.
+
+### c) Binary blob
+
+The binary blob stores three cubemaps in 32-bit float RGBA format. First is the HDR environment, then the
+irradiance map, and then the prefiltered specular map. The offsets are given in the JSON header.

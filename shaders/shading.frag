@@ -23,7 +23,11 @@ layout(std430, set = 0, binding = 3) buffer readonly LightVisibility {
     uint data[];
 } visible_lights;
 
-layout(set = 0, binding = 4) uniform sampler2D textures[];
+layout(set = 0, binding = 4) uniform samplerCube irradiance_map;
+layout(set = 0, binding = 5) uniform samplerCube specular_map;
+layout(set = 0, binding = 6) uniform sampler2D brdf_lut;
+
+layout(set = 0, binding = 7) uniform sampler2D textures[];
 
 layout(push_constant) uniform PC {
     // Vertex shader
@@ -141,6 +145,32 @@ vec3 apply_point_light(PointLight light, vec3 normal, vec3 albedo, float metalli
     return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
+vec3 calculate_indirect_light(vec3 normal, vec3 albedo, float ao, float roughness, float metallic) {
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
+
+    vec3 view_dir = normalize(camera.position.xyz - world_pos);
+
+    vec3 F = fresnel_schlick_roughness(max(dot(normal, view_dir), 0.0), F0, roughness);
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= (1.0 - metallic);
+    vec3 irradiance = texture(irradiance_map, normal).rgb;
+    vec3 diffuse = irradiance * albedo;
+
+    vec3 reflect_dir = reflect(-view_dir, normal);
+    const float MAX_REFLECTION_LOD = float(textureQueryLevels(specular_map));
+    float lod = MAX_REFLECTION_LOD * roughness;
+
+    vec3 indirect_specular = textureLod(specular_map, reflect_dir, lod).rgb;
+    vec2 brdf_uv = vec2(max(dot(normal, view_dir), 0.0), roughness);
+    brdf_uv.y = 1.0 - brdf_uv.y; // our BRDF texture is stored upside down for some reason so we invert the y coordinate
+    vec2 env_brdf = texture(brdf_lut, brdf_uv).rg;
+    vec3 specular = indirect_specular * (F * env_brdf.x + env_brdf.y);
+
+    return (kD * diffuse + specular) * ao;
+}
+
 void main() {
     // Determine tile index to retrieve lighting information
     const ivec2 pixel = ivec2(gl_FragCoord.xy);
@@ -165,9 +195,8 @@ void main() {
         color += apply_point_light(light, normal, albedo, metallic, roughness);
     }
 
-    // Add bad ambient lighting
-    color += albedo * ao * vec3(0.03);
+    // Add indirect light from the environment to the final color
+    color += calculate_indirect_light(normal, albedo, ao, roughness, metallic);
 
     FragColor = vec4(color, 1.0);
-//    FragColor = vec4(normalize(TBN * texture(textures[pc.normal_idx], UV).rgb), 1.0);
 }

@@ -5,6 +5,8 @@
 #include <functional>
 #include <string_view>
 #include <mutex>
+#include <array>
+#include <atomic>
 
 namespace andromeda {
 
@@ -85,9 +87,45 @@ public:
 	*/
 	void write(LogLevel lvl, std::string_view str);
 
+    /**
+     * @brief Writes a formatted output message without buffering. May cause stalls
+     * @tparam Args Types of the format parameters
+     * @param lvl Logging level
+     * @param str Format string
+     * @param args Format parameters
+     */
+    template<typename... Args>
+    void write_format_now(LogLevel lvl, std::string_view str, Args&&... args) {
+        write_now(lvl, fmt::vformat(str, fmt::make_format_args(std::forward<Args>(args)...)));
+    }
+
+    /**
+     * @brief Writes an output message without buffering. May cause stalls.
+     * @param lvl Log level
+     * @param str Message to log
+     */
+    void write_now(LogLevel lvl, std::string_view str);
+
+    /**
+     * @brief Flushes all stored log messages. Call this periodically to make sure messages are flushed (also happens automatically every N messages)
+     */
+    void flush();
+
 private:
 	std::mutex mutex{};
 	log_write_fun output_func = stdout_log_func;
+
+    struct BufferedMessage {
+        std::string str;
+        LogLevel lvl;
+    };
+
+    static constexpr inline uint32_t bufsize = 8;
+    std::array<BufferedMessage, bufsize> message_buffer;
+    uint32_t buffer_index = 0;
+
+    // Do an actual write. Requires an active lock.
+    void write_unlocked(std::lock_guard<std::mutex> const& lock, LogLevel lvl, std::string_view str);
 };
 
 namespace impl {
@@ -96,6 +134,8 @@ namespace impl {
 
 #define LOG_WRITE(level, message) ::andromeda::impl::_global_log_pointer->write(level, message)
 #define LOG_FORMAT(level, fmt_string, ...) ::andromeda::impl::_global_log_pointer->write_format(level, fmt_string, __VA_ARGS__)
+#define LOG_WRITE_NOW(level, message) ::andromeda::impl::_global_log_pointer->write_now(level, message)
+#define LOG_FORMAT_NOW(level, fmt_string, ...) ::andromeda::impl::_global_log_pointer->write_format_now(level, fmt_string, __VA_ARGS__)
 
 
 } // namespace andromeda

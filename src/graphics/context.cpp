@@ -124,6 +124,21 @@ Handle<gfx::Material> Context::request_material(std::string const& path) {
 	return handle;
 }
 
+Handle<gfx::Environment> Context::request_environment(std::string const& path) {
+    LOG_FORMAT(LogLevel::Info, "Loading environment at path {}", path);
+    Handle<gfx::Environment> handle = assets::impl::insert_pending<gfx::Environment>();
+    thread::task_id task = scheduler.schedule([this, handle, path](uint32_t thread) {
+        try {
+            impl::load_environment(*this, handle, path, thread + 1);
+        } catch(std::exception const& e) {
+            LOG_FORMAT(LogLevel::Error, "Exception while loading environment {}: {}", path, e.what());
+        }
+    }, {});
+    assets::impl::set_load_task(handle, task);
+    assets::impl::set_path(handle, path);
+    return handle;
+}
+
 void Context::free_texture(Handle<gfx::Texture> handle) {
 	try {
 		// If we free a texture before it is fully loaded we will get an error, unless
@@ -148,7 +163,7 @@ void Context::free_texture(Handle<gfx::Texture> handle) {
 		}, dependencies);
 	}
 	catch (std::exception const& e) {
-		LOG_FORMAT(LogLevel::Fatal, "Fatal exception occured. Provided message: {}", e.what());
+		LOG_FORMAT(LogLevel::Fatal, "Fatal exception occurred. Provided message: {}", e.what());
 		std::terminate();
 	}
 }
@@ -177,9 +192,37 @@ void Context::free_mesh(Handle<gfx::Mesh> handle) {
 		}, dependencies);
 	}
 	catch (std::exception const& e) {
-		LOG_FORMAT(LogLevel::Fatal, "Fatal exception occured. Provided message: {}", e.what());
+		LOG_FORMAT(LogLevel::Fatal, "Fatal exception occurred. Provided message: {}", e.what());
 		std::terminate();
 	}
+}
+
+void Context::free_environment(Handle<gfx::Environment> handle) {
+    try {
+        thread::task_id dependency = assets::impl::get_load_task(handle);
+        std::vector<thread::task_id> dependencies;
+        if (dependency != static_cast<thread::task_id>(-1)) {
+            dependencies.push_back(dependency);
+        }
+        scheduler.schedule([this, handle](uint32_t thread) {
+            gfx::Environment* env = assets::get(handle);
+            if (env == nullptr) {
+                LOG_WRITE(LogLevel::Error, "Tried to delete null environment");
+                return;
+            }
+            destroy_image(env->cubemap);
+            destroy_image(env->irradiance);
+            destroy_image(env->specular);
+            destroy_image_view(env->cubemap_view);
+            destroy_image_view(env->irradiance_view);
+            destroy_image_view(env->specular_view);
+            assets::impl::delete_asset(handle);
+        }, dependencies);
+    }
+    catch(std::exception const& e) {
+        LOG_FORMAT(LogLevel::Fatal, "Fatal exception occurred. Provided message: {}", e.what());
+        std::terminate();
+    }
 }
 
 } // namespace gfx

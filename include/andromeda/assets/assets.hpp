@@ -57,6 +57,7 @@ struct asset_storage_type {
 	// Additional information
 	thread::task_id load_task_id = static_cast<thread::task_id>(-1);
 	// Path to the asset file. This will be used to prevent loading the same asset multiple times.
+    // This is stored as an absolute path
 	fs::path path;
 };
 
@@ -181,7 +182,7 @@ void set_path(Handle<T> handle, fs::path const& path) {
 
 	auto [_, storage] = acquire<T>();
 	asset_storage_type<T>& element = storage.at(handle);
-	element.path = path;
+	element.path = fs::absolute(path);
 }
 
 /**
@@ -217,12 +218,13 @@ template<typename T>
 Handle<T> load(std::string const& path) {
 	// First we look for the asset in the list of already loaded assets by comparing paths.
 	{
-		fs::path path_fs = path;
+		fs::path path_fs = fs::absolute(path);
 		auto [_, storage] = impl::acquire<T>();
 		for (auto const& [handle, element] : storage) {
             // Do not compare assets with empty paths (these can be created internally).
             if (element.path == "") continue;
-			if (fs::equivalent(path_fs, element.path)) return handle;
+            // Use equality compare because std::filesystem::equivalent is very expensive (and also errors on invalid paths, which we want to handle later in the pipeline).
+			if (element.path == path_fs) return handle;
 		}
 	}
 
@@ -305,7 +307,7 @@ T* get(Handle<T> handle) {
 }
 
 /**
- * @brief Get the path of an asset.
+ * @brief Get the absolute path of an asset.
  * @tparam T Type of the asset.
  * @param handle Handle to the asset.
  * @return std::nullopt if no path was set or if the handle was null, the path otherwise.
@@ -327,10 +329,9 @@ std::optional<fs::path> get_path(Handle<T> handle) {
 /**
  * @brief Unloads all assets of a given type.
  * @tparam T Type of the assets to unload.
- * @param ctx Reference to the graphics context.
 */
 template<typename T>
-void unload_all(gfx::Context& ctx) {
+void unload_all() {
 	// We need to collect all handles in a vector first so we can release the lock again, since
 	// unload() indirectly tries to lock the asset system again.
 	std::vector<Handle<T>> handles;

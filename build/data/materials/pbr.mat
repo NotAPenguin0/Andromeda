@@ -1,7 +1,0 @@
-{
-    "albedo": "data/textures/metal_plate_diff_1k.tx",
-    "normal": "data/textures/metal_plate_nor_gl_1k.tx",
-    "metallic": "data/textures/metal_plate_metal_1k.tx",
-    "roughness": "data/textures/metal_plate_rough_1k.tx",
-    "occlusion": "data/textures/metal_plate_ao_1k.tx"
-}

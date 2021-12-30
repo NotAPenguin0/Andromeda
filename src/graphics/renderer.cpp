@@ -4,6 +4,8 @@
 #include <andromeda/graphics/backend/forward_plus.hpp>
 #include <andromeda/graphics/imgui.hpp>
 
+#include <andromeda/graphics/environment.hpp>
+
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/mesh_renderer.hpp>
 #include <andromeda/components/hierarchy.hpp>
@@ -81,6 +83,57 @@ static Handle<gfx::Texture> create_1x1_texture(gfx::Context& ctx, VkFormat forma
     return assets::take(texture);
 }
 
+static Handle<gfx::Environment> create_default_environment(gfx::Context& ctx) {
+    gfx::Environment env {};
+
+    env.cubemap = ctx.create_image(ph::ImageType::EnvMap, { 1, 1 }, VK_FORMAT_R32G32B32A32_SFLOAT);
+    env.irradiance = ctx.create_image(ph::ImageType::EnvMap, { 1, 1 }, VK_FORMAT_R32G32B32A32_SFLOAT);
+    env.specular = ctx.create_image(ph::ImageType::EnvMap, { 1, 1 }, VK_FORMAT_R32G32B32A32_SFLOAT);
+    env.cubemap_view = ctx.create_image_view(env.cubemap);
+    env.irradiance_view = ctx.create_image_view(env.irradiance);
+    env.specular_view = ctx.create_image_view(env.specular);
+
+    ctx.name_object(env.cubemap, "Default Envmap - Image");
+    ctx.name_object(env.irradiance, "Default Envmap Irradiance - Image");
+    ctx.name_object(env.specular, "Default Envmap Specular - Image");
+    ctx.name_object(env.cubemap_view, "Default Envmap - ImageView");
+    ctx.name_object(env.irradiance_view, "Default Envmap Irradiance - ImageView");
+    ctx.name_object(env.specular_view, "Default Envmap Specular - ImageView");
+
+    ph::Queue& queue = *ctx.get_queue(ph::QueueType::Transfer);
+    ph::CommandBuffer cmd = queue.begin_single_time(0);
+
+    float data[4] {0.0f, 0.0f, 0.0f, 0.0f}; // zero alpha so this will never affect anything
+    ph::RawBuffer upload = ctx.create_buffer(ph::BufferType::TransferBuffer, sizeof(data));
+    std::byte* mem = ctx.map_memory(upload);
+    std::memcpy(mem, data, sizeof(data));
+    ctx.unmap_memory(upload);
+
+    auto upload_image = [&ctx, &upload, &cmd](ph::ImageView img) {
+        cmd.transition_layout(
+            ph::PipelineStage::TopOfPipe, VK_ACCESS_NONE_KHR, ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
+            img, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        cmd.copy_buffer_to_image(upload, img);
+        cmd.transition_layout(
+                ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT, ph::PipelineStage::BottomOfPipe, VK_ACCESS_MEMORY_READ_BIT,
+                img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        );
+    };
+
+    upload_image(env.cubemap_view);
+    upload_image(env.irradiance_view);
+    upload_image(env.specular_view);
+
+    VkFence fence = ctx.create_fence();
+    queue.end_single_time(cmd, fence);
+    ctx.wait_for_fence(fence);
+    ctx.destroy_fence(fence);
+    queue.free_single_time(cmd, 0);
+    ctx.destroy_buffer(upload);
+
+    return assets::take(env);
+}
+
 Renderer::Renderer(gfx::Context& ctx, Window& window) {
 	gfx::imgui::init(ctx, window);
 
@@ -99,7 +152,7 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
     {
         uint8_t magenta[4] { 255, 0, 255, 255 };
         uint8_t up[4] { 0, 255, 0, 255 };
-        uint8_t black[1] { 0 };
+        uint8_t black[4] { 0, 0, 0, 255 };
         uint8_t white[1] { 255 };
         Handle<gfx::Texture> albedo = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_SRGB, magenta, sizeof(magenta));
         Handle<gfx::Texture> normal = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, up, sizeof(up));
@@ -122,6 +175,9 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
         scene.set_default_metal_rough(metal_rough);
         scene.set_default_occlusion(occlusion);
     }
+
+    scene.set_default_environment(create_default_environment(ctx));
+    scene.set_brdf_lut(assets::load<gfx::Texture>("data/textures/brdf_lut.tx"));
 
 	impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
 }

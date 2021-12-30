@@ -10,5 +10,6 @@ class Context;
 struct Mesh;
 struct Texture;
 struct Material;
+struct Environment;
 
 } // namespace andromeda::gfx

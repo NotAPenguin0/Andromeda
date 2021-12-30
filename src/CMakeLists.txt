@@ -7,6 +7,7 @@ target_sources(andromeda PRIVATE
 
 	"assets/assets.cpp"
 	"assets/entity_loader.cpp"
+	"assets/environment_loader.cpp"
 	"assets/material_loader.cpp"
 	"assets/mesh_loader.cpp"
 	"assets/texture_loader.cpp"

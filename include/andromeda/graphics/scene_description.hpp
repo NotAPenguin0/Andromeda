@@ -102,6 +102,18 @@ public:
     */
     void set_default_occlusion(Handle<gfx::Texture> handle);
 
+    /**
+     * @brief Sets the default environment object. This can be used as a placeholder if no environment was loaded (yet).
+     * @param handle Handle the the default environment object. May not be null.
+     */
+    void set_default_environment(Handle<gfx::Environment> handle);
+
+    /**
+     * @brief Sets the 2D BRDF lookup texture. Does not get cleared on reset()
+     * @param handle Handle to the 2D BRDF lookup texture. If this is not loaded yet, a black 1x1 texture is used instead.
+     */
+    void set_brdf_lut(Handle<gfx::Texture> handle);
+
 	/**
 	 * @brief Clears all data except things that are persistent across frames (such as
 	 *		  default textures).
@@ -147,19 +159,21 @@ private:
 	std::vector<Draw> draws;
 
 	/**
-	 * @brief Stores a single viewport + camera.
+	 * @brief Stores a single viewport + camera data
 	*/
-	struct CameraMatrices {
+	struct CameraInfo {
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 proj_view;
         glm::vec3 position;
 
 		bool active = false;
+
+        Handle<gfx::Environment> environment;
 	};
 
 	// Each camera is indexed by a viewport index.
-	std::array<CameraMatrices, gfx::MAX_VIEWPORTS> cameras;
+	std::array<CameraInfo, gfx::MAX_VIEWPORTS> cameras;
 
 	struct {
 		// Array of all image views ready to send to the GPU.
@@ -172,7 +186,15 @@ private:
         Handle<gfx::Texture> default_normal;
         Handle<gfx::Texture> default_metal_rough;
         Handle<gfx::Texture> default_occlusion;
+
+        // BRDF lookup texture.
+        Handle<gfx::Texture> brdf_lut;
 	} textures;
+
+    // Default environment. This environment has an empty irradiance and specular map, so they won't affect lighting.
+    // The cubemap texture for this environment is transparent so that if you do render it nothing actually shows up.
+    // Not reset when calling reset()
+    Handle<gfx::Environment> default_env;
 
     std::vector<gpu::PointLight> point_lights;
 

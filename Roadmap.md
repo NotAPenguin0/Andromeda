@@ -7,8 +7,11 @@
   - [X] Initially use simple Blinn-Phong shading
   - [X] Debug displays
 - [ ] Environment maps
-  - [ ] Asset processing
+  - [X] Asset processing
   - [ ] IBL
+  - [ ] Automatic exposure/iris adaptation/HDR scaling 
+    - https://discord.com/channels/318590007881236480/600645448394342402/924972103692873749
+    - https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/AutomaticExposure/
 - [X] PBR shading model
 
 ## Asset pipeline
@@ -17,14 +20,14 @@
 - [X] Extend `assettool` with command line options
   - [X] RGB/sRGB color space
 - [X] Make `assettool` work for images that have fewer channels.
-- [ ] Model loading and processing
+- [X] Model loading and processing
   - [X] json model format linking multiple meshes and materials together
-  - [ ] processing `.obj` into `.ent` and necessary `.mesh` and `.tx` files
-  - [ ] add model loading to engine
-    - [ ] add blueprinting ECS
-    - [ ] add copying from blueprint ECS to real ECS.
-    - [ ] model loading creates a new blueprint entity
-    - [ ] loading model into scene copies the blueprint into the real ecs
+  - [X] processing `.obj` into `.ent` and necessary `.mesh` and `.tx` files
+  - [X] add model loading to engine
+    - [X] add blueprinting ECS
+    - [X] add copying from blueprint ECS to real ECS.
+    - [X] model loading creates a new blueprint entity
+    - [X] loading model into scene copies the blueprint into the real ecs
 
 ## UI
 
@@ -48,3 +51,4 @@
   - Full raytraced backend should probably not be real-time and only update at certain intervals.
 - [ ] Gizmos
 - [ ] Water/fluid simulation
+- [ ] Object picking in editor

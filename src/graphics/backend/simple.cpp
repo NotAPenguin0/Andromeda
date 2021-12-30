@@ -51,7 +51,7 @@ void SimpleRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightContext& i
 			cmd.bind_pipeline("simple_pipeline");
 			cmd.auto_viewport_scissor();
 
-			SceneDescription::CameraMatrices const& camera = scene.cameras[viewport.index()];
+			SceneDescription::CameraInfo const& camera = scene.cameras[viewport.index()];
 
 			ph::TypedBufferSlice<glm::mat4> cam = ifc.allocate_scratch_ubo(sizeof(glm::mat4));
 			*cam.data = camera.proj_view;

@@ -22,7 +22,6 @@ Handle<gfx::Mesh> load_priv<gfx::Mesh>(std::string const& path) {
 	return gfx_context->request_mesh(path);
 }
 
-
 template<>
 Handle<gfx::Material> load_priv<gfx::Material>(std::string const& path) {
 	return gfx_context->request_material(path);
@@ -35,6 +34,11 @@ Handle<ecs::entity_t> load_priv<ecs::entity_t>(std::string const& path) {
     ::andromeda::impl::load_entity(*gfx_context, *world, handle, path);
     assets::impl::set_path(handle, path);
     return handle;
+}
+
+template<>
+Handle<gfx::Environment> load_priv<gfx::Environment>(std::string const& path) {
+    return gfx_context->request_environment(path);
 }
 
 }
@@ -52,6 +56,17 @@ void unload<gfx::Mesh>(Handle<gfx::Mesh> handle) {
 template<>
 void unload<gfx::Material>(Handle<gfx::Material> handle) {
 	// Do nothing, materials don't actually own any resources.
+}
+
+template<>
+void unload<ecs::entity_t>(Handle<ecs::entity_t> handle) {
+    // Not implemented
+    // TODO: Deleting entities (both from blueprints and main ECS)
+}
+
+template<>
+void unload<gfx::Environment>(Handle<gfx::Environment> handle) {
+    impl::gfx_context->free_environment(handle);
 }
 
 } // namespace assets

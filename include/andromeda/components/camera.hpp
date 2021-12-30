@@ -1,6 +1,8 @@
 #pragma once
 
 #include <glm/vec3.hpp>
+#include <andromeda/util/handle.hpp>
+#include <andromeda/graphics/forward.hpp>
 
 namespace andromeda {
 	
@@ -23,6 +25,9 @@ struct [[component]] Camera {
 	[[editor::min(0.00001f)]]
 	[[editor::drag_speed(0.2)]]
 	float far = 100.0f;
+
+    [[editor::tooltip("Environment asset to render this camera's view with.")]]
+    Handle<gfx::Environment> environment;
 };
 
 }
