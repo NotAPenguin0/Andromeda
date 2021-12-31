@@ -39,7 +39,7 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
     settings.scratch_ssbo_size = 32 * 1024 * 1024; // 32 MiB
 	settings.present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	// Note that we cannot use make_unique since the constructor is private.
-	auto ctx = std::unique_ptr<Context>{ new Context{ settings, scheduler } };
+	auto ctx = std::unique_ptr<Context>{ new Context{ settings, window, scheduler } };
 	// Log some information about the created context
 	LOG_WRITE(LogLevel::Info, "Created graphics context.");
 	ph::PhysicalDevice const& gpu = ctx->get_physical_device();
@@ -68,8 +68,12 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 	return ctx;
 }
 
-Context::Context(ph::AppSettings settings, thread::TaskScheduler& scheduler) 
-	: ph::Context(std::move(settings)), scheduler(scheduler) {
+float Context::delta_time() const {
+    return window.delta_time();
+}
+
+Context::Context(ph::AppSettings settings, Window& window, thread::TaskScheduler& scheduler)
+	: ph::Context(std::move(settings)), window(window), scheduler(scheduler) {
 
 	
 }

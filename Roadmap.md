@@ -8,11 +8,14 @@
   - [X] Debug displays
 - [ ] Environment maps
   - [X] Asset processing
-  - [ ] IBL
+  - [X] IBL
   - [ ] Automatic exposure/iris adaptation/HDR scaling 
     - https://discord.com/channels/318590007881236480/600645448394342402/924972103692873749
     - https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/AutomaticExposure/
 - [X] PBR shading model
+- [ ] Shadows
+- [ ] Organize backend code to be more re-usable.
+  - [ ] Move postprocess pipeline to separate module
 
 ## Asset pipeline
 
@@ -41,6 +44,8 @@
 - [ ] Settings menu
 - [ ] Performance display
 - [ ] Color type for components fields to distinguish between vectors and colors
+- [ ] Correctly handle tangent W, formula is `bitangent = cross(normal, tangent.xyz) * tangent.w`
+  - Maybe assimp already handles this internally?
 
 ## Farther future
 
@@ -52,3 +57,5 @@
 - [ ] Gizmos
 - [ ] Water/fluid simulation
 - [ ] Object picking in editor
+- [ ] Atmospheric scattering
+- [ ] Asset hot-reloading

@@ -38,6 +38,8 @@ void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& ca
 	CameraInfo& camera = cameras[vp.index()];
 	camera.active = true;
     camera.environment = cam.environment;
+    camera.min_log_luminance = cam.min_log_luminance;
+    camera.max_log_luminance = cam.max_log_luminance;
 
 	// Projection matrix
 
@@ -105,6 +107,8 @@ void SceneDescription::reset() {
 	for (auto& cam : cameras) {
 		cam.active = false;
         cam.environment = Handle<gfx::Environment>::none;
+        cam.min_log_luminance = 0.0;
+        cam.max_log_luminance = 0.0;
 	}
 
     // Push default textures to the texture map

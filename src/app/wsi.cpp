@@ -34,6 +34,8 @@ Window::Window(std::string_view title, uint32_t width, uint32_t height) {
 	height_px = height;
 
 	LOG_FORMAT(LogLevel::Info, "Created app window with size {}x{} px.", width, height);
+
+    last_time = time = (float)glfwGetTime();
 }
 
 Window::~Window() {
@@ -56,6 +58,11 @@ void Window::maximize() {
 
 void Window::poll_events() {
 	glfwPollEvents();
+
+    // Update timer
+    time = (float)glfwGetTime();
+    d_time = time - last_time;
+    last_time = time;
 }
 
 bool Window::is_open() const {
@@ -68,6 +75,10 @@ void Window::close() {
 
 void Window::hide() {
 	glfwHideWindow(reinterpret_cast<GLFWwindow*>(handle));
+}
+
+float Window::delta_time() const {
+    return d_time;
 }
 
 std::vector<const char*> Window::window_extension_names() const {

@@ -8,13 +8,18 @@ endforeach()
 file(GLOB SHADER_SOURCES ${SHADER_FILTER})
 file(GLOB SHADER_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/*.glsl")
 
+set(GLSLC_DEBUG "")
+if (CMAKE_BUILD_TYPE MATCHES "DEBUG")
+    set(GLSLC_DEBUG "-g")
+endif()
+
 set(SHADER_OUTPUT_FILES "")
 foreach(SHADER ${SHADER_SOURCES})
 	get_filename_component(SHADER_FNAME ${SHADER} NAME)
     set(SHADER_OUTPUT ${CMAKE_BINARY_DIR}/data/shaders/${SHADER_FNAME}.spv)
     list(APPEND SHADER_OUTPUT_FILES ${SHADER_OUTPUT})
 	add_custom_command(OUTPUT ${SHADER_OUTPUT}
-        COMMAND glslc ${SHADER} "-o${SHADER_OUTPUT}" "--target-env=vulkan1.2"
+        COMMAND glslc ${SHADER} "-o${SHADER_OUTPUT}" "--target-env=vulkan1.2" "-g"
         DEPENDS ${SHADER} ${SHADER_INCLUDES}
     )
 endforeach()

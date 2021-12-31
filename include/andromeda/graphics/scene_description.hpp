@@ -170,6 +170,8 @@ private:
 		bool active = false;
 
         Handle<gfx::Environment> environment;
+        float min_log_luminance;
+        float max_log_luminance;
 	};
 
 	// Each camera is indexed by a viewport index.

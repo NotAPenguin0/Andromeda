@@ -7,6 +7,7 @@
 
 #include <reflect/reflection.hpp>
 
+#include <GLFW/glfw3.h> // temporary
 
 namespace andromeda {
 
@@ -48,7 +49,7 @@ int Application::run() {
     {
         srand(time(nullptr));
         auto ecs = world->ecs();
-        for (int i = 0; i < 100; ++i) {
+        for (int i = 0; i < 0; ++i) {
             auto l = world->create_entity(ecs);
             const int concentration = 10;
             auto &pos = ecs->get_component<Transform>(l).position;

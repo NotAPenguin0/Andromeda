@@ -33,10 +33,17 @@ public:
 	*/
 	static std::unique_ptr<Context> init(Window& window, Log& logger, thread::TaskScheduler& scheduler);
 
+    /**
+     * @brief Returns the delta time associated with the held window. This must be externally updated.
+     * @return Time between this frame and the previous frame, in seconds.
+     */
+    float delta_time() const;
+
 private:
-	Context(ph::AppSettings settings, thread::TaskScheduler& scheduler);
+	Context(ph::AppSettings settings, Window& window, thread::TaskScheduler& scheduler);
 
 	thread::TaskScheduler& scheduler;
+    Window& window;
 
 	// load_priv() needs access to the request_XXX() functions.
 	template<typename T>

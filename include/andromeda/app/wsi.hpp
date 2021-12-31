@@ -57,7 +57,7 @@ public:
 	void maximize();
 
 	/**
-	 * @brief Updates the window, polls and processes input events;
+	 * @brief Updates the window, polls and processes input events. Also updates delta_time
 	*/
 	void poll_events();
 
@@ -76,6 +76,12 @@ public:
 	 * @brief Hides the window.
 	*/
 	void hide();
+
+    /**
+     * @brief Get the time between this frame and the previous frame.
+     * @return Delta time, in seconds.
+     */
+    float delta_time() const;
 
 	/**
 	 * @brief Grab the Vulkan extensions needed to create this window's surface.
@@ -100,6 +106,10 @@ private:
 	// Handle to the actual window instance.
 	void* handle = nullptr;
 	uint32_t width_px = 0, height_px = 0;
+
+    float time = 0.0f;
+    float last_time = 0.0f;
+    float d_time = 0.0f;
 
 	friend void impl::resize_callback(GLFWwindow*, int, int);
 };

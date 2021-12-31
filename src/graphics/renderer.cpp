@@ -184,6 +184,7 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
 
 void Renderer::shutdown(gfx::Context& ctx) {
 	gfx::imgui::shutdown();
+    impl.reset(nullptr);
 }
 
 void Renderer::render_frame(gfx::Context& ctx, World const& world) {
@@ -196,7 +197,7 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
 
 	ph::Pass clear_swap = ph::PassBuilder::create("clear")
 		.add_attachment(ctx.get_swapchain_attachment_name(), 
-						ph::LoadOp::Clear, { .color = {0.0f, 0.0f, 0.0f, 1.0f} })
+                        ph::LoadOp::Clear, { .color = {0.0f, 0.0f, 0.0f, 1.0f} })
 		.get();
 
 	ph::RenderGraph graph{};

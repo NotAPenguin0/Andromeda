@@ -1,0 +1,64 @@
+#version 450
+
+#include "include/glsl/limits.glsl"
+
+layout(local_size_x = ANDROMEDA_LUMINANCE_BINS, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer AverageLuminance {
+    float value;
+} average_luminance;
+
+layout(set = 0, binding = 1) buffer Histogram {
+    uint bins[ANDROMEDA_LUMINANCE_BINS];
+} histogram;
+
+layout(push_constant) uniform PC {
+    float log_min_lum; // log2(min_luminance)
+    float log_lum_range; // (log2(max_luminance) - log2(min_luminance)) (NOT INVERTED!!)
+    float delta_time;
+    float _pad0;
+    uint num_pixels;
+} pc;
+
+shared uint local_histogram[ANDROMEDA_LUMINANCE_BINS];
+
+void main() {
+    const float _unused = pc._pad0;
+
+    // This compute shader runs once for each bin, with local_size_x == the bin number
+    const uint thread = gl_GlobalInvocationID.x;
+    uint count_for_this_bin = histogram.bins[thread];
+    // Compute weighted count values for each bin
+    local_histogram[thread] = count_for_this_bin * thread;
+    barrier();
+
+    // Reset count in global histogram to reset for next pass
+    histogram.bins[thread] = 0;
+
+    // Count up each value in the local histogram to compute the weighted sum
+    // This is a smart loop that uses the threads of the compute shader to add N values together on the
+    // first iteration, then N/2, then N/4, etc for a total of log2(N) iterations instead of N
+    for (uint cutoff = (ANDROMEDA_LUMINANCE_BINS >> 1); cutoff > 0; cutoff >>= 1) {
+        if (thread < cutoff) {
+            local_histogram[thread] += local_histogram[thread + cutoff];
+        }
+
+        barrier();
+    }
+
+    // Calculate the average. This only happens once, on the main thread
+    if (thread == 0) {
+        // Take the weigted sum and divide it by the number of pixels with lum > 0.
+        // The amount of pixels with lum == 0 is in the first bin, which is also
+        // count_for_this_bin on thread 0
+        const float log_average = local_histogram[0] / (max(pc.num_pixels - float(count_for_this_bin), 1.0)) - 1.0;
+        // Remap log of luminance value from histogram back to real luminance value
+        const float weigted_average = exp2(((log_average / (ANDROMEDA_LUMINANCE_BINS - 2.0f)) * pc.log_lum_range) + pc.log_min_lum);
+        // Interpolate this value with the value from last frame to make transitions smooth
+        const float last_frame_lum = average_luminance.value;
+        const float tau = 1.1; // http://www.alextardif.com/HistogramLuminance.html
+        const float interpolated_lum = last_frame_lum + (weigted_average - last_frame_lum) * (1 - exp(-pc.delta_time * tau));
+        // Store new average luminance in the buffer
+        average_luminance.value = interpolated_lum;
+    }
+}

@@ -1,0 +1,58 @@
+#version 450
+
+#include "include/glsl/limits.glsl"
+#include "include/glsl/common.glsl"
+
+layout(local_size_x = ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE, local_size_y = ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE, local_size_z = 1) in;
+
+layout(push_constant) uniform PC {
+    float log_min_lum; // log2(min_luminance)
+    float inv_log_lum_range; // 1/(log2(max_luminance) - log2(min_luminance))
+} pc;
+
+layout(set = 0, binding = 0) uniform sampler2D scene_hdr;
+layout(set = 0, binding = 1) buffer Histogram {
+    uint bins[ANDROMEDA_LUMINANCE_BINS];
+} histogram;
+
+shared uint local_bins[ANDROMEDA_LUMINANCE_BINS];
+
+uint find_bin_for_color(vec3 rgb) {
+    // Convert RGB to single luminance value
+    const float lum = rgb2lum(rgb);
+    // Make sure we don't accidentally take the log of zero
+    if (lum < 0.005) return 0;
+
+    float log_lum = clamp((log2(lum) - pc.log_min_lum) * pc.inv_log_lum_range, 0.0, 1.0);
+    // now that we have the logarithmic scale of the luminance value, map it to a bin in range 0, ANDROMEDA_LUMINANCE_BINS - 1
+    return uint(log_lum * float(ANDROMEDA_LUMINANCE_BINS - 2.0) + 1.0);
+}
+
+void main() {
+    if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0) {
+        // Note that we don't want to do this once we add the average shader
+        for (int i = 0; i < ANDROMEDA_LUMINANCE_BINS; ++i) {
+            histogram.bins[i] = 0;
+        }
+    }
+    // Initialize all bins to zero
+    const uint thread = gl_LocalInvocationIndex;
+    local_bins[thread] = 0;
+    barrier();
+
+    uvec2 size = textureSize(scene_hdr, 0).xy;
+    // Only read from image if we are not ouf of bounds
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    if (pixel.x < size.x && pixel.y < size.y) {
+        // We use texelFetch so we can simply keep the image as a sampled image instead
+        // of using a storage image
+        const vec3 hdr_color = texelFetch(scene_hdr, pixel, 0).rgb;
+        const uint bin = find_bin_for_color(hdr_color);
+        atomicAdd(local_bins[bin], 1);
+    }
+
+    barrier();
+
+    // Add all local bins to the global bin
+    atomicAdd(histogram.bins[thread], local_bins[thread]);
+}

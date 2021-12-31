@@ -22,7 +22,9 @@ public:
 	 * @brief Initialize the backend.
 	 * @param ctx Reference to the graphics context.
 	*/
-	inline RendererBackend(gfx::Context& ctx) : ctx(ctx) {}
+	explicit inline RendererBackend(gfx::Context& ctx) : ctx(ctx) {}
+
+    virtual ~RendererBackend() = default;
 
 	/**
 	 * @brief Renders a scene to a viewport.
