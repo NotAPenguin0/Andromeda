@@ -133,6 +133,11 @@ private:
 		ImGui::Text("%s: %ld", meta.name().c_str(), value);
 	}
 
+    void do_display(bool& value, meta::field<C> const& meta, const char* label) {
+        ImGui::Checkbox(label, &value);
+
+    }
+
 	void do_display(float& value, meta::field<C> const& meta, const char* label) {
 		if (meta.flags() & meta::field_flags::no_limits) {
 			ImGui::DragFloat(label, &value, meta.drag_speed());
@@ -178,7 +183,9 @@ struct display_component {
 		if constexpr (std::is_same_v<C, MeshRenderer>) return ICON_FA_CUBES;
 		if constexpr (std::is_same_v<C, Camera>) return ICON_FA_CAMERA;
         if constexpr (std::is_same_v<C, PointLight>) return ICON_FA_LIGHTBULB;
-
+        if constexpr (std::is_same_v<C, Environment>) return ICON_FA_GLOBE_EUROPE;
+        if constexpr (std::is_same_v<C, PostProcessingSettings>) return ICON_FA_IMAGE;
+        if constexpr (std::is_same_v<C, DirectionalLight>) return ICON_FA_SUN;
 		return "";
 	}
 

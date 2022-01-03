@@ -6,16 +6,20 @@
 
 layout(location = 0) in vec2 UV;
 
-layout(set = 0, binding = 0) uniform sampler2D input_hdr;
+layout(set = 0, binding = 0) uniform sampler2DMS input_hdr;
 layout(set = 0, binding = 1) buffer readonly AverageLuminance {
     float value;
 } average_luminance;
 
+layout(push_constant) uniform PC {
+    uint samples;
+} pc;
+
 layout(location = 0) out vec4 FragColor;
 
 void main() {
-    const int NUM_SAMPLES = 1; // TODO: multisampling?
-    ivec2 tex_size = ivec2(textureSize(input_hdr, 0));
+    const uint NUM_SAMPLES = pc.samples;
+    ivec2 tex_size = ivec2(textureSize(input_hdr));
     ivec2 texels = ivec2(UV * tex_size);
 
     vec3 color = vec3(0.0);

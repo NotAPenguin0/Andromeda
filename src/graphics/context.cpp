@@ -27,6 +27,7 @@ std::unique_ptr<Context> Context::init(Window& window, Log& logger, thread::Task
 	settings.gpu_requirements.features.fillModeNonSolid = true;
 	settings.gpu_requirements.features.independentBlend = true;
 	settings.gpu_requirements.features.shaderInt64 = true;
+    settings.gpu_requirements.features.sampleRateShading = true; // MSAA
 	settings.gpu_requirements.features_1_2.scalarBlockLayout = true;
 	settings.gpu_requirements.features_1_2.bufferDeviceAddress = true;
 	// Enable descriptor indexing as this is the method we'll use to bind all our textures.

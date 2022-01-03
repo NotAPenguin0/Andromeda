@@ -65,6 +65,10 @@ private:
         // Can be shared by all viewports.
         ph::TypedBufferSlice<gpu::PointLight> point_lights;
         ph::TypedBufferSlice<glm::mat4> transforms;
+
+        // Note that casting this to uint32_t gives back the amount of samples
+        VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_8_BIT;
+        float msaa_sample_ratio = 0.1f;
     } render_data;
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);

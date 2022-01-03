@@ -132,11 +132,60 @@ void load_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, std::string_vi
 	ctx.destroy_fence(fence);
 	transfer.free_single_time(cmd_buf, thread);
 
-	assets::impl::make_ready(handle, std::move(texture));
+	assets::impl::make_ready(handle, texture);
 	
 	LOG_FORMAT(LogLevel::Info, "Loaded texture {}", path);
 	LOG_FORMAT(LogLevel::Performance, "Texture {} (size {}x{} px) loaded with {} mip levels ({:.1f} MiB)",
 		path, info.extents[0], info.extents[1], info.mip_levels, (float)size / (1024.0f * 1024.0f));
+}
+
+void load_1x1_texture(gfx::Context& ctx, Handle<gfx::Texture> handle, uint8_t bytes[4], uint32_t thread) {
+    gfx::Texture texture{};
+    texture.image = ctx.create_image(ph::ImageType::Texture, { 1, 1 }, VK_FORMAT_R8G8B8A8_SRGB);
+    texture.view = ctx.create_image_view(texture.image);
+
+    // Upload data into staging buffer
+    uint32_t const size = ph::format_size(VK_FORMAT_R8G8B8A8_SRGB);
+
+    ph::RawBuffer staging = ctx.create_buffer(ph::BufferType::TransferBuffer, size);
+    std::byte* memory = ctx.map_memory(staging);
+    // Unpack and decompress directly into the staging buffer.
+    std::memcpy(memory, bytes, size);
+
+    // Now copy from the staging buffer to the image
+    ph::Queue& transfer = *ctx.get_queue(ph::QueueType::Transfer);
+    ph::CommandBuffer cmd_buf = transfer.begin_single_time(thread);
+
+    cmd_buf.transition_layout(
+            // Newly created image
+            ph::PipelineStage::TopOfPipe, VK_ACCESS_NONE_KHR,
+            // Next usage is the copy buffer to image command, so transfer and write access.
+            ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
+            // For the copy command to work the image needs to be in the TransferDstOptimal layout.
+            texture.view, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    cmd_buf.copy_buffer_to_image(staging, texture.view);
+    cmd_buf.transition_layout(
+            // Right after the copy operation
+            ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT,
+            // We don't use it anymore this submission
+            ph::PipelineStage::BottomOfPipe, VK_ACCESS_MEMORY_READ_BIT,
+            // Next usage will be a shader read operation.
+            texture.view, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+
+    VkFence fence = ctx.create_fence();
+    transfer.end_single_time(cmd_buf, fence);
+
+    // Wait until the task is complete
+    ctx.wait_for_fence(fence);
+
+    // Cleanup all resources and send the image to the asset system
+
+    ctx.destroy_buffer(staging);
+    ctx.destroy_fence(fence);
+    transfer.free_single_time(cmd_buf, thread);
+
+    assets::impl::make_ready(handle, texture);
 }
 
 } // namespace impl

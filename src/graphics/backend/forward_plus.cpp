@@ -53,11 +53,13 @@ static constexpr float skybox_vertices[] = {
 
 ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ctx) {
     for (int i = 0; i < gfx::MAX_VIEWPORTS; ++i) {
+        // Note that only the main color and depth attachments need to be multisampled
+
         color_attachments[i] = gfx::Viewport::local_string(i, "forward_plus_color");
-        ctx.create_attachment(color_attachments[i], {1, 1}, VK_FORMAT_R32G32B32A32_SFLOAT, ph::ImageType::ColorAttachment);
+        ctx.create_attachment(color_attachments[i], {1, 1}, VK_FORMAT_R32G32B32A32_SFLOAT, render_data.msaa_samples, ph::ImageType::ColorAttachment);
 
         depth_attachments[i] = gfx::Viewport::local_string(i, "forward_plus_depth");
-        ctx.create_attachment(depth_attachments[i], {1, 1}, VK_FORMAT_D32_SFLOAT, ph::ImageType::DepthStencilAttachment);
+        ctx.create_attachment(depth_attachments[i], { 1, 1 }, VK_FORMAT_D32_SFLOAT, render_data.msaa_samples, ph::ImageType::DepthStencilAttachment);
 
         heatmaps[i] = gfx::Viewport::local_string(i, "forward_plus_heatmap");
         ctx.create_attachment(heatmaps[i], {1, 1}, VK_FORMAT_R8G8B8A8_UNORM, ph::ImageType::StorageImage);
@@ -74,7 +76,7 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
     {
         ph::PipelineCreateInfo pci = ph::PipelineBuilder::create(ctx, "depth_only")
             .add_shader("data/shaders/depth.vert.spv", "main", ph::ShaderStage::Vertex)
-            .add_shader("data/shaders/depth.frag.spv", "main", ph::ShaderStage::Fragment)
+//            .add_shader("data/shaders/depth.frag.spv", "main", ph::ShaderStage::Fragment)
             .add_vertex_input(0)
                     // Note that not all these attributes will be used, but they are specified because the vertex size is deduced from them
             .add_vertex_attribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT) // iPos
@@ -86,6 +88,8 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
             .set_depth_test(true)
             .set_depth_write(true)
             .set_cull_mode(VK_CULL_MODE_BACK_BIT)
+            .set_samples(render_data.msaa_samples)
+            .set_sample_shading(render_data.msaa_sample_ratio)
             .reflect()
             .get();
         ctx.create_named_pipeline(std::move(pci));
@@ -117,6 +121,8 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
             .set_depth_write(false) // Do not write to the depth buffer since we already have depth information
             .set_cull_mode(VK_CULL_MODE_BACK_BIT)
             .add_blend_attachment(false)
+            .set_samples(render_data.msaa_samples)
+            .set_sample_shading(render_data.msaa_sample_ratio)
             .reflect()
             .get();
         ctx.create_named_pipeline(std::move(pci));
@@ -136,6 +142,8 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
             .set_depth_op(VK_COMPARE_OP_LESS_OR_EQUAL)
             .set_cull_mode(VK_CULL_MODE_NONE)
             .add_blend_attachment(false)
+            .set_samples(render_data.msaa_samples)
+            .set_sample_shading(render_data.msaa_sample_ratio)
             .reflect()
             .get();
         ctx.create_named_pipeline(std::move(pci));
@@ -499,6 +507,8 @@ ph::Pass ForwardPlusRenderer::tonemap(ph::InFlightContext& ifc, gfx::Viewport vi
                 .get();
 
             cmd.bind_descriptor_set(set);
+
+            cmd.push_constants(ph::ShaderStage::Fragment, 0, sizeof(uint32_t), &render_data.msaa_samples);
 
             cmd.draw(6, 1, 0, 0);
         })

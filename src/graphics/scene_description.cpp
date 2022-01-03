@@ -3,6 +3,8 @@
 #include <andromeda/graphics/texture.hpp>
 #include <andromeda/assets/assets.hpp>
 
+#include <andromeda/components/environment.hpp>
+
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
@@ -34,26 +36,38 @@ void SceneDescription::add_light(PointLight const& light, glm::vec3 const& posit
     point_lights.push_back(info);
 }
 
-void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& cam_transform, Camera const& cam) {
-	CameraInfo& camera = cameras[vp.index()];
-	camera.active = true;
-    camera.environment = cam.environment;
-    camera.min_log_luminance = cam.min_log_luminance;
-    camera.max_log_luminance = cam.max_log_luminance;
+void SceneDescription::add_viewport(gfx::Viewport const& vp, thread::LockedValue<const ecs::registry> const& ecs, ecs::entity_t camera) {
+    auto const& cam = ecs->get_component<Camera>(camera);
+    auto const& transform = ecs->get_component<Transform>(camera);
+	CameraInfo& info = cameras[vp.index()];
+    info.active = true;
+
+    // If an environment component is present, set the handle accordingly
+    if (ecs->has_component<::andromeda::Environment>(camera)) {
+        info.environment = ecs->get_component<::andromeda::Environment>(camera).environment;
+    }
+    // Once atmospheric scattering is added, the atmosphere data can be retrieved here
+
+    // Postprocessing settings
+    if (ecs->has_component<PostProcessingSettings>(camera)) {
+        auto const& settings = ecs->get_component<PostProcessingSettings>(camera);
+        info.min_log_luminance = settings.min_log_luminance;
+        info.max_log_luminance = settings.max_log_luminance;
+    }
 
 	// Projection matrix
 
 	float aspect = (float)vp.width() / (float)vp.height();
-	camera.projection = glm::perspective(glm::radians(cam.fov), aspect, cam.near, cam.far);
+    info.projection = glm::perspective(glm::radians(cam.fov), aspect, cam.near, cam.far);
 	// Vulkan needs upside down projection matrix
-	camera.projection[1][1] *= -1;
+    info.projection[1][1] *= -1;
 
 	// View matrix
 
-	float const cos_pitch = std::cos(glm::radians(cam_transform.rotation.x));
-	float const cos_yaw = std::cos(glm::radians(cam_transform.rotation.y));
-	float const sin_pitch = std::sin(glm::radians(cam_transform.rotation.x));
-	float const sin_yaw = std::sin(glm::radians(cam_transform.rotation.y));
+	float const cos_pitch = std::cos(glm::radians(transform.rotation.x));
+	float const cos_yaw = std::cos(glm::radians(transform.rotation.y));
+	float const sin_pitch = std::sin(glm::radians(transform.rotation.x));
+	float const sin_yaw = std::sin(glm::radians(transform.rotation.y));
 
 	glm::vec3 front;
 	glm::vec3 right;
@@ -65,13 +79,13 @@ void SceneDescription::add_viewport(gfx::Viewport const& vp, Transform const& ca
 	front = glm::normalize(front);
 	right = glm::normalize(glm::cross(front, glm::vec3(0, 1, 0)));
 	up = glm::normalize(glm::cross(right, front));
-	camera.view = glm::lookAt(cam_transform.position, cam_transform.position + front, up);
+    info.view = glm::lookAt(transform.position, transform.position + front, up);
 
 	// Precompute projection-view matrix as its commonly used.
-	camera.proj_view = camera.projection * camera.view;
+    info.proj_view = info.projection * info.view;
 
     // Other values
-    camera.position = cam_transform.position;
+    info.position = transform.position;
 }
 
 void SceneDescription::set_default_albedo(Handle<gfx::Texture> handle) {

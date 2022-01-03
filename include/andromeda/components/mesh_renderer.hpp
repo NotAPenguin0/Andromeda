@@ -11,6 +11,9 @@ struct [[component]] MeshRenderer {
 
 	[[editor::tooltip("Material to use when rendering this mesh.")]]
 	Handle<gfx::Material> material{};
+
+    [[editor::tooltip("Whether this entity casts shadows.")]]
+    bool occluder = true;
 };
 
 }

@@ -151,12 +151,12 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
     // Create default textures and add them to the scene
     {
         uint8_t magenta[4] { 255, 0, 255, 255 };
-        uint8_t up[4] { 0, 255, 0, 255 };
-        uint8_t black[4] { 0, 0, 0, 255 };
+        uint8_t up[4] { 128, 128, 255, 255 };
+        uint8_t arm[4] { 0, 255, 0, 0 };
         uint8_t white[1] { 255 };
         Handle<gfx::Texture> albedo = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_SRGB, magenta, sizeof(magenta));
         Handle<gfx::Texture> normal = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, up, sizeof(up));
-        Handle<gfx::Texture> metal_rough = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, black, sizeof(black));
+        Handle<gfx::Texture> metal_rough = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, arm, sizeof(arm));
         Handle<gfx::Texture> occlusion = create_1x1_texture(ctx, VK_FORMAT_R8_UNORM, white, sizeof(white));
 
         auto name_default_tex = [&ctx](Handle<gfx::Texture> t, std::string const& base) {
@@ -339,7 +339,7 @@ void Renderer::fill_scene_description(World const& world) {
 
 	// Add all meshes in the world to the draw list
 	for (auto [_, mesh, hierarchy] : ecs->view<Transform, MeshRenderer, Hierarchy>()) {
-		glm::mat4 const world_transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
+		glm::mat4 world_transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
 		scene.add_draw(mesh.mesh, mesh.material, world_transform);
 	}
 
@@ -356,7 +356,7 @@ void Renderer::fill_scene_description(World const& world) {
 			ecs::entity_t camera = viewport.vp.camera();
 			// Don't render viewports with no camera
 			if (camera == ecs::no_entity) continue;
-			scene.add_viewport(viewport.vp, ecs->get_component<Transform>(camera), ecs->get_component<Camera>(camera));
+			scene.add_viewport(viewport.vp, ecs, camera);
 		}
 	}
 }

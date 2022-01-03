@@ -3,8 +3,11 @@
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/camera.hpp>
 #include <andromeda/components/point_light.hpp>
+#include <andromeda/components/postprocessing.hpp>
+#include <andromeda/ecs/registry.hpp>
 #include <andromeda/graphics/forward.hpp>
 #include <andromeda/graphics/viewport.hpp>
+#include <andromeda/thread/locked_value.hpp>
 #include <andromeda/util/handle.hpp>
 
 #include <phobos/image.hpp>
@@ -73,10 +76,10 @@ public:
 	/**
 	 * @brief Adds a viewport + camera to the system.
 	 * @param vp Viewport to add
-	 * @param cam_transform Transform component of the camera entity
-	 * @param cam Camera component of the camera entity;
+	 * @param ecs Entity component system to retrieve camera data from
+	 * @param camera Camera entity in the ECS
 	*/
-	void add_viewport(gfx::Viewport const& vp, Transform const& cam_transform, Camera const &cam);
+	void add_viewport(gfx::Viewport const& vp, thread::LockedValue<const ecs::registry> const& ecs, ecs::entity_t camera);
 
     /**
      * @brief Sets the default albedo texture. This will be used as a placeholder if no albedo texture was loaded.

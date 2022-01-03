@@ -12,6 +12,11 @@ vec4 vertices[] = {
     vec4(1.0, 1.0, 1.0, 1.0)
 };
 
+layout(push_constant) uniform PC {
+    uint samples;
+} pc;
+
+
 void main() {
     UV = vertices[gl_VertexIndex].zw;
     gl_Position = vec4(vertices[gl_VertexIndex].xy, 0.0, 1.0);

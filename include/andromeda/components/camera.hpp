@@ -25,17 +25,6 @@ struct [[component]] Camera {
 	[[editor::min(0.00001f)]]
 	[[editor::drag_speed(0.2)]]
 	float far = 100.0f;
-
-    [[editor::tooltip("Environment asset to render this camera's view with.")]]
-    Handle<gfx::Environment> environment;
-
-    [[editor::tooltip("Lower bound for luminance values in the scene. Lower values get clamped to this value. May not be zero.")]]
-    [[editor::drag_speed(1.0)]]
-    float min_log_luminance = -10.0f;
-
-    [[editor::tooltip("Upper bound for luminance values in the scene. Higher values get clamped to this value. May not be zero.")]]
-    [[editor::drag_speed(1.0)]]
-    float max_log_luminance = 2.0f;
 };
 
 }

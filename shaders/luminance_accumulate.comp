@@ -10,7 +10,7 @@ layout(push_constant) uniform PC {
     float inv_log_lum_range; // 1/(log2(max_luminance) - log2(min_luminance))
 } pc;
 
-layout(set = 0, binding = 0) uniform sampler2D scene_hdr;
+layout(set = 0, binding = 0) uniform sampler2DMS scene_hdr;
 layout(set = 0, binding = 1) buffer Histogram {
     uint bins[ANDROMEDA_LUMINANCE_BINS];
 } histogram;
@@ -40,7 +40,7 @@ void main() {
     local_bins[thread] = 0;
     barrier();
 
-    uvec2 size = textureSize(scene_hdr, 0).xy;
+    uvec2 size = textureSize(scene_hdr).xy;
     // Only read from image if we are not ouf of bounds
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     if (pixel.x < size.x && pixel.y < size.y) {
