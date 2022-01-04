@@ -3,6 +3,8 @@
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/hierarchy.hpp>
 
+#include <glm/gtx/matrix_decompose.hpp>
+
 namespace glm {
 
 mat4 rotate(mat4 const& mat, vec3 euler) {
@@ -58,6 +60,15 @@ glm::vec3 euler_to_direction(glm::vec3 const& euler) {
     // Apply it and return the result
     glm::vec4 direction = rotation * forward;
     return glm::vec3(direction.x, direction.y, direction.z);
+}
+
+glm::vec3 matrix_to_euler(glm::mat4 const& matrix) {
+    glm::vec3 _v3;
+    glm::vec4 _v4;
+    glm::quat _q;
+    glm::vec3 rotation;
+    glm::decompose(matrix, _v3, _q, _v3, rotation, _v4);
+    return glm::degrees(rotation);
 }
 
 }

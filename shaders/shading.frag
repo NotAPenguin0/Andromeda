@@ -14,12 +14,12 @@ layout(location = 2) in mat3 TBN;
 
 layout(location = 0) out vec4 FragColor;
 
-layout(std430, set = 0, binding = 2) buffer readonly Lights {
+layout(std430, set = 0, binding = 2, std430) buffer readonly Lights {
     PointLight l[];
 } lights;
 
 // These lights index into the lights.l array
-layout(std430, set = 0, binding = 3) buffer readonly LightVisibility {
+layout(std430, set = 0, binding = 3, std430) buffer readonly LightVisibility {
     uint data[];
 } visible_lights;
 

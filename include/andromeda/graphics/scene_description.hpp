@@ -3,6 +3,7 @@
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/camera.hpp>
 #include <andromeda/components/point_light.hpp>
+#include <andromeda/components/directional_light.hpp>
 #include <andromeda/components/postprocessing.hpp>
 #include <andromeda/ecs/registry.hpp>
 #include <andromeda/graphics/forward.hpp>
@@ -22,11 +23,6 @@
 #include <vector>
 
 namespace andromeda::gfx {
-
-namespace backend {
-	class RendererBackend;
-    class ForwardPlusRenderer;
-}
 
 /**
  * @class SceneDescription 
@@ -125,6 +121,13 @@ public:
      * @param position World position of the light object.
      */
     void add_light(PointLight const& light, glm::vec3 const& position);
+
+    /**
+     * @brief Register a directional light.
+     * @param light Reference to the DirectionalLight component.
+     * @param rotation Rotation around the forward (0, 0, -1) axis of the entity. Used to compute light direction.
+     */
+    void add_light(DirectionalLight const& light, glm::vec3 const& rotation);
 
 	/**
 	 * @brief Adds a viewport + camera to the system.
@@ -279,6 +282,9 @@ private:
 
     std::vector<gpu::PointLight> point_lights;
     std::vector<gpu::DirectionalLight> directional_lights;
+    // Amount of directional lights that are shadow casters
+    // Will never be more than ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS in glsl/limits.glsl
+    uint32_t num_shadowing_dir_lights = 0;
 
 	/**
 	 * @brief Adds an individual texture to the system.

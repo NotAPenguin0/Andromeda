@@ -39,4 +39,12 @@ glm::mat4 local_to_world(ecs::entity_t ent, thread::LockedValue<ecs::registry co
  */
 glm::vec3 euler_to_direction(glm::vec3 const& euler);
 
+/**
+ * @brief Convert an arbitrary transformation matrix to a set of euler angles (in degrees).
+ *        Note that this might be fairly expensive to calculate (?) // TODO: Profile this
+ * @param matrix Transformation matrix.
+ * @return Euler angles representing a rotation in degrees.
+ */
+glm::vec3 matrix_to_euler(glm::mat4 const& matrix);
+
 }

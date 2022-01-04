@@ -64,6 +64,7 @@
   - ex. mugs in coffee cart model
 - [ ] Make `PostProcessingSettings` truly optional by removing stuff like automatic exposure from the pipeline if disabled.
 - [ ] Fix case in renderer with no lights loaded
+- [ ] Minimize allocations in the engine to further improve performance
 
 ## Farther future
 

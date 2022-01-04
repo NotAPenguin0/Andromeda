@@ -16,8 +16,9 @@ struct alignas(8 * sizeof(float)) PointLight {
 };
 
 struct alignas(8 * sizeof(float)) DirectionalLight {
-    // w component of direction is padding
-    vec4 direction;
+    // If w < 0, this directional light is not a shadow caster or does not have a shadow map associated with it.
+    // If w >= 0, int(w) is the index of this light's shadow map.
+    vec4 direction_shadow;
     vec4 color_intensity;
 };
 

@@ -4,6 +4,7 @@
 #include <andromeda/assets/assets.hpp>
 
 #include <andromeda/components/environment.hpp>
+#include <andromeda/math/transform.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -35,6 +36,19 @@ void SceneDescription::add_light(PointLight const& light, glm::vec3 const& posit
     info.pos_radius = glm::vec4(position, light.radius);
     info.color_intensity = glm::vec4(light.color, light.intensity);
     point_lights.push_back(info);
+}
+
+void SceneDescription::add_light(DirectionalLight const& light, glm::vec3 const& rotation) {
+    gpu::DirectionalLight info {};
+    // We default the shadow index value to -1.
+    info.direction_shadow = glm::vec4(math::euler_to_direction(rotation), -1.0f);
+    // If there is a slot free, we can allocate a shadow index for this lights
+    if (num_shadowing_dir_lights < ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS) {
+        info.direction_shadow.w = static_cast<float>(num_shadowing_dir_lights);
+        num_shadowing_dir_lights += 1;
+    }
+    info.color_intensity = glm::vec4(light.color, light.intensity);
+    directional_lights.push_back(info);
 }
 
 void SceneDescription::add_viewport(gfx::Viewport const& vp, thread::LockedValue<const ecs::registry> const& ecs, ecs::entity_t camera) {
@@ -119,6 +133,8 @@ void SceneDescription::reset() {
 	textures.views.clear();
 	textures.id_to_index.clear();
     point_lights.clear();
+    directional_lights.clear();
+    num_shadowing_dir_lights = 0;
 
 	for (auto& cam : cameras) {
 		cam.active = false;

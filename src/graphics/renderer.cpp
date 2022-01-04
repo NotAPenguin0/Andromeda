@@ -293,6 +293,12 @@ void Renderer::fill_scene_description(World const& world) {
         scene.add_light(light, position);
     }
 
+    for (auto[transform, light, hierarchy] : ecs->view<Transform, DirectionalLight, Hierarchy>()) {
+        glm::mat4 const world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
+        glm::vec3 const rotation = math::matrix_to_euler(world_transform);
+        scene.add_light(light, rotation);
+    }
+
 	// Add every camera/viewport combo.
 	for (auto const& viewport : viewports) {
 		if (viewport.in_use) {
