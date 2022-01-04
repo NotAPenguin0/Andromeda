@@ -18,13 +18,13 @@
 #include <glsl/types.glsl>
 
 #include <array>
+#include <span>
 #include <vector>
 
 namespace andromeda::gfx {
 
 namespace backend {
 	class RendererBackend;
-	class SimpleRenderer;
     class ForwardPlusRenderer;
 }
 
@@ -46,6 +46,59 @@ public:
         uint32_t const metal_rough = 0;
         uint32_t const occlusion = 0;
 	};
+
+    /**
+     * @brief Describes a single draw command.
+     */
+    struct Draw {
+        /**
+         * @brief Handle to the mesh to draw.
+        */
+        Handle<gfx::Mesh> mesh;
+
+        /**
+         * @brief Handle to the material to be used for drawing this mesh.
+        */
+        Handle<gfx::Material> material;
+    };
+
+
+    /**
+     * @brief Stores a single viewport with its camera data.
+     */
+    struct CameraInfo {
+        /**
+         * @brief Projection, view and projection * view matrices for this camera.
+         */
+        glm::mat4 projection;
+        glm::mat4 view;
+        glm::mat4 proj_view;
+
+        /**
+         * @brief Camera position
+         */
+        glm::vec3 position;
+
+        /**
+         * @brief Whether this camera is active. You will never have to draw viewports with inactive cameras.
+         */
+        bool active = false;
+
+        /**
+         * @brief Handle to the environment map. If this is null, either render an atmosphere or no environment.
+         */
+        Handle<gfx::Environment> environment;
+
+        /**
+         * @brief Exposure parameter. Defined as log2(min_luminance)
+         */
+        float min_log_luminance;
+
+        /**
+         * @brief Exposure parameter. defined as log2(max_luminance)
+         */
+        float max_log_luminance;
+    };
 
 	/**
 	 * @brief Creates an empty scene description
@@ -123,6 +176,8 @@ public:
 	*/
 	void reset();
 
+    // Accessor functions
+
 	/**
 	 * @brief Get indices for reach texture in the material. The material must be added with 
 	 *        add_material() before calling this.
@@ -131,25 +186,62 @@ public:
 	*/
 	MaterialTextures get_material_textures(Handle<gfx::Material> material) const;
 
+    /**
+     * @brief Get a list of draws
+     * @return Span over the range of all draws in the scene
+     */
+    std::span<Draw const> get_draws() const;
+
+    /**
+     * @brief Get a list of transforms. Each draw at index i has a transform matrix in this span at the same index i.
+     * @return Span over the range of all transform matrices in the scene.
+     */
+    std::span<glm::mat4 const> get_draw_transforms() const;
+
+    /**
+     * @brief Get information for a camera associated with a certain viewport.s
+     * @param vp Viewport to get the camera info for.
+     * @return Structure containing all camera info.
+     */
+    CameraInfo const& get_camera_info(gfx::Viewport const& vp) const;
+
+    /**
+     * @brief Get a handle to the BRDF lookup texture.
+     * @return Handle to the BRDF lookup texture.
+     */
+    Handle<gfx::Texture> get_brdf_lookup() const;
+
+    /**
+     * @brief Get a handle to an always-ready environment that can be used when no environment is loaded.
+     * @return Handle to the default environment. This is always ready to use.
+     */
+    Handle<gfx::Environment> get_default_environment() const;
+
+    /**
+     * @brief Get a handle to the default albedo texture. This is always ready.
+     * @return Handle to the default albedo texture (magenta).
+     */
+    Handle<gfx::Texture> get_default_albedo() const;
+
+    /**
+     * @brief Get a list of all textures that need to be in the texture descriptor array.
+     * @return Span over all texture ImageViews.
+     */
+    std::span<ph::ImageView const> get_textures() const;
+
+    /**
+     * @brief Get a list of all point lights in the scene, in a GPU-ready format (defined in glsl/types.glsl)
+     * @return Span over all point light structures.
+     */
+    std::span<gpu::PointLight const> get_point_lights() const;
+
+    /**
+     * @brief Get a list of all directional lights in the scene, in a GPU-ready format (defined in glsl/types.glsl)
+     * @return Span over all directional light structures
+     */
+    std::span<gpu::DirectionalLight const> get_directional_lights() const;
+
 private:
-	friend class backend::RendererBackend;
-	friend class backend::SimpleRenderer;
-    friend class backend::ForwardPlusRenderer;
-
-	/**
-	 * @brief Describes a single draw command.
-	*/
-	struct Draw {
-		/**
-		 * @brief Handle to the mesh to draw.
-		*/
-		Handle<gfx::Mesh> mesh;
-
-		/**
-		 * @brief Handle to the material to be used for drawing this mesh.
-		*/
-		Handle<gfx::Material> material;
-	};
 
 	/**
 	 * @brief Stores all draws to process.
@@ -160,22 +252,6 @@ private:
      *        so we can upload it to the GPU buffer in a single memcpy()
      */
     std::vector<glm::mat4> draw_transforms;
-
-	/**
-	 * @brief Stores a single viewport + camera data
-	*/
-	struct CameraInfo {
-		glm::mat4 projection;
-		glm::mat4 view;
-		glm::mat4 proj_view;
-        glm::vec3 position;
-
-		bool active = false;
-
-        Handle<gfx::Environment> environment;
-        float min_log_luminance;
-        float max_log_luminance;
-	};
 
 	// Each camera is indexed by a viewport index.
 	std::array<CameraInfo, gfx::MAX_VIEWPORTS> cameras;

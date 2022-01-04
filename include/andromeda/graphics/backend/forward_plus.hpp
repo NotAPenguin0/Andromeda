@@ -58,7 +58,6 @@ private:
             uint32_t n_tiles_x = 0;
             uint32_t n_tiles_y = 0;
 
-            ph::RawBuffer luminance_histogram;
             ph::RawBuffer average_luminance;
         } vp[gfx::MAX_VIEWPORTS];
 
@@ -73,11 +72,8 @@ private:
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
 
-    ph::Pass depth_prepass(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
     ph::Pass light_cull(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
     ph::Pass shading(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
-    ph::Pass luminance_histogram(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
-    ph::Pass tonemap(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
 };
 
 }

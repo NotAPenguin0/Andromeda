@@ -115,6 +115,7 @@ void SceneDescription::set_brdf_lut(Handle<gfx::Texture> handle) {
 
 void SceneDescription::reset() {
 	draws.clear();
+    draw_transforms.clear();
 	textures.views.clear();
 	textures.id_to_index.clear();
     point_lights.clear();
@@ -145,6 +146,43 @@ SceneDescription::MaterialTextures SceneDescription::get_material_textures(Handl
         .metal_rough = textures.id_to_index[mat->metal_rough ? mat->metal_rough : textures.default_metal_rough],
         .occlusion = textures.id_to_index[mat->occlusion ? mat->occlusion : textures.default_occlusion]
 	};
+}
+
+
+auto SceneDescription::get_draws() const -> std::span<Draw const> {
+    return draws;
+}
+
+std::span<glm::mat4 const> SceneDescription::get_draw_transforms() const {
+    return draw_transforms;
+}
+
+auto SceneDescription::get_camera_info(gfx::Viewport const& vp) const -> CameraInfo const& {
+    return cameras[vp.index()];
+}
+
+Handle<gfx::Texture> SceneDescription::get_brdf_lookup() const {
+    return textures.brdf_lut;
+}
+
+Handle<gfx::Environment> SceneDescription::get_default_environment() const {
+    return default_env;
+}
+
+Handle<gfx::Texture> SceneDescription::get_default_albedo() const {
+    return textures.default_albedo;
+}
+
+std::span<ph::ImageView const> SceneDescription::get_textures() const {
+    return textures.views;
+}
+
+std::span<gpu::PointLight const> SceneDescription::get_point_lights() const {
+    return point_lights;
+}
+
+std::span<gpu::DirectionalLight const> SceneDescription::get_directional_lights() const {
+    return directional_lights;
 }
 
 void SceneDescription::add_texture(Handle<gfx::Texture> texture) {

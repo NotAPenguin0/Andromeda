@@ -28,7 +28,11 @@ target_sources(andromeda PRIVATE
 	"editor/widgets/table.cpp"
 	"editor/widgets/tooltip.cpp"
 
+	"graphics/backend/depth_pass.cpp"
 	"graphics/backend/forward_plus.cpp"
+	"graphics/backend/mesh_draw.cpp"
+	"graphics/backend/skybox.cpp"
+	"graphics/backend/tonemap.cpp"
 	"graphics/context.cpp"
 	"graphics/imgui_impl.cpp"
 	"graphics/imgui_impl_glfw.cpp"
