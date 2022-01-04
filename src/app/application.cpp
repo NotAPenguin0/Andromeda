@@ -35,10 +35,10 @@ int Application::run() {
     world->import_entity(*assets::get(sponza));
 
     Handle<ecs::entity_t> horse = assets::load<ecs::entity_t>("data/horse/horse_statue_01_4k.ent");
-    world->import_entity(*assets::get(horse));
+//    world->import_entity(*assets::get(horse));
 
     Handle<ecs::entity_t> cart = assets::load<ecs::entity_t>("data/coffeecart/CoffeeCart_01_2k.ent");
-    world->import_entity(*assets::get(cart));
+//    world->import_entity(*assets::get(cart));
 
     uint64_t frame = 0;
 	while (window->is_open()) {

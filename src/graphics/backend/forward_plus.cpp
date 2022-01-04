@@ -130,7 +130,6 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     uint32_t const n_tiles =  vp_data.n_tiles_x * vp_data.n_tiles_y;
     uint32_t const size = sizeof(uint32_t) * n_tiles * ANDROMEDA_MAX_LIGHTS_PER_TILE;
     vp_data.culled_lights = ifc.allocate_scratch_ssbo(size);
-    std::memset(vp_data.culled_lights.data, 0, size);
 
     // Transform data
     auto const transforms = scene.get_draw_transforms();
