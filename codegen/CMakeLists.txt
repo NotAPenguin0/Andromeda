@@ -77,6 +77,10 @@ target_sources(andromeda-codegen-lib PRIVATE ${CODEGEN_OUTPUT_SOURCES})
 target_include_directories(andromeda-codegen-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/public")
 target_include_directories(andromeda-codegen-lib PUBLIC "${CODEGEN_OUTPUT_DIR}/include")
 target_include_directories(andromeda-codegen-lib PRIVATE $<FILTER:$<TARGET_PROPERTY:andromeda,INCLUDE_DIRECTORIES>,INCLUDE,.+>)
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Clang)|(GNU)")
+	# Specifically do not warn on unknown attributes
+	target_compile_options(andromeda-codegen-lib PUBLIC -Wno-attributes)
+endif()
 
 # Setup manual target dependencies.
 add_dependencies(andromeda-do-codegen codegen)

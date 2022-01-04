@@ -43,7 +43,7 @@ void SceneDescription::add_light(DirectionalLight const& light, glm::vec3 const&
     // We default the shadow index value to -1.
     info.direction_shadow = glm::vec4(math::euler_to_direction(rotation), -1.0f);
     // If there is a slot free, we can allocate a shadow index for this lights
-    if (num_shadowing_dir_lights < ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS) {
+    if (light.cast_shadows && num_shadowing_dir_lights < ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS) {
         info.direction_shadow.w = static_cast<float>(num_shadowing_dir_lights);
         num_shadowing_dir_lights += 1;
     }
