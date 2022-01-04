@@ -149,17 +149,17 @@ private:
 		 * @brief Handle to the material to be used for drawing this mesh.
 		*/
 		Handle<gfx::Material> material;
-
-		/**
-		 * @brief Transformation matrix.
-		*/
-		glm::mat4 transform;
 	};
 
 	/**
 	 * @brief Stores all draws to process.
 	*/
 	std::vector<Draw> draws;
+    /**
+     * @brief Stores all draw transformation matrices. The reason we put this in a separate vector is
+     *        so we can upload it to the GPU buffer in a single memcpy()
+     */
+    std::vector<glm::mat4> draw_transforms;
 
 	/**
 	 * @brief Stores a single viewport + camera data
@@ -202,6 +202,7 @@ private:
     Handle<gfx::Environment> default_env;
 
     std::vector<gpu::PointLight> point_lights;
+    std::vector<gpu::DirectionalLight> directional_lights;
 
 	/**
 	 * @brief Adds an individual texture to the system.

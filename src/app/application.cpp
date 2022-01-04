@@ -40,25 +40,6 @@ int Application::run() {
     Handle<ecs::entity_t> cart = assets::load<ecs::entity_t>("data/coffeecart/CoffeeCart_01_2k.ent");
     world->import_entity(*assets::get(cart));
 
-
-    {
-        srand(time(nullptr));
-        auto ecs = world->ecs();
-        for (int i = 0; i < 0; ++i) {
-            auto l = world->create_entity(ecs);
-            const int concentration = 10;
-            auto &pos = ecs->get_component<Transform>(l).position;
-            pos.x = rand() % (concentration * 2) - concentration;
-            pos.y = rand() % concentration;
-            pos.z = rand() % (concentration * 2) - concentration;
-
-            auto& light = ecs->add_component<PointLight>(l);
-            light.intensity = 10;
-            light.radius = rand() % (2 * concentration);
-            light.color = glm::vec3(rand() % 255 / 255.0, rand() % 255 / 255.0, rand() % 255 / 255.0);
-        }
-    }
-
     uint64_t frame = 0;
 	while (window->is_open()) {
 		window->poll_events();

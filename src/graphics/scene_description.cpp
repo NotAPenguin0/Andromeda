@@ -12,7 +12,8 @@
 namespace andromeda::gfx {
 
 void SceneDescription::add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, glm::mat4 const& transform) {
-	draws.push_back(Draw{mesh, material, transform});
+	draws.push_back(Draw{mesh, material});
+    draw_transforms.push_back(transform);
 }
 
 void SceneDescription::add_material(Handle<gfx::Material> material) {

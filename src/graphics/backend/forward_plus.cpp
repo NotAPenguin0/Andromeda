@@ -242,10 +242,8 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     std::memset(vp_data.culled_lights.data, 0, size);
 
     // Transform data
-    render_data.transforms = ifc.allocate_scratch_ssbo(scene.draws.size() * sizeof(glm::mat4));
-    for (int i = 0; i < scene.draws.size(); ++i) {
-        render_data.transforms.data[i] = scene.draws[i].transform;
-    }
+    render_data.transforms = ifc.allocate_scratch_ssbo(scene.draw_transforms.size() * sizeof(glm::mat4));
+    std::memcpy(render_data.transforms.data, scene.draw_transforms.data(), scene.draw_transforms.size() * sizeof(glm::mat4));
 }
 
 ph::Pass ForwardPlusRenderer::depth_prepass(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
@@ -257,10 +255,12 @@ ph::Pass ForwardPlusRenderer::depth_prepass(ph::InFlightContext& ifc, gfx::Viewp
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                     .add_uniform_buffer("camera", render_data.vp[viewport.index()].camera)
+                    .add_storage_buffer("transforms", render_data.transforms)
                     .get();
             cmd.bind_descriptor_set(set);
 
-            for (auto const& draw : scene.draws) {
+            for (uint32_t i = 0; i < scene.draws.size(); ++i) {
+                auto const& draw = scene.draws[i];
                 // Make sure to check for null meshes
                 if (!draw.mesh) {
                     LOG_WRITE(LogLevel::Warning, "Draw with null mesh handle reached rendering system");
@@ -277,7 +277,7 @@ ph::Pass ForwardPlusRenderer::depth_prepass(ph::InFlightContext& ifc, gfx::Viewp
                 cmd.bind_vertex_buffer(0, mesh.vertices);
                 cmd.bind_index_buffer(mesh.indices, VK_INDEX_TYPE_UINT32);
 
-                cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(glm::mat4), &draw.transform); // TODO: Use transforms SSBO like in main pass
+                cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(uint32_t), &i); // i is the transform index
                 cmd.draw_indexed(mesh.num_indices, 1, 0, 0, 0);
             }
         })

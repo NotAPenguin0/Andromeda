@@ -29,7 +29,6 @@ target_sources(andromeda PRIVATE
 	"editor/widgets/tooltip.cpp"
 
 	"graphics/backend/forward_plus.cpp"
-	"graphics/backend/simple.cpp"
 	"graphics/context.cpp"
 	"graphics/imgui_impl.cpp"
 	"graphics/imgui_impl_glfw.cpp"

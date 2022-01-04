@@ -15,6 +15,12 @@ struct alignas(8 * sizeof(float)) PointLight {
     vec4 color_intensity;
 };
 
+struct alignas(8 * sizeof(float)) DirectionalLight {
+    // w component of direction is padding
+    vec4 direction;
+    vec4 color_intensity;
+};
+
 #ifdef __cplusplus // C++, undefine and end namespace
 
 #undef vec4

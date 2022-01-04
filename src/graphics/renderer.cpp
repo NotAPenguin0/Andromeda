@@ -1,6 +1,5 @@
 #include <andromeda/graphics/renderer.hpp>
 
-#include <andromeda/graphics/backend/simple.hpp>
 #include <andromeda/graphics/backend/forward_plus.hpp>
 #include <andromeda/graphics/imgui.hpp>
 
