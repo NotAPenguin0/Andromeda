@@ -1,14 +1,5 @@
 #include <andromeda/app/application.hpp>
 
-
-#include <andromeda/components/mesh_renderer.hpp>
-#include <andromeda/components/name.hpp>
-#include <andromeda/components/point_light.hpp>
-
-#include <reflect/reflection.hpp>
-
-#include <GLFW/glfw3.h> // temporary
-
 namespace andromeda {
 
 Application::Application(int argc, char** argv) {
@@ -43,19 +34,12 @@ int Application::run() {
     Handle<ecs::entity_t> sponza = assets::load<ecs::entity_t>("data/sponza/Sponza.ent");
     world->import_entity(*assets::get(sponza));
 
-//    Handle<ecs::entity_t> pbr_spheres = assets::load<ecs::entity_t>("data/spheres/MetalRoughSpheres.ent");
-//    world->import_entity(*assets::get(pbr_spheres));
-
-
     Handle<ecs::entity_t> horse = assets::load<ecs::entity_t>("data/horse/horse_statue_01_4k.ent");
     world->import_entity(*assets::get(horse));
 
     Handle<ecs::entity_t> cart = assets::load<ecs::entity_t>("data/coffeecart/CoffeeCart_01_2k.ent");
     world->import_entity(*assets::get(cart));
 
-
-/*    Handle<ecs::entity_t> deccer_cubes = assets::load<ecs::entity_t>("data/deccer-cubes/SM_Deccer_Cubes_Textured.ent");
-    world->import_entity(*assets::get(deccer_cubes));
 */
     {
         srand(time(nullptr));

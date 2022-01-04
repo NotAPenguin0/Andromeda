@@ -36,6 +36,8 @@ target_sources(andromeda PRIVATE
 	"graphics/renderer.cpp"
 	"graphics/scene_description.cpp"
 
+	"math/transform.cpp"
+
 	"thread/scheduler.cpp"
 
 	"util/string_ops.cpp"

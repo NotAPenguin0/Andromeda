@@ -12,18 +12,7 @@
 
 #include <phobos/render_graph.hpp>
 
-#include <glm/gtc/matrix_transform.hpp>
-
-namespace glm {
-// Extension for glm to rotate correctly around multiple axis using euler angles
-mat4 rotate(mat4 const& mat, vec3 euler) {
-	mat4 result;
-	result = rotate(mat, euler.z, vec3{ 0, 0, 1 });
-	result = rotate(result, euler.y, vec3{ 0, 1, 0 });
-	result = rotate(result, euler.x, vec3{ 1, 0, 0 });
-	return result;
-}
-}
+#include <andromeda/math/transform.hpp>
 
 namespace andromeda::gfx {
 
@@ -281,51 +270,6 @@ std::vector<std::string> Renderer::get_debug_views(gfx::Viewport viewport) {
 	return impl->debug_views(viewport);
 }
 
-/**
- * @brief Computes the transform matrix of entity's local space to world space by applying parent transforms.
- * @param ent Entity to compute local to world matrix for.
- * @param ecs ECS registry.
- * @param lookup Lookup table with past results to avoid repeatedly computing parent transforms.
- * @return A matrix transforming an entity's local space to world space.
-*/
-static glm::mat4 local_to_world(ecs::entity_t ent, thread::LockedValue<ecs::registry const> const& ecs, 
-	std::unordered_map<ecs::entity_t, glm::mat4>& lookup) {
-
-	// Look up this entity in the lookup table first, we might have already computed this transform.
-	if (auto it = lookup.find(ent); it != lookup.end()) {
-		return it->second;
-	}
-
-	Hierarchy const& hierarchy = ecs->get_component<Hierarchy>(ent);
-	ecs::entity_t parent = hierarchy.parent;
-
-
-	// The following algorithm is based on section 2 from
-	// https://docs.unity3d.com/Packages/com.unity.entities@0.0/manual/transform_system.html
-
-	glm::mat4 parent_transform = glm::mat4(1.0);
-	if (parent != ecs::no_entity) {
-		parent_transform = local_to_world(parent, ecs, lookup);
-	}
-
-	// Now that we have the parent to world matrix (or an identity matrix if this entity has no parent),
-	// we simply apply this entity's transformation.
-	Transform const& transform = ecs->get_component<Transform>(ent);
-	glm::mat4 local_transform = glm::translate(glm::mat4(1.0), transform.position);
-	local_transform = glm::rotate(local_transform, {
-		glm::radians(transform.rotation.x),
-		glm::radians(transform.rotation.y),
-		glm::radians(transform.rotation.z)
-	});
-	local_transform = glm::scale(local_transform, transform.scale);
-
-	glm::mat4 local_to_world = parent_transform * local_transform;
-	// Store the transform in the lookup table.
-	lookup[ent] = local_to_world;
-
-	return local_to_world;
-}
-
 void Renderer::fill_scene_description(World const& world) {
 	// Access the ECS.
 	auto ecs = world.ecs();
@@ -339,13 +283,13 @@ void Renderer::fill_scene_description(World const& world) {
 
 	// Add all meshes in the world to the draw list
 	for (auto [_, mesh, hierarchy] : ecs->view<Transform, MeshRenderer, Hierarchy>()) {
-		glm::mat4 world_transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
+		glm::mat4 world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
 		scene.add_draw(mesh.mesh, mesh.material, world_transform);
 	}
 
     // Add lighting information
     for (auto[_, light, hierarchy] : ecs->view<Transform, PointLight, Hierarchy>()) {
-        glm::mat4 const world_transform = local_to_world(hierarchy.this_entity, ecs, transform_lookup);
+        glm::mat4 const world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
         glm::vec3 const position = world_transform[3]; // Position is stored in the last column
         scene.add_light(light, position);
     }

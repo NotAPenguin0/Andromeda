@@ -49,6 +49,7 @@
 - [X] Support for materials that have solid color properties instead of textures
   - ex. mugs in coffee cart model
 - [ ] Make `PostProcessingSettings` truly optional by removing stuff like automatic exposure from the pipeline if disabled.
+- [ ] Fix case in renderer with no lights loaded
 
 ## Farther future
 

@@ -76,7 +76,6 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
     {
         ph::PipelineCreateInfo pci = ph::PipelineBuilder::create(ctx, "depth_only")
             .add_shader("data/shaders/depth.vert.spv", "main", ph::ShaderStage::Vertex)
-//            .add_shader("data/shaders/depth.frag.spv", "main", ph::ShaderStage::Fragment)
             .add_vertex_input(0)
                     // Note that not all these attributes will be used, but they are specified because the vertex size is deduced from them
             .add_vertex_attribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT) // iPos

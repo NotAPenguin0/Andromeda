@@ -67,7 +67,7 @@ add_custom_command(
 
 # Create target to execute code generation command.
 add_custom_target(andromeda-do-codegen
-	ALL DEPENDS ${CODEGEN_OUTPUT_FILES} ${CODEGEN_TEMPLATES}
+	ALL DEPENDS ${CODEGEN_OUTPUT_FILES} ${CODEGEN_TEMPLATES} ${CODEGEN_DEPENDENCIES}
 	COMMENT "Generating reflection information"
 )
 
