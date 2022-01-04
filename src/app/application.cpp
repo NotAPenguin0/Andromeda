@@ -40,7 +40,7 @@ int Application::run() {
     Handle<ecs::entity_t> cart = assets::load<ecs::entity_t>("data/coffeecart/CoffeeCart_01_2k.ent");
     world->import_entity(*assets::get(cart));
 
-*/
+
     {
         srand(time(nullptr));
         auto ecs = world->ecs();
