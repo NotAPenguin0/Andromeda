@@ -1,6 +1,7 @@
 #pragma once
 
 #include <andromeda/graphics/backend/renderer_backend.hpp>
+#include <andromeda/graphics/backend/csm.hpp>
 #include <array>
 
 namespace andromeda::gfx::backend {
@@ -68,6 +69,9 @@ private:
         // Note that casting this to uint32_t gives back the amount of samples
         VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_8_BIT;
         float msaa_sample_ratio = 0.1f;
+
+        // This class implements cascaded shadow mapping for us.
+        CascadedShadowMapping csm_impl;
     } render_data;
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);

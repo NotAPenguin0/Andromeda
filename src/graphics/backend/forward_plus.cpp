@@ -35,6 +35,8 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
     create_luminance_histogram_pipelines(ctx);
     create_tonemapping_pipeline(ctx);
 
+    CascadedShadowMapping::create_pipeline(ctx);
+
     // Light culling shader
     {
         ph::ComputePipelineCreateInfo pci = ph::ComputePipelineBuilder::create(ctx, "light_cull")
@@ -84,13 +86,17 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightConte
     // Step 1 is to do a depth prepass of the entire scene. This will greatly increase efficiency of the final shading step by
     // eliminating pixel overdraw.
     graph.add_pass(build_depth_pass(ctx, ifc, depth_attachments[viewport.index()], scene, vp.camera, render_data.transforms));
-    // Step 2: a compute-based light culling pass that determines what part of the screen is covered by which lights, using the depth information from before.
+    // Step 2: Build shadow maps for later. This can happen at the same time as the light culling pass
+    for (auto& pass : render_data.csm_impl.build_shadow_map_passes(ctx, ifc, viewport, scene)) {
+        graph.add_pass(std::move(pass));
+    }
+    // Step 3: a compute-based light culling pass that determines what part of the screen is covered by which lights, using the depth information from before.
     graph.add_pass(light_cull(ifc, viewport, scene));
-    // Step 3: Apply shading
+    // Step 4: Apply shading
     graph.add_pass(shading(ifc, viewport, scene));
-    // Step 4: Run the luminance accumulation pass to calculate the average luminance in the scene.
+    // Step 5: Run the luminance accumulation pass to calculate the average luminance in the scene.
     graph.add_pass(build_average_luminance_pass(ctx, ifc, color_attachments[viewport.index()], viewport, scene, vp.average_luminance));
-    // Step 5: Tonemap HDR color to final color attachment
+    // Step 6: Tonemap HDR color to final color attachment
     graph.add_pass(build_tonemap_pass(ctx, color_attachments[viewport.index()], viewport.target(), render_data.msaa_samples, vp.average_luminance));
 }
 
@@ -142,16 +148,16 @@ ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport
     ph::Pass pass = ph::PassBuilder::create_compute("fwd_plus_light_cull")
         .sample_attachment(depth_attachments[viewport.index()], ph::PipelineStage::ComputeShader)
         .shader_write_buffer(vp_data.culled_lights, ph::PipelineStage::ComputeShader)
-        .write_storage_image(ctx.get_attachment(heatmaps[viewport.index()])->view, ph::PipelineStage::ComputeShader)
+        .write_storage_image(ctx.get_attachment(heatmaps[viewport.index()]).view, ph::PipelineStage::ComputeShader)
         .execute([this, &vp_data, &ifc, &scene, viewport](ph::CommandBuffer& cmd) {
             cmd.bind_compute_pipeline("light_cull");
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                 .add_uniform_buffer("camera", vp_data.camera)
-                .add_sampled_image("scene_depth", ctx.get_attachment(depth_attachments[viewport.index()])->view, ctx.basic_sampler())
+                .add_sampled_image("scene_depth", ctx.get_attachment(depth_attachments[viewport.index()]).view, ctx.basic_sampler())
                 .add_storage_buffer("lights", render_data.point_lights)
                 .add_storage_buffer("visible_lights", vp_data.culled_lights)
-                .add_storage_image("light_heatmap", ctx.get_attachment(heatmaps[viewport.index()])->view)
+                .add_storage_image("light_heatmap", ctx.get_attachment(heatmaps[viewport.index()]).view)
                 .get();
             cmd.bind_descriptor_set(set);
 
@@ -167,11 +173,13 @@ ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport
 
 ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
     auto& vp_data = render_data.vp[viewport.index()];
-    ph::Pass pass = ph::PassBuilder::create("fdw_plus_shading")
+    ph::PassBuilder builder = ph::PassBuilder::create("fdw_plus_shading")
         .add_attachment(color_attachments[viewport.index()], ph::LoadOp::Clear, ph::ClearValue{.color = {0.0, 0.0, 0.0, 1.0}})
         .add_depth_attachment(depth_attachments[viewport.index()], ph::LoadOp::Load, {})
-        .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader)
-        .execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
+        .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader);
+    render_data.csm_impl.register_attachment_dependencies(viewport, builder);
+
+    ph::Pass pass = builder.execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
             Handle<gfx::Environment> env = scene.get_camera_info(viewport).environment;
             if (!env || !assets::is_ready(env)) env = scene.get_default_environment();
             gfx::Environment const& environment = *assets::get(env);

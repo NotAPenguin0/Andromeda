@@ -14,6 +14,10 @@
     - https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/AutomaticExposure/
 - [X] PBR shading model
 - [ ] Shadows
+  - [ ] Free up space used by shadowmaps that haven't been used in a long (?) time.
+  - [ ] Configuration of settings
+  - [ ] PCF/hardware PCF?
+  - [ ] Soft shadows
 - [ ] Organize backend code to be more re-usable.
   - [ ] Move postprocess pipeline to separate module
 - [ ] GPU driven rendering

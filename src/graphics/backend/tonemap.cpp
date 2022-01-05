@@ -49,7 +49,7 @@ ph::Pass build_average_luminance_pass(gfx::Context& ctx, ph::InFlightContext& if
                 cmd.bind_compute_pipeline("luminance_accumulate");
 
                 VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                    .add_sampled_image("scene_hdr", ctx.get_attachment(main_hdr)->view, ctx.basic_sampler())
+                    .add_sampled_image("scene_hdr", ctx.get_attachment(main_hdr).view, ctx.basic_sampler())
                     .add_storage_buffer("histogram", histogram)
                     .get();
                 cmd.bind_descriptor_set(set);
@@ -116,7 +116,7 @@ ph::Pass build_tonemap_pass(gfx::Context& ctx, std::string_view main_hdr, std::s
             cmd.auto_viewport_scissor();
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                    .add_sampled_image("input_hdr", ctx.get_attachment(main_hdr)->view, ctx.basic_sampler())
+                    .add_sampled_image("input_hdr", ctx.get_attachment(main_hdr).view, ctx.basic_sampler())
                     .add_storage_buffer("average_luminance", luminance)
                     .get();
             cmd.bind_descriptor_set(set);
