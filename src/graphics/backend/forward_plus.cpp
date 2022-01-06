@@ -4,6 +4,8 @@
 #include <andromeda/graphics/backend/skybox.hpp>
 #include <andromeda/graphics/backend/tonemap.hpp>
 
+#include <andromeda/util/memory.hpp>
+
 #include <glsl/limits.glsl>
 
 using namespace std::literals::string_literals;
@@ -24,9 +26,8 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
         heatmaps[i] = gfx::Viewport::local_string(i, "forward_plus_heatmap");
         ctx.create_attachment(heatmaps[i], {1, 1}, VK_FORMAT_R8G8B8A8_UNORM, ph::ImageType::StorageImage);
 
-        // Create average luminance buffers
+        // Create average luminance buffer
         render_data.vp[i].average_luminance = ctx.create_buffer(ph::BufferType::StorageBufferStatic, sizeof(float));
-
         ctx.name_object(render_data.vp[i].average_luminance.handle, gfx::Viewport::local_string(i, "Average Luminance"));
     }
 
@@ -34,9 +35,6 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
     create_skybox_pipeline(ctx, render_data.msaa_samples, render_data.msaa_sample_ratio);
     create_luminance_histogram_pipelines(ctx);
     create_tonemapping_pipeline(ctx);
-
-    CascadedShadowMapping::create_pipeline(ctx);
-    render_data.cascade_sampler = CascadedShadowMapping::create_sampler(ctx);
 
     // Light culling shader
     {
@@ -76,8 +74,6 @@ ForwardPlusRenderer::~ForwardPlusRenderer() {
     for (auto& vp : render_data.vp) {
         ctx.destroy_buffer(vp.average_luminance);
     }
-    render_data.csm_impl.free(ctx);
-    ctx.destroy_sampler(render_data.cascade_sampler);
 }
 
 void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightContext &ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
@@ -89,25 +85,18 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightConte
     // Step 1 is to do a depth prepass of the entire scene. This will greatly increase efficiency of the final shading step by
     // eliminating pixel overdraw.
     graph.add_pass(build_depth_pass(ctx, ifc, depth_attachments[viewport.index()], scene, vp.camera, render_data.transforms));
-    // Step 2: Build shadow maps for later. This can happen at the same time as the light culling pass
-    for (auto& pass : render_data.csm_impl.build_shadow_map_passes(ctx, ifc, viewport, scene, render_data.transforms)) {
-        graph.add_pass(std::move(pass));
-    }
-    // Step 3: a compute-based light culling pass that determines what part of the screen is covered by which lights, using the depth information from before.
+    // Step 2: a compute-based light culling pass that determines what part of the screen is covered by which lights, using the depth information from before.
     graph.add_pass(light_cull(ifc, viewport, scene));
-    // Step 4: Apply shading
+    // Step 3: Apply shading
     graph.add_pass(shading(ifc, viewport, scene));
-    // Step 5: Run the luminance accumulation pass to calculate the average luminance in the scene.
+    // Step 4: Run the luminance accumulation pass to calculate the average luminance in the scene.
     graph.add_pass(build_average_luminance_pass(ctx, ifc, color_attachments[viewport.index()], viewport, scene, vp.average_luminance));
-    // Step 6: Tonemap HDR color to final color attachment
+    // Step 5: Tonemap HDR color to final color attachment
     graph.add_pass(build_tonemap_pass(ctx, color_attachments[viewport.index()], viewport.target(), render_data.msaa_samples, vp.average_luminance));
 }
 
 std::vector<std::string> ForwardPlusRenderer::debug_views(gfx::Viewport viewport) {
     std::vector<std::string> result = { depth_attachments[viewport.index()], heatmaps[viewport.index()] };
-    for (auto v : render_data.csm_impl.get_debug_attachments(viewport)) {
-        result.emplace_back(v);
-    }
     return result;
 }
 
@@ -136,12 +125,12 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     std::memcpy(vp_data.camera.data + 3 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
 
     auto const point_lights = scene.get_point_lights();
-    render_data.point_lights = ifc.allocate_scratch_ssbo(sizeof(gpu::PointLight) * point_lights.size());
-    std::memcpy(render_data.point_lights.data, point_lights.data(), render_data.point_lights.range);
+    render_data.point_lights = ifc.allocate_scratch_ssbo(util::memsize(point_lights));
+    std::memcpy(render_data.point_lights.data, point_lights.data(), util::memsize(point_lights));
 
     auto const dir_lights = scene.get_directional_lights();
-    render_data.dir_lights = ifc.allocate_scratch_ssbo(sizeof(gpu::DirectionalLight) * dir_lights.size());
-    std::memcpy(render_data.dir_lights.data, dir_lights.data(), render_data.dir_lights.range);
+    render_data.dir_lights = ifc.allocate_scratch_ssbo(util::memsize(dir_lights));
+    std::memcpy(render_data.dir_lights.data, dir_lights.data(), util::memsize(dir_lights));
 
     // We can have at most MAX_LIGHTS in every tile, and there are ceil(W/TILE_SIZE) * ceil(H/TILE_SIZE) tiles, which gives us the size of the buffer
     vp_data.n_tiles_x = static_cast<uint32_t>(std::ceil((float)viewport.width() / ANDROMEDA_TILE_SIZE));
@@ -152,11 +141,11 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
 
     // Transform data
     auto const transforms = scene.get_draw_transforms();
-    render_data.transforms = ifc.allocate_scratch_ssbo(transforms.size() * sizeof(glm::mat4));
-    std::memcpy(render_data.transforms.data, transforms.data(), transforms.size() * sizeof(glm::mat4));
+    render_data.transforms = ifc.allocate_scratch_ssbo(util::memsize(transforms));
+    std::memcpy(render_data.transforms.data, transforms.data(), util::memsize(transforms));
 }
 
-ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
+ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport const& viewport, gfx::SceneDescription const& scene) {
     auto& vp_data = render_data.vp[viewport.index()];
     ph::Pass pass = ph::PassBuilder::create_compute("fwd_plus_light_cull")
         .sample_attachment(depth_attachments[viewport.index()], ph::PipelineStage::ComputeShader)
@@ -184,29 +173,12 @@ ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport
     return pass;
 }
 
-ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
+ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport const& viewport, gfx::SceneDescription const& scene) {
     auto& vp_data = render_data.vp[viewport.index()];
     ph::PassBuilder builder = ph::PassBuilder::create("fdw_plus_shading")
         .add_attachment(color_attachments[viewport.index()], ph::LoadOp::Clear, ph::ClearValue{.color = {0.0, 0.0, 0.0, 1.0}})
         .add_depth_attachment(depth_attachments[viewport.index()], ph::LoadOp::Load, {})
         .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader);
-    render_data.csm_impl.register_attachment_dependencies(viewport, builder);
-
-    // Create cascade info UBO. Note that we must do this after the CSM pass is built, or otherwise
-    // the attachments are not created yet and split distances aren't calculated yet.
-    render_data.cascade_infos = ifc.allocate_scratch_ubo(sizeof(gpu::CascadeMapInfo) * ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS);
-    for (auto const& light : scene.get_directional_lights()) {
-        if (CascadedShadowMapping::is_shadow_caster(light)) {
-            uint32_t const index = CascadedShadowMapping::get_light_index(light);
-            for(uint32_t c = 0; c < ANDROMEDA_SHADOW_CASCADE_COUNT; ++c) {
-                float const split = render_data.csm_impl.get_split_depth(viewport, light, c);
-                glm::mat4 const matrix = render_data.csm_impl.get_cascade_matrix(viewport, light, c);
-                render_data.cascade_infos.data[index].splits[c] = split;
-                render_data.cascade_infos.data[index].proj_view[c] = matrix;
-            }
-        }
-    }
-
 
     ph::Pass pass = builder.execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
             Handle<gfx::Environment> env = scene.get_camera_info(viewport).environment;
@@ -229,26 +201,15 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport vi
                     brdf_lut_handle = scene.get_default_albedo();
                 gfx::Texture *brdf_lut = assets::get(brdf_lut_handle);
 
-                // Cascade maps
-                std::vector<ph::ImageView> shadow_maps{};
-                for (auto const& light : scene.get_directional_lights()) {
-                    if (CascadedShadowMapping::is_shadow_caster(light)) {
-                        ph::ImageView view = render_data.csm_impl.get_shadow_map(viewport, light);
-                        shadow_maps.push_back(view);
-                    }
-                }
-
                 VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                     .add_uniform_buffer("camera", vp_data.camera)
                     .add_storage_buffer("lights", render_data.point_lights)
                     .add_storage_buffer("dir_lights", render_data.dir_lights)
                     .add_storage_buffer("visible_lights", vp_data.culled_lights)
-                    .add_uniform_buffer("cascade_map_info", render_data.cascade_infos)
                     .add_storage_buffer("transforms", render_data.transforms)
                     .add_sampled_image("irradiance_map", environment.irradiance_view, ctx.basic_sampler())
                     .add_sampled_image("specular_map", environment.specular_view, ctx.basic_sampler())
                     .add_sampled_image("brdf_lut", brdf_lut->view, ctx.basic_sampler())
-                    .add_sampled_image_array("shadow_maps", shadow_maps, render_data.cascade_sampler) // Important to use special sampler here
                     .add_sampled_image_array("textures", scene.get_textures(), ctx.basic_sampler())
                     .add_pNext(&variable_count_info)
                     .get();
