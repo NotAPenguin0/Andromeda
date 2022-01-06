@@ -3,6 +3,7 @@
 #include <andromeda/components/transform.hpp>
 #include <andromeda/components/hierarchy.hpp>
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtx/matrix_decompose.hpp>
 
 namespace glm {
@@ -59,7 +60,7 @@ glm::vec3 euler_to_direction(glm::vec3 const& euler) {
     glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(euler));
     // Apply it and return the result
     glm::vec4 direction = rotation * forward;
-    return glm::vec3(direction.x, direction.y, direction.z);
+    return -glm::vec3(direction.x, direction.y, direction.z);
 }
 
 glm::vec3 matrix_to_euler(glm::mat4 const& matrix) {

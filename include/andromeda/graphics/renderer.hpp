@@ -2,6 +2,7 @@
 
 #include <andromeda/app/wsi.hpp>
 #include <andromeda/graphics/backend/renderer_backend.hpp>
+#include <andromeda/graphics/backend/debug_geometry.hpp>
 #include <andromeda/graphics/context.hpp>
 #include <andromeda/graphics/scene_description.hpp>
 #include <andromeda/graphics/viewport.hpp>
@@ -87,6 +88,7 @@ public:
 private:
 	std::unique_ptr<backend::RendererBackend> impl{};
 	SceneDescription scene;
+    backend::DebugGeometryList debug_geometry;
 
 	struct ViewportData {
 		// The actual viewport

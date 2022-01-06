@@ -167,6 +167,9 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
     scene.set_default_environment(create_default_environment(ctx));
     scene.set_brdf_lut(assets::load<gfx::Texture>("data/textures/brdf_lut.tx"));
 
+    backend::DebugGeometryList::initialize(ctx);
+    // register global pointer
+    backend::impl::_debug_geometry_list_ptr = &debug_geometry;
 	impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
 }
 
@@ -193,7 +196,11 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
 
 	for (auto const& viewport : viewports) {
 		if (viewport.in_use) {
+            debug_geometry.clear(viewport.vp);
+            DEBUG_SET_COLOR(viewport.vp, glm::vec3(1, 1, 1)); // Default color to white
 			impl->render_scene(graph, ifc, viewport.vp, scene);
+
+            graph.add_pass(debug_geometry.build_render_pass(viewport.vp, ctx, ifc, scene.get_camera_info(viewport.vp).proj_view));
 		}
 	}
 
@@ -283,7 +290,7 @@ void Renderer::fill_scene_description(World const& world) {
 	// Add all meshes in the world to the draw list
 	for (auto [_, mesh, hierarchy] : ecs->view<Transform, MeshRenderer, Hierarchy>()) {
 		glm::mat4 world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
-		scene.add_draw(mesh.mesh, mesh.material, world_transform);
+		scene.add_draw(mesh.mesh, mesh.material, mesh.occluder, world_transform);
 	}
 
     // Add lighting information
@@ -294,8 +301,8 @@ void Renderer::fill_scene_description(World const& world) {
     }
 
     for (auto[transform, light, hierarchy] : ecs->view<Transform, DirectionalLight, Hierarchy>()) {
-        glm::mat4 const world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
-        glm::vec3 const rotation = math::matrix_to_euler(world_transform);
+        // Directional lights do not respect parent rotations.
+        glm::vec3 const rotation = transform.rotation;
         scene.add_light(light, rotation);
     }
 

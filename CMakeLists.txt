@@ -56,8 +56,10 @@ endif()
 if (WIN32)
     # Truly a classic
 	target_compile_definitions(andromeda PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
-
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
+
+target_compile_definitions(andromeda PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
 	target_compile_definitions(andromeda PUBLIC ANDROMEDA_DEBUG=1)

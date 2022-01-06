@@ -56,6 +56,11 @@ public:
          * @brief Handle to the material to be used for drawing this mesh.
         */
         Handle<gfx::Material> material;
+
+        /**
+         * @brief Whether this draw occludes light and this casts a shadow.
+         */
+        bool occluder = true;
     };
 
 
@@ -69,6 +74,16 @@ public:
         glm::mat4 projection;
         glm::mat4 view;
         glm::mat4 proj_view;
+
+        /**
+         * @brief Near clipping plane.
+         */
+        float near;
+
+        /**
+         * @brief Far clipping plane.
+         */
+        float far;
 
         /**
          * @brief Camera position
@@ -105,9 +120,10 @@ public:
 	 * @brief Add a mesh to draw. 
 	 * @param mesh Handle to the mesh to draw.
 	 * @param material Handle to the material to draw this mesh with.
+	 * @param occluder Whether this mesh should occlude light and thus cast a shadow TODO: Move this to material settings?
 	 * @param transform Transformation matrix.
 	*/
-	void add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, glm::mat4 const& transform);
+	void add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, bool occluder, glm::mat4 const& transform);
 
 	/**
 	 * @brief Register a material. All used materials must be added through this function.

@@ -36,6 +36,7 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
     create_tonemapping_pipeline(ctx);
 
     CascadedShadowMapping::create_pipeline(ctx);
+    render_data.cascade_sampler = CascadedShadowMapping::create_sampler(ctx);
 
     // Light culling shader
     {
@@ -75,6 +76,8 @@ ForwardPlusRenderer::~ForwardPlusRenderer() {
     for (auto& vp : render_data.vp) {
         ctx.destroy_buffer(vp.average_luminance);
     }
+    render_data.csm_impl.free(ctx);
+    ctx.destroy_sampler(render_data.cascade_sampler);
 }
 
 void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightContext &ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
@@ -87,7 +90,7 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightConte
     // eliminating pixel overdraw.
     graph.add_pass(build_depth_pass(ctx, ifc, depth_attachments[viewport.index()], scene, vp.camera, render_data.transforms));
     // Step 2: Build shadow maps for later. This can happen at the same time as the light culling pass
-    for (auto& pass : render_data.csm_impl.build_shadow_map_passes(ctx, ifc, viewport, scene)) {
+    for (auto& pass : render_data.csm_impl.build_shadow_map_passes(ctx, ifc, viewport, scene, render_data.transforms)) {
         graph.add_pass(std::move(pass));
     }
     // Step 3: a compute-based light culling pass that determines what part of the screen is covered by which lights, using the depth information from before.
@@ -101,7 +104,11 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightConte
 }
 
 std::vector<std::string> ForwardPlusRenderer::debug_views(gfx::Viewport viewport) {
-    return { depth_attachments[viewport.index()], heatmaps[viewport.index()] };
+    std::vector<std::string> result = { depth_attachments[viewport.index()], heatmaps[viewport.index()] };
+    for (auto v : render_data.csm_impl.get_debug_attachments(viewport)) {
+        result.emplace_back(v);
+    }
+    return result;
 }
 
 void ForwardPlusRenderer::resize_viewport(gfx::Viewport viewport, uint32_t width, uint32_t height) {
@@ -119,16 +126,22 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
 
     // Camera data:
     //  - mat4 projection
+    //  - mat4 view
     //  - mat4 pv
     //  - vec3 position (aligned to vec4)
-    vp_data.camera = ifc.allocate_scratch_ubo(2 * sizeof(glm::mat4) + sizeof(glm::vec4));
+    vp_data.camera = ifc.allocate_scratch_ubo(3 * sizeof(glm::mat4) + sizeof(glm::vec4));
     std::memcpy(vp_data.camera.data, &camera.projection, sizeof(glm::mat4));
-    std::memcpy(vp_data.camera.data + sizeof(glm::mat4), &camera.proj_view, sizeof(glm::mat4));
-    std::memcpy(vp_data.camera.data + 2 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
+    std::memcpy(vp_data.camera.data + sizeof(glm::mat4), &camera.view, sizeof(glm::mat4));
+    std::memcpy(vp_data.camera.data + 2 * sizeof(glm::mat4), &camera.proj_view, sizeof(glm::mat4));
+    std::memcpy(vp_data.camera.data + 3 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
 
     auto const point_lights = scene.get_point_lights();
     render_data.point_lights = ifc.allocate_scratch_ssbo(sizeof(gpu::PointLight) * point_lights.size());
     std::memcpy(render_data.point_lights.data, point_lights.data(), render_data.point_lights.range);
+
+    auto const dir_lights = scene.get_directional_lights();
+    render_data.dir_lights = ifc.allocate_scratch_ssbo(sizeof(gpu::DirectionalLight) * dir_lights.size());
+    std::memcpy(render_data.dir_lights.data, dir_lights.data(), render_data.dir_lights.range);
 
     // We can have at most MAX_LIGHTS in every tile, and there are ceil(W/TILE_SIZE) * ceil(H/TILE_SIZE) tiles, which gives us the size of the buffer
     vp_data.n_tiles_x = static_cast<uint32_t>(std::ceil((float)viewport.width() / ANDROMEDA_TILE_SIZE));
@@ -179,6 +192,22 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport vi
         .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader);
     render_data.csm_impl.register_attachment_dependencies(viewport, builder);
 
+    // Create cascade info UBO. Note that we must do this after the CSM pass is built, or otherwise
+    // the attachments are not created yet and split distances aren't calculated yet.
+    render_data.cascade_infos = ifc.allocate_scratch_ubo(sizeof(gpu::CascadeMapInfo) * ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS);
+    for (auto const& light : scene.get_directional_lights()) {
+        if (CascadedShadowMapping::is_shadow_caster(light)) {
+            uint32_t const index = CascadedShadowMapping::get_light_index(light);
+            for(uint32_t c = 0; c < ANDROMEDA_SHADOW_CASCADE_COUNT; ++c) {
+                float const split = render_data.csm_impl.get_split_depth(viewport, light, c);
+                glm::mat4 const matrix = render_data.csm_impl.get_cascade_matrix(viewport, light, c);
+                render_data.cascade_infos.data[index].splits[c] = split;
+                render_data.cascade_infos.data[index].proj_view[c] = matrix;
+            }
+        }
+    }
+
+
     ph::Pass pass = builder.execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
             Handle<gfx::Environment> env = scene.get_camera_info(viewport).environment;
             if (!env || !assets::is_ready(env)) env = scene.get_default_environment();
@@ -191,7 +220,7 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport vi
 
                 VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_info{};
                 variable_count_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-                uint32_t counts[1]{MAX_TEXTURES};
+                uint32_t counts[1] { MAX_TEXTURES };
                 variable_count_info.descriptorSetCount = 1;
                 variable_count_info.pDescriptorCounts = counts;
 
@@ -200,17 +229,29 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport vi
                     brdf_lut_handle = scene.get_default_albedo();
                 gfx::Texture *brdf_lut = assets::get(brdf_lut_handle);
 
+                // Cascade maps
+                std::vector<ph::ImageView> shadow_maps{};
+                for (auto const& light : scene.get_directional_lights()) {
+                    if (CascadedShadowMapping::is_shadow_caster(light)) {
+                        ph::ImageView view = render_data.csm_impl.get_shadow_map(viewport, light);
+                        shadow_maps.push_back(view);
+                    }
+                }
+
                 VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                        .add_uniform_buffer("camera", vp_data.camera)
-                        .add_storage_buffer("lights", render_data.point_lights)
-                        .add_storage_buffer("visible_lights", vp_data.culled_lights)
-                        .add_storage_buffer("transforms", render_data.transforms)
-                        .add_sampled_image("irradiance_map", environment.irradiance_view, ctx.basic_sampler())
-                        .add_sampled_image("specular_map", environment.specular_view, ctx.basic_sampler())
-                        .add_sampled_image("brdf_lut", brdf_lut->view, ctx.basic_sampler())
-                        .add_sampled_image_array("textures", scene.get_textures(), ctx.basic_sampler())
-                        .add_pNext(&variable_count_info)
-                        .get();
+                    .add_uniform_buffer("camera", vp_data.camera)
+                    .add_storage_buffer("lights", render_data.point_lights)
+                    .add_storage_buffer("dir_lights", render_data.dir_lights)
+                    .add_storage_buffer("visible_lights", vp_data.culled_lights)
+                    .add_uniform_buffer("cascade_map_info", render_data.cascade_infos)
+                    .add_storage_buffer("transforms", render_data.transforms)
+                    .add_sampled_image("irradiance_map", environment.irradiance_view, ctx.basic_sampler())
+                    .add_sampled_image("specular_map", environment.specular_view, ctx.basic_sampler())
+                    .add_sampled_image("brdf_lut", brdf_lut->view, ctx.basic_sampler())
+                    .add_sampled_image_array("shadow_maps", shadow_maps, render_data.cascade_sampler) // Important to use special sampler here
+                    .add_sampled_image_array("textures", scene.get_textures(), ctx.basic_sampler())
+                    .add_pNext(&variable_count_info)
+                    .get();
                 cmd.bind_descriptor_set(set);
 
                 // Loop over each mesh, check if it's ready and if so render it

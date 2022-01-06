@@ -6,14 +6,15 @@
 #include <andromeda/components/environment.hpp>
 #include <andromeda/math/transform.hpp>
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
 
 namespace andromeda::gfx {
 
-void SceneDescription::add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, glm::mat4 const& transform) {
-	draws.push_back(Draw{mesh, material});
+void SceneDescription::add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, bool occluder, glm::mat4 const& transform) {
+	draws.push_back(Draw{mesh, material, occluder});
     draw_transforms.push_back(transform);
 }
 
@@ -41,7 +42,7 @@ void SceneDescription::add_light(PointLight const& light, glm::vec3 const& posit
 void SceneDescription::add_light(DirectionalLight const& light, glm::vec3 const& rotation) {
     gpu::DirectionalLight info {};
     // We default the shadow index value to -1.
-    info.direction_shadow = glm::vec4(math::euler_to_direction(rotation), -1.0f);
+    info.direction_shadow = glm::vec4(glm::normalize(math::euler_to_direction(rotation)), -1.0f);
     // If there is a slot free, we can allocate a shadow index for this lights
     if (light.cast_shadows && num_shadowing_dir_lights < ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS) {
         info.direction_shadow.w = static_cast<float>(num_shadowing_dir_lights);
@@ -76,6 +77,9 @@ void SceneDescription::add_viewport(gfx::Viewport const& vp, thread::LockedValue
     info.projection = glm::perspective(glm::radians(cam.fov), aspect, cam.near, cam.far);
 	// Vulkan needs upside down projection matrix
     info.projection[1][1] *= -1;
+
+    info.near = cam.near;
+    info.far = cam.far;
 
 	// View matrix
 

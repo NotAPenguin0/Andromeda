@@ -64,6 +64,8 @@ private:
 
         // Can be shared by all viewports.
         ph::TypedBufferSlice<gpu::PointLight> point_lights;
+        ph::TypedBufferSlice<gpu::DirectionalLight> dir_lights;
+        ph::TypedBufferSlice<gpu::CascadeMapInfo> cascade_infos;
         ph::TypedBufferSlice<glm::mat4> transforms;
 
         // Note that casting this to uint32_t gives back the amount of samples
@@ -72,6 +74,7 @@ private:
 
         // This class implements cascaded shadow mapping for us.
         CascadedShadowMapping csm_impl;
+        VkSampler cascade_sampler = nullptr;
     } render_data;
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);

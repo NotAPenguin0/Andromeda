@@ -22,7 +22,8 @@ layout(push_constant) uniform PC {
 
 layout(location = 0) out vec2 UV;
 layout(location = 1) out vec3 world_pos;
-layout(location = 2) out mat3 TBN;
+layout(location = 2) out vec3 viewspace_pos;
+layout(location = 3) out mat3 TBN;
 
 // These matrices are indexed through push constants
 layout(set = 0, binding = 1) buffer readonly TransformMatrices {
@@ -42,5 +43,6 @@ void main() {
     TBN = mat3(T, B, N);
     UV = iUV;
     world_pos = (model * vec4(iPos, 1.0)).xyz;
+    viewspace_pos = (camera.view * model * vec4(iPos, 1.0)).xyz;
     gl_Position = camera.pv * model * vec4(iPos, 1.0);
 }
