@@ -3,6 +3,8 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
 
 #include "include/glsl/inputs.glsl"
 #include "include/glsl/types.glsl"
@@ -33,7 +35,8 @@ layout(std430, set = 0, binding = 4) buffer readonly LightVisibility {
 layout(set = 0, binding = 5) uniform samplerCube irradiance_map;
 layout(set = 0, binding = 6) uniform samplerCube specular_map;
 layout(set = 0, binding = 7) uniform sampler2D brdf_lut;
-layout(set = 0, binding = 8) uniform sampler2D textures[];
+layout(set = 0, binding = 8) uniform accelerationStructureEXT scene_tlas;
+layout(set = 0, binding = 9) uniform sampler2D textures[];
 
 layout(push_constant) uniform PC {
     // Vertex shader
@@ -230,10 +233,26 @@ void main() {
         color += apply_point_light(light, normal, albedo, metallic, roughness);
     }
 
-    // Process directional lights and shadowing -> For shadows we will use ray queries
+    // Process directional lights and shadowing
     for (uint i = 0; i < dir_lights.l.length(); ++i) {
         DirectionalLight light = dir_lights.l[i];
         vec3 light_color = apply_directional_light(light, normal, albedo, metallic, roughness);
+
+        // Use ray queries to determine whether light is blocked by scene geometry.
+        rayQueryEXT shadow_query;
+        // We can terminate on first hit.
+        // Cull mask is 0xFF for now, we will customize this better later
+        rayQueryInitializeEXT(shadow_query, scene_tlas, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, world_pos, 0.01, -light.direction_shadow.xyz, 1000.0);
+
+        // This function returns false while the query is not done.
+        // The reason it works like this is so we can reject hits in the shader (which we don't want right now).
+        while (rayQueryProceedEXT(shadow_query)) { }
+
+        // If there was a triangle hit, we have a shadow.
+        if (rayQueryGetIntersectionTypeEXT(shadow_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT ) {
+            light_color *= 0.1;
+        }
+
         color += light_color;
     }
 

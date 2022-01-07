@@ -120,6 +120,16 @@ std::vector<std::string> ForwardPlusRenderer::debug_views(gfx::Viewport viewport
     return result;
 }
 
+std::vector<ph::WaitSemaphore> ForwardPlusRenderer::wait_semaphores() {
+    // Our main rendering pass must wait on the TLAS build to be completed.
+    VkSemaphore semaphore = render_data.accel_structure.get_tlas_build_semaphore();
+    return {
+        // Wait in the fragment shader. Note that we might need to update this as time goes by and we use
+        // the acceleration structure in more stages.
+        ph::WaitSemaphore{ .handle = semaphore, .stage_flags = ph::PipelineStage::FragmentShader }
+    };
+}
+
 void ForwardPlusRenderer::resize_viewport(gfx::Viewport viewport, uint32_t width, uint32_t height) {
     if (width != 0 && height != 0) {
         ctx.resize_attachment(color_attachments[viewport.index()], { width, height });
@@ -208,6 +218,8 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
                     brdf_lut_handle = scene.get_default_albedo();
                 gfx::Texture *brdf_lut = assets::get(brdf_lut_handle);
 
+                VkAccelerationStructureKHR tlas = render_data.accel_structure.get_acceleration_structure();
+
                 VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                     .add_uniform_buffer("camera", vp_data.camera)
                     .add_storage_buffer("lights", render_data.point_lights)
@@ -217,6 +229,7 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
                     .add_sampled_image("irradiance_map", environment.irradiance_view, ctx.basic_sampler())
                     .add_sampled_image("specular_map", environment.specular_view, ctx.basic_sampler())
                     .add_sampled_image("brdf_lut", brdf_lut->view, ctx.basic_sampler())
+                    .add_acceleration_structure("scene_tlas", tlas)
                     .add_sampled_image_array("textures", scene.get_textures(), ctx.basic_sampler())
                     .add_pNext(&variable_count_info)
                     .get();

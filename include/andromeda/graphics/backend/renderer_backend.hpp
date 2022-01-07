@@ -52,6 +52,14 @@ public:
 		return {};
 	}
 
+    /**
+     * @brief Get a list of semaphores that must be waited on before submitting the command buffer for this backend.
+     * @return List of semaphores with wait stages.
+     */
+    virtual inline std::vector<ph::WaitSemaphore> wait_semaphores() {
+        return {};
+    }
+
 	/**
 	 * @brief Called by the renderer when a viewport is resized.
 	 *		  Use this to resize attachments

@@ -35,6 +35,8 @@ public:
 	*/
     std::vector<std::string> debug_views(gfx::Viewport viewport) override;
 
+    std::vector<ph::WaitSemaphore> wait_semaphores() override;
+
     /**
      * @brief Called by the renderer when a viewport is resized.
      * @param viewport The viewport that is being resized.
@@ -42,6 +44,7 @@ public:
      * @param height The new height of the viewport
     */
     void resize_viewport(gfx::Viewport viewport, uint32_t width, uint32_t height) override;
+
 private:
     inline static constexpr uint32_t MAX_TEXTURES = 4096;
 
