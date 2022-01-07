@@ -31,8 +31,8 @@ int Application::run() {
     ecs::entity_t camera = world->import_entity(*assets::get(camera_bp));
     renderer->create_viewport(1, 1, camera);
 
-    Handle<ecs::entity_t> sponza = assets::load<ecs::entity_t>("data/sponza/Sponza.ent");
-    world->import_entity(*assets::get(sponza));
+//    Handle<ecs::entity_t> sponza = assets::load<ecs::entity_t>("data/sponza/Sponza.ent");
+//    world->import_entity(*assets::get(sponza));
 
     Handle<ecs::entity_t> horse = assets::load<ecs::entity_t>("data/horse/horse_statue_01_4k.ent");
     world->import_entity(*assets::get(horse));

@@ -1,12 +1,14 @@
-#version 450 core
+#version 450
 layout(location = 0) out vec4 fColor;
+
+#extension GL_EXT_scalar_block_layout : enable
 
 layout(set=0, binding=0) uniform sampler2D sTexture;
 
-layout(push_constant) uniform uPushConstant {
+layout(scalar, push_constant) uniform uPushConstant {
     vec2 uScale;
     vec2 uTranslate;
-    int uDepth;
+    uint uDepth;
 //    int uUserTex; // color correct if false
 } pc;
 

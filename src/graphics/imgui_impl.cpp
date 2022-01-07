@@ -166,7 +166,6 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
         .add_attachment(target, ph::LoadOp::Load);
 
     // Check if any of the sampled images are attachments
-    
     for (size_t i = 0; i < (size_t)draw_data->CmdListsCount; ++i) {
         ImDrawList const* draw_list = draw_data->CmdLists[i];
         for (size_t cmd_i = 0; cmd_i < (size_t)draw_list->CmdBuffer.Size; ++cmd_i) {
@@ -191,13 +190,13 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
         auto index_buffer = ifc.allocate_scratch_ibo<ImDrawIdx>(draw_data->TotalIdxCount * sizeof(ImDrawIdx));
 
         impl::fill_buffer_data(vertex_buffer, index_buffer, draw_data);
-
+        cmd_buf.bind_index_buffer(index_buffer, VK_INDEX_TYPE_UINT16);
         cmd_buf.bind_vertex_buffer(0, vertex_buffer);
+
         VkIndexType type = VK_INDEX_TYPE_UINT16;
         if (sizeof(ImDrawIdx) == 4) {
             type = VK_INDEX_TYPE_UINT32;
         }
-        cmd_buf.bind_index_buffer(index_buffer, type);
 
         VkViewport viewport{};
         viewport.x = 0;
@@ -208,14 +207,12 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
         viewport.maxDepth = 1.0f;
         cmd_buf.set_viewport(viewport);
 
-        float scale[2];
-        scale[0] = 2.0f / draw_data->DisplaySize.x;
-        scale[1] = 2.0f / draw_data->DisplaySize.y;
-        float translate[2];
-        translate[0] = -1.0f - draw_data->DisplayPos.x * scale[0];
-        translate[1] = -1.0f - draw_data->DisplayPos.y * scale[1];
-        cmd_buf.push_constants(ph::ShaderStage::Vertex, 0, sizeof(float) * 2, scale);
-        cmd_buf.push_constants(ph::ShaderStage::Vertex, sizeof(float) * 2, sizeof(float) * 2, translate);
+        float pc[4]{}; // 0-1: scale, 2-3: translate
+        pc[0] = 2.0f / draw_data->DisplaySize.x;
+        pc[1] = 2.0f / draw_data->DisplaySize.y;
+        pc[2] = -1.0f - draw_data->DisplayPos.x * pc[0];
+        pc[3] = -1.0f - draw_data->DisplayPos.y * pc[1];
+        cmd_buf.push_constants(ph::ShaderStage::Vertex, 0, 4 * sizeof(float), pc);
 
         ImVec2 clip_off = draw_data->DisplayPos;         // (0,0) unless using multi-viewportManager
         ImVec2 clip_scale = draw_data->FramebufferScale; // (1,1) unless using retina display which are often (2,2)
@@ -251,11 +248,11 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
                     // Bind descriptorset with font or user texture
                     ph::ImageView img_view = impl::context->get_image_view(reinterpret_cast<uint64_t>(cmd->GetTexID()));
                     
-                    int depth_val = 0;
+                    uint32_t depth_val = 0;
                     if (img_view.aspect == ph::ImageAspect::Depth) {
                         depth_val = 1;
                     }
-                    cmd_buf.push_constants(ph::ShaderStage::Fragment, 4 * sizeof(float), sizeof(int), &depth_val);
+                    cmd_buf.push_constants(ph::ShaderStage::Fragment, 4 * sizeof(float), sizeof(uint32_t), &depth_val);
 
 /*                    int user_tex_val = 0;
                     if (img_view != impl::font_view) user_tex_val = 1;
