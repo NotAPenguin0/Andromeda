@@ -290,16 +290,16 @@ ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport
     ph::Pass pass = ph::PassBuilder::create_compute("fwd_plus_light_cull")
         .sample_attachment(depth_attachments[viewport.index()], ph::PipelineStage::ComputeShader)
         .shader_write_buffer(vp_data.culled_lights, ph::PipelineStage::ComputeShader)
-        .write_storage_image(ctx.get_attachment(heatmaps[viewport.index()])->view, ph::PipelineStage::ComputeShader)
+        .write_storage_image(ctx.get_attachment(heatmaps[viewport.index()]).view, ph::PipelineStage::ComputeShader)
         .execute([this, &vp_data, &ifc, &scene, viewport](ph::CommandBuffer& cmd) {
             cmd.bind_compute_pipeline("light_cull");
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                 .add_uniform_buffer("camera", vp_data.camera)
-                .add_sampled_image("scene_depth", ctx.get_attachment(depth_attachments[viewport.index()])->view, ctx.basic_sampler())
+                .add_sampled_image("scene_depth", ctx.get_attachment(depth_attachments[viewport.index()]).view, ctx.basic_sampler())
                 .add_storage_buffer("lights", render_data.point_lights)
                 .add_storage_buffer("visible_lights", vp_data.culled_lights)
-                .add_storage_image("light_heatmap", ctx.get_attachment(heatmaps[viewport.index()])->view)
+                .add_storage_image("light_heatmap", ctx.get_attachment(heatmaps[viewport.index()]).view)
                 .get();
             cmd.bind_descriptor_set(set);
 
@@ -431,7 +431,7 @@ ph::Pass ForwardPlusRenderer::luminance_histogram(ph::InFlightContext &ifc, gfx:
                 cmd.bind_compute_pipeline("luminance_accumulate");
 
                 VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                        .add_sampled_image("scene_hdr", ctx.get_attachment(color_attachments[viewport.index()])->view,
+                        .add_sampled_image("scene_hdr", ctx.get_attachment(color_attachments[viewport.index()]).view,
                                            ctx.basic_sampler())
                         .add_storage_buffer("histogram", vp_data.luminance_histogram)
                         .get();
@@ -501,7 +501,7 @@ ph::Pass ForwardPlusRenderer::tonemap(ph::InFlightContext& ifc, gfx::Viewport vi
             cmd.auto_viewport_scissor();
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                .add_sampled_image("input_hdr", ctx.get_attachment(color_attachments[viewport.index()])->view, ctx.basic_sampler())
+                .add_sampled_image("input_hdr", ctx.get_attachment(color_attachments[viewport.index()]).view, ctx.basic_sampler())
                 .add_storage_buffer("average_luminance", vp_data.average_luminance)
                 .get();
 

@@ -69,7 +69,7 @@ void SceneViewport::show_viewport(gfx::Viewport viewport, gfx::Context& ctx, gfx
 		ImVec2 vp_size = ImGui::GetContentRegionAvail();
 		renderer.resize_viewport(ctx, viewport, vp_size.x, vp_size.y);
 
-		display_image(ctx.get_attachment(viewport.target())->view);
+		display_image(ctx.get_attachment(viewport.target()).view);
 
 		show_panel(viewport, renderer, world);
 	}
@@ -147,7 +147,7 @@ void SceneViewport::show_debug_views(gfx::Viewport viewport, gfx::Context& ctx, 
 	auto padding = style::ScopedStyleVar<ImVec2>(ImGuiStyleVar_WindowPadding, ImVec2(0.0, 0.0));
 	auto views = renderer.get_debug_views(viewport);
 	for (auto const& view : views) {
-		ph::ImageView image = ctx.get_attachment(view)->view;
+		ph::ImageView image = ctx.get_attachment(view).view;
 		bool& open = vp_data.debug_views[view];
 		if (open) {
 			size_next_window_to_image(image);
