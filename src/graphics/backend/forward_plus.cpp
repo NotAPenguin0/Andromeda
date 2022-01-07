@@ -13,7 +13,7 @@ using namespace std::literals::string_literals;
 namespace andromeda::gfx::backend {
 
 
-ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ctx) {
+ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ctx), render_data(ctx) {
     for (int i = 0; i < gfx::MAX_VIEWPORTS; ++i) {
         // Note that only the main color and depth attachments need to be multisampled
 
@@ -76,6 +76,26 @@ ForwardPlusRenderer::~ForwardPlusRenderer() {
     }
 }
 
+void ForwardPlusRenderer::frame_setup(ph::InFlightContext& ifc, gfx::SceneDescription const& scene) {
+    // TODO: Move common code for filling scratch buffers to function?
+
+    // Render data that's shared across all viewports.
+    auto const point_lights = scene.get_point_lights();
+    render_data.point_lights = ifc.allocate_scratch_ssbo(util::memsize(point_lights));
+    std::memcpy(render_data.point_lights.data, point_lights.data(), util::memsize(point_lights));
+
+    auto const dir_lights = scene.get_directional_lights();
+    render_data.dir_lights = ifc.allocate_scratch_ssbo(util::memsize(dir_lights));
+    std::memcpy(render_data.dir_lights.data, dir_lights.data(), util::memsize(dir_lights));
+
+    auto const transforms = scene.get_draw_transforms();
+    render_data.transforms = ifc.allocate_scratch_ssbo(util::memsize(transforms));
+    std::memcpy(render_data.transforms.data, transforms.data(), util::memsize(transforms));
+
+    // Update scene acceleration structure for RT.
+    render_data.accel_structure.update(scene);
+}
+
 void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightContext &ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
     // Create storage objects shared by the pipeline.
     create_render_data(ifc, viewport, scene);
@@ -124,25 +144,12 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     std::memcpy(vp_data.camera.data + 2 * sizeof(glm::mat4), &camera.proj_view, sizeof(glm::mat4));
     std::memcpy(vp_data.camera.data + 3 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
 
-    auto const point_lights = scene.get_point_lights();
-    render_data.point_lights = ifc.allocate_scratch_ssbo(util::memsize(point_lights));
-    std::memcpy(render_data.point_lights.data, point_lights.data(), util::memsize(point_lights));
-
-    auto const dir_lights = scene.get_directional_lights();
-    render_data.dir_lights = ifc.allocate_scratch_ssbo(util::memsize(dir_lights));
-    std::memcpy(render_data.dir_lights.data, dir_lights.data(), util::memsize(dir_lights));
-
     // We can have at most MAX_LIGHTS in every tile, and there are ceil(W/TILE_SIZE) * ceil(H/TILE_SIZE) tiles, which gives us the size of the buffer
     vp_data.n_tiles_x = static_cast<uint32_t>(std::ceil((float)viewport.width() / ANDROMEDA_TILE_SIZE));
     vp_data.n_tiles_y = static_cast<uint32_t>(std::ceil((float)viewport.height() / ANDROMEDA_TILE_SIZE));
     uint32_t const n_tiles =  vp_data.n_tiles_x * vp_data.n_tiles_y;
     uint32_t const size = sizeof(uint32_t) * n_tiles * ANDROMEDA_MAX_LIGHTS_PER_TILE;
     vp_data.culled_lights = ifc.allocate_scratch_ssbo(size);
-
-    // Transform data
-    auto const transforms = scene.get_draw_transforms();
-    render_data.transforms = ifc.allocate_scratch_ssbo(util::memsize(transforms));
-    std::memcpy(render_data.transforms.data, transforms.data(), util::memsize(transforms));
 }
 
 ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport const& viewport, gfx::SceneDescription const& scene) {

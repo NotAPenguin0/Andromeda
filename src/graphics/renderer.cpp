@@ -194,6 +194,7 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
 	ph::RenderGraph graph{};
 	graph.add_pass(std::move(clear_swap));
 
+    impl->frame_setup(ifc, scene);
 	for (auto const& viewport : viewports) {
 		if (viewport.in_use) {
             debug_geometry.clear(viewport.vp);

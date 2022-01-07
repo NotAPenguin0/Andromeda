@@ -1,6 +1,7 @@
 #pragma once
 
 #include <andromeda/graphics/backend/renderer_backend.hpp>
+#include <andromeda/graphics/backend/rtx.hpp>
 #include <array>
 
 namespace andromeda::gfx::backend {
@@ -14,6 +15,8 @@ public:
     explicit ForwardPlusRenderer(gfx::Context& ctx);
 
     ~ForwardPlusRenderer() override;
+
+    void frame_setup(ph::InFlightContext& ifc, gfx::SceneDescription const& scene) override;
 
     /**
      * @brief Renders a scene to a viewport.
@@ -51,6 +54,8 @@ private:
 
     // This structure owns buffers and storage images shared by the pipeline.
     struct RenderData {
+        explicit inline RenderData(gfx::Context& ctx) : accel_structure(ctx) {}
+
         // Per-viewport render data, indexed by viewport ID.
         struct PerViewport {
             ph::BufferSlice camera;
@@ -70,6 +75,8 @@ private:
         // Note that casting this to uint32_t gives back the amount of samples
         VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_8_BIT;
         float msaa_sample_ratio = 0.1f;
+
+        SceneAccelerationStructure accel_structure;
     } render_data;
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);

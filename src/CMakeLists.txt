@@ -33,6 +33,7 @@ target_sources(andromeda PRIVATE
 	"graphics/backend/depth_pass.cpp"
 	"graphics/backend/forward_plus.cpp"
 	"graphics/backend/mesh_draw.cpp"
+	"graphics/backend/rtx.cpp"
 	"graphics/backend/skybox.cpp"
 	"graphics/backend/tonemap.cpp"
 	"graphics/context.cpp"

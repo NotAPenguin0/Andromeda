@@ -13,11 +13,6 @@
     - https://discord.com/channels/318590007881236480/600645448394342402/924972103692873749
     - https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/AutomaticExposure/
 - [X] PBR shading model
-- [ ] Shadows
-  - [ ] Free up space used by shadowmaps that haven't been used in a long (?) time.
-  - [ ] Configuration of settings
-  - [ ] PCF/hardware PCF?
-  - [ ] Soft shadows
 - [ ] Organize backend code to be more re-usable.
   - [ ] Move postprocess pipeline to separate module
 - [ ] GPU driven rendering
@@ -28,6 +23,9 @@
 - [ ] Put all meshes in a single large VkBuffer
 - [ ] Terrain system
 - [ ] Particles
+- [ ] Raytraced shadows using VK_KHR_ray_query
+  - Rebuild TLAS every frame
+  - Rebuild BLAS only when needed
 
 ## Asset pipeline
 
@@ -73,7 +71,5 @@
 ## Farther future
 
 - [ ] Raytraced rendering backend
-  - Also add "hybrid" backend that only uses raytracing for specific tasks
-    - This will most likely be the default backend.
   - Full raytraced backend should probably not be real-time and only update at certain intervals.
   

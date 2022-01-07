@@ -26,6 +26,13 @@ public:
 
     virtual ~RendererBackend() = default;
 
+    /**
+     * @brief Called before rendering all viewports. Useful to perform one-time setup for a frame that can be shared across all viewports.
+     * @param ifc Reference to the InFlightContext.
+     * @param scene SceneDescription with all information on the scene.
+     */
+    virtual inline void frame_setup(ph::InFlightContext& ifc, gfx::SceneDescription const& scene) {}
+
 	/**
 	 * @brief Renders a scene to a viewport.
 	 * @param graph Render graph to add the renderpasses to.
