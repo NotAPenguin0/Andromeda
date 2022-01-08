@@ -59,6 +59,7 @@
 
 - [ ] Settings menu
 - [ ] Performance display
+  - Timings for each pass
 - [ ] Color type for components fields to distinguish between vectors and colors
 - [ ] Correctly handle tangent W, formula is `bitangent = cross(normal, tangent.xyz) * tangent.w`
   - Maybe assimp already handles this internally?
@@ -66,7 +67,12 @@
   - ex. mugs in coffee cart model
 - [ ] Make `PostProcessingSettings` truly optional by removing stuff like automatic exposure from the pipeline if disabled.
 - [ ] Fix case in renderer with no lights loaded
+
+
+## Performance
 - [ ] Minimize allocations in the engine to further improve performance
+- [ ] Bind acceleration structure to different set to remove overhead from constantly allocating large descriptor sets.
+
 
 ## Farther future
 

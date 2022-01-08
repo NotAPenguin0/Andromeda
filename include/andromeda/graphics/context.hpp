@@ -26,7 +26,7 @@ class Context : public ph::Context {
 public:
 	/**
 	 * @brief Creates a context and returns it through a unique_ptr, since the context by itself is
-	 *	      not copy or moveable.
+	 *	      not copy or movable.
 	 * @param window Reference to the windowing interface
 	 * @param logger Reference to the logger interface
 	 * @return A unique_ptr to the created graphics context.
@@ -38,6 +38,8 @@ public:
      * @return Time between this frame and the previous frame, in seconds.
      */
     float delta_time() const;
+
+    inline thread::TaskScheduler& get_scheduler() { return scheduler; }
 
 private:
 	Context(ph::AppSettings settings, Window& window, thread::TaskScheduler& scheduler);

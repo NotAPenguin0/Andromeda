@@ -74,7 +74,9 @@ void Log::set_output(log_write_fun func) {
 
 
 void Log::write(ph::LogSeverity sev, std::string_view str) {
-	write(ph_to_log_level(sev), str);
+    // Do not buffer phobos output, as it's often validation layer error messages that we want to see right away.
+    write_now(ph_to_log_level(sev), str);
+//	write(ph_to_log_level(sev), str);
 }
 
 void Log::write(LogLevel lvl, std::string_view str) {
@@ -95,6 +97,7 @@ void Log::write(LogLevel lvl, std::string_view str) {
 void Log::write_now(LogLevel lvl, std::string_view str) {
     std::lock_guard lock(mutex);
     write_unlocked(lock, lvl, str);
+    std::cout << std::flush;
 }
 
 void Log::flush() {

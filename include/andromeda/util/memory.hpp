@@ -27,4 +27,42 @@ size_t memsize(std::span<T> const& v) {
     return v.size() * sizeof(T);
 }
 
+/**
+ * @brief Align a size to a certain alignment.
+ * @tparam T Integral type representing a size.
+ * @param size Possibly unaligned size.
+ * @param alignment Request alignment.
+ * @return A new size, aligned to the requested alignment. The result will never be smaller than the given size.
+ */
+template<typename T>
+T align_size(T size, T alignment) {
+    T const unaligned_size = size % alignment;
+    T const padding = alignment - unaligned_size;
+    return size + padding;
+}
+
+
+/**
+ * @brief Converts a size in bytes to a size in KiB.
+ * @tparam T Integral type representing a byte size.
+ * @param size Size in bytes of some buffer.
+ * @return Floating point value with the given byte size in KiB.
+ */
+template<typename T>
+float bytes_to_KiB(T size) {
+    return static_cast<float>(size) / 1024.0f;
+}
+
+/**
+ * @brief Converts a size in bytes to a size in MiB.
+ * @tparam T Integral type representing a byte size.
+ * @param size Size in bytes of some buffer.
+ * @return Floating point value with the given byte size in MiB.
+ */
+template<typename T>
+float bytes_to_MiB(T size) {
+    return static_cast<float>(size) / (1024.0f * 1024.0f);
+}
+
+
 } // namespace andromeda::util

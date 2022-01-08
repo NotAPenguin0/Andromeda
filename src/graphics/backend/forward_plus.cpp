@@ -123,6 +123,8 @@ std::vector<std::string> ForwardPlusRenderer::debug_views(gfx::Viewport viewport
 std::vector<ph::WaitSemaphore> ForwardPlusRenderer::wait_semaphores() {
     // Our main rendering pass must wait on the TLAS build to be completed.
     VkSemaphore semaphore = render_data.accel_structure.get_tlas_build_semaphore();
+    // Do not actually wait if the TLAS contained no instances (and is therefore empty).
+    if (render_data.accel_structure.get_acceleration_structure() == nullptr) return {};
     return {
         // Wait in the fragment shader. Note that we might need to update this as time goes by and we use
         // the acceleration structure in more stages.
@@ -202,8 +204,11 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
             if (!env || !assets::is_ready(env)) env = scene.get_default_environment();
             gfx::Environment const& environment = *assets::get(env);
 
+            VkAccelerationStructureKHR tlas = render_data.accel_structure.get_acceleration_structure();
+
             // We can skip drawing the scene if there are no draws.
-            if (!scene.get_draws().empty()) {
+            // This happens when the scene drawlist is empty, OR when the TLAS is completely empty (in which case its handle is NULL).
+            if (!scene.get_draws().empty() && tlas != nullptr) {
                 cmd.bind_pipeline("shading");
                 cmd.auto_viewport_scissor();
 
@@ -217,8 +222,6 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
                 if (!brdf_lut_handle || !assets::is_ready(brdf_lut_handle))
                     brdf_lut_handle = scene.get_default_albedo();
                 gfx::Texture *brdf_lut = assets::get(brdf_lut_handle);
-
-                VkAccelerationStructureKHR tlas = render_data.accel_structure.get_acceleration_structure();
 
                 VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                     .add_uniform_buffer("camera", vp_data.camera)

@@ -41,8 +41,7 @@ public:
      */
     [[nodiscard]] VkSemaphore get_tlas_build_semaphore() const;
 
-private:
-    gfx::Context& ctx;
+    // Internal types, we don't really need these in the public API.
 
     // Represents a single BLAS or TLAS allocated from a buffer.
     struct AllocatedAS {
@@ -59,6 +58,9 @@ private:
         ph::RawBuffer buffer {};
         // Used to synchronize access from the main render passes.
         VkSemaphore build_completed {};
+
+        ph::CommandBuffer transfer_cmd;
+        ph::CommandBuffer compute_cmd;
     };
 
     // Stores the entire bottom-level acceleration structure.
@@ -67,18 +69,35 @@ private:
         std::vector<AllocatedAS> entries {};
         // One buffer for all entries in the BLAS.
         ph::RawBuffer buffer {};
+        // Stores a mapping from mesh handle -> index into the BLAS entry vector.
+        std::unordered_map<Handle<gfx::Mesh>, uint32_t> mesh_indices;
     };
 
-    // This buffer may be reused even if the GPU is busy using the previous acceleration structure
+private:
+    gfx::Context& ctx;
+
+    // These buffers may be reused even if the GPU is busy using the previous acceleration structure
+
+    // Upload to instance_buffer
     ph::RawBuffer instance_scratch_buffer {};
+    // Instance buffer for TLAS creation.
+    ph::RawBuffer instance_buffer {};
+    // Signals that the upload to the instance buffer is done.
+    VkSemaphore instance_upload_semaphore {};
 
     // Each in-flight frame needs one TLAS, since we're continuously updating these.
     std::array<TLAS, 2> top_level {};
     // Index in the array of TLAS's. Indicates the TLAS used for this frame.
     uint32_t tlas_index = 0;
 
+    // Scratch memory for TLAS build
+    ph::RawBuffer tlas_scratch {};
+
     // We can share a single BLAS across frames because updates will be done asynchronously.
     BLAS bottom_level {};
+
+    // When a BLAS update is done, the result is stored here.
+    BLAS updated_blas {};
 
     // Signals that the BLAS update is completed
     std::atomic<bool> blas_update_done = false;
@@ -86,12 +105,37 @@ private:
     // These must be deleted before checking blas_update_done and reassigning the new BLAS.
     std::vector<BLAS> blas_deletion_queue {};
 
-    /**
-    * @brief Find all unique meshes that are also ready and collect them into a vector.
-    * @param scene Scene data.
-    * @return List of unique mesh handles that are all marked as ready by the asset system.
-    */
+    // Protects access to the BLAS deletion queue
+    std::mutex queue_mutex {};
+
+    // This exists to make sure we don't start two BLAS updates at the same time.
+    thread::task_id blas_update_task = -1;
+
+    // Immediately destroy a TLAS
+    void destroy(TLAS& tlas);
+
+    // Immediately destroy a BLAS
+    void destroy(BLAS& blas);
+
+    // Queue deletion of a BLAS. Always use this instead of calling destroy() directly.
+    void queue_delete(BLAS const& blas);
+
+    // Processes the BLAS deletion queue and destroys each element.
+    void process_deletion_queue();
+
+    // Returns true if a BLAS update is needed for the current BLAS.
+    bool must_update_blas(gfx::SceneDescription const& scene);
+
+    // Find all unique and ready meshes in the scene.
     std::vector<Handle<gfx::Mesh>> find_unique_meshes(gfx::SceneDescription const& scene);
+
+    // Queues an async task for a BLAS update.
+    void rebuild_blas_async(gfx::SceneDescription const& scene);
+
+    // Do a BLAS rebuild on a specific thread. This function is synchronous.
+    void do_blas_rebuild(std::vector<Handle<gfx::Mesh>> const& meshes, uint32_t const thread);
+
+    void do_tlas_build(gfx::SceneDescription const& scene);
 };
 
 }

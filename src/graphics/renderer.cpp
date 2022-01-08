@@ -215,9 +215,7 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
 	executor.execute(ifc.command_buffer, graph);
 	ifc.command_buffer.end();
 
-    std::vector<ph::WaitSemaphore> wait_semaphores = impl->wait_semaphores();
-
-	ctx.submit_frame_commands(*ctx.get_queue(ph::QueueType::Graphics), ifc.command_buffer, wait_semaphores);
+	ctx.submit_frame_commands(*ctx.get_queue(ph::QueueType::Graphics), ifc.command_buffer, impl->wait_semaphores());
 	ctx.present(*ctx.get_present_queue());
 }
 
