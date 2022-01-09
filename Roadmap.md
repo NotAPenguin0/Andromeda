@@ -72,7 +72,6 @@
 ## Performance
 - [ ] Minimize allocations in the engine to further improve performance
 - [ ] Bind acceleration structure to different set to remove overhead from constantly allocating large descriptor sets.
-- [ ] Remove scalar block layout and replace with proper padding (each field 16-byte aligned most likely)
 
 
 ## Farther future

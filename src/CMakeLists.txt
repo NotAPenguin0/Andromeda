@@ -18,7 +18,6 @@ target_sources(andromeda PRIVATE
 	"editor/console.cpp"
 	"editor/editor.cpp"
 	"editor/inspector.cpp"
-	"editor/performance.cpp"
 	"editor/scene_viewport.cpp"
 	"editor/style.cpp"
 	"editor/widgets/dockspace.cpp"

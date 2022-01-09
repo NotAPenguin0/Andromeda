@@ -238,12 +238,6 @@ void main() {
         DirectionalLight light = dir_lights.l[i];
         vec3 light_color = apply_directional_light(light, normal, albedo, metallic, roughness);
 
-        // Skip shadow rays if light is not a shadow caster
-        if (light.direction_shadow.w < 0) {
-            color += light_color;
-            continue;
-        }
-
         // Use ray queries to determine whether light is blocked by scene geometry.
         rayQueryEXT shadow_query;
         // We can terminate on first hit.

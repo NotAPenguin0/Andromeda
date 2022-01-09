@@ -55,7 +55,6 @@ void Editor::update(World& world, gfx::Context& ctx, gfx::Renderer& renderer) {
 
 	console.display();
 	inspector.display(world);
-    performance.display(ctx);
 }
 
 void Editor::show_main_menu_bar(World& world, gfx::Context& ctx, gfx::Renderer& renderer) {
@@ -70,7 +69,6 @@ void Editor::show_main_menu_bar(World& world, gfx::Context& ctx, gfx::Renderer& 
 			window.item("New viewport", menu_values.create_viewport);
 			ImGui::Separator();
 			window.item("Inspector", inspector.is_visible());
-            window.item("Performance Display", performance.is_visible());
 		}
 	}
 
