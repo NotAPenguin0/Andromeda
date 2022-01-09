@@ -19,34 +19,34 @@ namespace andromeda {
 class Application {
 public:
 
-	/**
-	 * @brief Create an Application instance.
-	 * @param argc Amount of command-line arguments.
-	 * @param argv Command-line arguments.
-	*/
-	Application(int argc, char** argv);
+    /**
+     * @brief Create an Application instance.
+     * @param argc Amount of command-line arguments.
+     * @param argv Command-line arguments.
+    */
+    Application(int argc, char** argv);
 
-	/**
-	 * @brief Runs the application. Blocks the calling thread until the app is closed.
-	 * @return An exit code for the system.
-	*/
-	int run();
+    /**
+     * @brief Runs the application. Blocks the calling thread until the app is closed.
+     * @return An exit code for the system.
+    */
+    int run();
 
 private:
-	// Used for all application logging
-	std::unique_ptr<Log> log;
-	// Main application window
-	std::unique_ptr<Window> window;
-	// Core graphics context
-	std::unique_ptr<gfx::Context> graphics;
-	// The world with all entities in it
-	std::unique_ptr<World> world;
-	// The task scheduler
-	std::unique_ptr<thread::TaskScheduler> scheduler;
-	// Editor interface
-	std::unique_ptr<editor::Editor> editor;
-	// The main rendering interface
-	std::unique_ptr<gfx::Renderer> renderer;
+    // Used for all application logging
+    std::unique_ptr<Log> log;
+    // Main application window
+    std::unique_ptr<Window> window;
+    // Core graphics context
+    std::unique_ptr<gfx::Context> graphics;
+    // The world with all entities in it
+    std::unique_ptr<World> world;
+    // The task scheduler
+    std::unique_ptr<thread::TaskScheduler> scheduler;
+    // Editor interface
+    std::unique_ptr<editor::Editor> editor;
+    // The main rendering interface
+    std::unique_ptr<gfx::Renderer> renderer;
 };
 
 } // namespace andromeda

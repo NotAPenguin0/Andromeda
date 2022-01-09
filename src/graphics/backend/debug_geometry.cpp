@@ -21,7 +21,7 @@ void DebugGeometryList::add_line(gfx::Viewport const& viewport, glm::vec3 p1, gl
 void DebugGeometryList::set_color(gfx::Viewport const& viewport, glm::vec3 color) {
     Command cmd{};
     cmd.type = CommandType::PushColor;
-    cmd.color = { color };
+    cmd.color = {color};
     vp[viewport.index()].commands.push_back(cmd);
 }
 
@@ -67,7 +67,7 @@ ph::Pass DebugGeometryList::build_render_pass(gfx::Viewport const& viewport, gfx
             cmd.bind_descriptor_set(set);
             cmd.bind_vertex_buffer(0, vertices);
 
-            for (auto const& command : vp_data.commands) {
+            for (auto const& command: vp_data.commands) {
                 if (command.type == CommandType::PushColor) {
                     glm::vec4 value = glm::vec4(command.color.color, 1.0);
                     cmd.push_constants(ph::ShaderStage::Fragment, 0, sizeof(glm::vec4), &value);

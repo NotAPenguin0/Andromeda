@@ -9,6 +9,7 @@ public:
     void display(gfx::Context& ctx);
 
     bool& is_visible();
+
 private:
     bool visible = true;
 

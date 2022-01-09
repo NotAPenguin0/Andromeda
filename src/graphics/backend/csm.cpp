@@ -4,6 +4,7 @@
 #include <andromeda/graphics/backend/debug_geometry.hpp>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace andromeda::gfx::backend {
@@ -37,11 +38,11 @@ VkSampler CascadedShadowMapping::create_sampler(gfx::Context& ctx) {
 }
 
 void CascadedShadowMapping::free(gfx::Context& ctx) {
-    for (auto& vp : viewport_data) {
-        for (auto& map : vp.maps) {
+    for (auto& vp: viewport_data) {
+        for (auto& map: vp.maps) {
             // Skip empty shadow maps
-            if (map.attachment.empty()) continue;
-            for (auto& cascade : map.cascades) {
+            if (map.attachment.empty()) { continue; }
+            for (auto& cascade: map.cascades) {
                 ctx.destroy_image_view(cascade.view);
             }
             ctx.destroy_image_view(map.full_view);
@@ -53,7 +54,7 @@ void CascadedShadowMapping::create_pipeline(gfx::Context& ctx) {
     ph::PipelineCreateInfo pci = ph::PipelineBuilder::create(ctx, "shadow")
         .add_shader("data/shaders/shadow.vert.spv", "main", ph::ShaderStage::Vertex)
         .add_vertex_input(0)
-        // Note that not all these attributes will be used, but they are specified because the vertex size is deduced from them
+            // Note that not all these attributes will be used, but they are specified because the vertex size is deduced from them
         .add_vertex_attribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT) // iPos
         .add_vertex_attribute(0, 1, VK_FORMAT_R32G32B32_SFLOAT) // iNormal
         .add_vertex_attribute(0, 2, VK_FORMAT_R32G32B32_SFLOAT) // iTangent
@@ -75,9 +76,9 @@ std::vector<ph::Pass> CascadedShadowMapping::build_shadow_map_passes(gfx::Contex
     std::vector<ph::Pass> passes;
     passes.reserve(ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS * ANDROMEDA_SHADOW_CASCADE_COUNT);
 
-    for (auto const& dir_light : scene.get_directional_lights()) {
+    for (auto const& dir_light: scene.get_directional_lights()) {
         // Skip lights that are not shadow casters
-        if (!is_shadow_caster(dir_light)) continue;
+        if (!is_shadow_caster(dir_light)) { continue; }
 
         uint32_t const light_index = get_light_index(dir_light);
         // Request a shadowmap for this light and viewport.
@@ -97,7 +98,7 @@ std::vector<ph::Pass> CascadedShadowMapping::build_shadow_map_passes(gfx::Contex
             auto builder = ph::PassBuilder::create(pass_name);
 
             Cascade& cascade = shadow_map.cascades[c];
-            builder.add_depth_attachment(shadow_map.attachment, cascade.view, ph::LoadOp::Clear, { .depth_stencil = { 1.0, 0 } });
+            builder.add_depth_attachment(shadow_map.attachment, cascade.view, ph::LoadOp::Clear, {.depth_stencil = {1.0, 0}});
             builder.execute([&ctx, &scene, transforms, c, light_pvs](ph::CommandBuffer& cmd) {
                 cmd.auto_viewport_scissor();
                 cmd.bind_pipeline("shadow");
@@ -113,7 +114,7 @@ std::vector<ph::Pass> CascadedShadowMapping::build_shadow_map_passes(gfx::Contex
                 // Render scene from light POV.
                 for_each_ready_mesh(scene, [&cmd](auto const& draw, auto const& mesh, auto index) {
                     // Skip draws that don't cast shadows
-                    if (!draw.occluder) return;
+                    if (!draw.occluder) { return; }
                     // Push transform index to shader and draw
                     cmd.push_constants(ph::ShaderStage::Vertex, sizeof(uint32_t), sizeof(uint32_t), &index);
                     bind_and_draw(cmd, mesh);
@@ -128,19 +129,19 @@ std::vector<ph::Pass> CascadedShadowMapping::build_shadow_map_passes(gfx::Contex
 
 void CascadedShadowMapping::register_attachment_dependencies(gfx::Viewport const& viewport, ph::PassBuilder& builder) {
     auto const& vp = viewport_data[viewport.index()];
-    for (CascadeMap const& shadow_map : vp.maps) {
+    for (CascadeMap const& shadow_map: vp.maps) {
         // Skip unused shadow maps
-        if (shadow_map.attachment.empty()) continue;
+        if (shadow_map.attachment.empty()) { continue; }
         // Since the render graph will always synchronize entire images, we can get away with only registering
         // one dependency for each cascade map, for any cascade layer.
         builder.sample_attachment(shadow_map.attachment, shadow_map.cascades[0].view, ph::PipelineStage::FragmentShader);
     }
 }
 
-std::vector<std::string_view> CascadedShadowMapping::get_debug_attachments(const gfx::Viewport &viewport) {
+std::vector<std::string_view> CascadedShadowMapping::get_debug_attachments(const gfx::Viewport& viewport) {
     std::vector<std::string_view> result;
-    for (auto const& map : viewport_data[viewport.index()].maps) {
-        if (map.attachment.empty()) continue;
+    for (auto const& map: viewport_data[viewport.index()].maps) {
+        if (map.attachment.empty()) { continue; }
         result.push_back(map.attachment);
     }
     return result;
@@ -175,7 +176,7 @@ auto CascadedShadowMapping::request_shadow_map(gfx::Context& ctx, gfx::Viewport 
 
     // Create attachment and ImageViews for cascades.
     map.attachment = gfx::Viewport::local_string(viewport, fmt::vformat("Cascaded Shadow Map [L{}]", fmt::make_format_args(light_index)));
-    ctx.create_attachment(map.attachment, { ANDROMEDA_SHADOW_RESOLUTION, ANDROMEDA_SHADOW_RESOLUTION },
+    ctx.create_attachment(map.attachment, {ANDROMEDA_SHADOW_RESOLUTION, ANDROMEDA_SHADOW_RESOLUTION},
                           VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_1_BIT, ANDROMEDA_SHADOW_CASCADE_COUNT, ph::ImageType::DepthStencilAttachment);
     // Now create an ImageView for each of the cascades individually
     ph::Attachment attachment = ctx.get_attachment(map.attachment);
@@ -192,21 +193,21 @@ auto CascadedShadowMapping::request_shadow_map(gfx::Context& ctx, gfx::Viewport 
 
 namespace {
 
-constexpr glm::vec4 base_frustum_corners[8] {
-    glm::vec4(-1.0f,  1.0f, -1.0f, 1.0f),
-    glm::vec4( 1.0f,  1.0f, -1.0f, 1.0f),
-    glm::vec4( 1.0f, -1.0f, -1.0f, 1.0f),
+constexpr glm::vec4 base_frustum_corners[8]{
+    glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f),
+    glm::vec4(1.0f, 1.0f, -1.0f, 1.0f),
+    glm::vec4(1.0f, -1.0f, -1.0f, 1.0f),
     glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f),
-    glm::vec4(-1.0f,  1.0f,  1.0f, 1.0f),
-    glm::vec4( 1.0f,  1.0f,  1.0f, 1.0f),
-    glm::vec4( 1.0f, -1.0f,  1.0f, 1.0f),
-    glm::vec4(-1.0f, -1.0f,  1.0f, 1.0f),
+    glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, -1.0f, 1.0f, 1.0f),
+    glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f),
 };
 
 }
 
 void CascadedShadowMapping::calculate_cascade_splits(CascadeMap& shadow_map, gfx::Viewport const& viewport, gfx::SceneDescription::CameraInfo const& camera, gpu::DirectionalLight const& light) {
-    std::array<float, ANDROMEDA_SHADOW_CASCADE_COUNT> splits {};
+    std::array<float, ANDROMEDA_SHADOW_CASCADE_COUNT> splits{};
     float const near = camera.near;
     float const far = camera.far;
     float const clip_range = far - near;
@@ -256,7 +257,7 @@ void CascadedShadowMapping::calculate_cascade_splits(CascadeMap& shadow_map, gfx
 
         // Compute center of frustum by averaging together all points
         glm::vec3 frustum_center = glm::vec3(0.0f);
-        for (auto const& corner : frustum) {
+        for (auto const& corner: frustum) {
             frustum_center += corner;
             frustum_center /= static_cast<float>(frustum.size());
         }
@@ -264,7 +265,7 @@ void CascadedShadowMapping::calculate_cascade_splits(CascadeMap& shadow_map, gfx
         // Compute radius of bounding sphere. We do this by finding the largest distance
         // between the center and each of the points.
         float radius = 0.0f;
-        for (auto const& corner : frustum) {
+        for (auto const& corner: frustum) {
             float const distance = glm::length(corner - frustum_center);
             radius = std::max(radius, distance);
         }

@@ -7,7 +7,7 @@ void create_depth_only_pipeline(gfx::Context& ctx, VkSampleCountFlagBits samples
     ph::PipelineCreateInfo pci = ph::PipelineBuilder::create(ctx, "depth_only")
         .add_shader("data/shaders/depth.vert.spv", "main", ph::ShaderStage::Vertex)
         .add_vertex_input(0)
-        // Note that not all these attributes will be used, but they are specified because the vertex size is deduced from them
+            // Note that not all these attributes will be used, but they are specified because the vertex size is deduced from them
         .add_vertex_attribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT) // iPos
         .add_vertex_attribute(0, 1, VK_FORMAT_R32G32B32_SFLOAT) // iNormal
         .add_vertex_attribute(0, 2, VK_FORMAT_R32G32B32_SFLOAT) // iTangent
@@ -32,9 +32,9 @@ ph::Pass build_depth_pass(gfx::Context& ctx, ph::InFlightContext& ifc, std::stri
             cmd.auto_viewport_scissor();
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                    .add_uniform_buffer("camera", camera)
-                    .add_storage_buffer("transforms", transforms)
-                    .get();
+                .add_uniform_buffer("camera", camera)
+                .add_storage_buffer("transforms", transforms)
+                .get();
             cmd.bind_descriptor_set(set);
 
             for_each_ready_mesh(scene, [&cmd](auto const& _, gfx::Mesh const& mesh, uint32_t index) {

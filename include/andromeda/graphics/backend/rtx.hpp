@@ -45,19 +45,19 @@ public:
 
     // Represents a single BLAS or TLAS allocated from a buffer.
     struct AllocatedAS {
-        VkAccelerationStructureKHR handle {};
-        ph::BufferSlice memory {};
+        VkAccelerationStructureKHR handle{};
+        ph::BufferSlice memory{};
     };
 
     // Stores the entire top-level acceleration structure.
     struct TLAS {
         // The memory slice of this AS will simply be a part of (or the entire) buffer member below.
-        AllocatedAS as {};
+        AllocatedAS as{};
         // We will use one buffer for each TLAS.
         // This buffer will be re-used for each TLAS update.
-        ph::RawBuffer buffer {};
+        ph::RawBuffer buffer{};
         // Used to synchronize access from the main render passes.
-        VkSemaphore build_completed {};
+        VkSemaphore build_completed{};
 
         ph::CommandBuffer transfer_cmd;
         ph::CommandBuffer compute_cmd;
@@ -66,9 +66,9 @@ public:
     // Stores the entire bottom-level acceleration structure.
     struct BLAS {
         // Each entry has a BufferSlice into the buffer below.
-        std::vector<AllocatedAS> entries {};
+        std::vector<AllocatedAS> entries{};
         // One buffer for all entries in the BLAS.
-        ph::RawBuffer buffer {};
+        ph::RawBuffer buffer{};
         // Stores a mapping from mesh handle -> index into the BLAS entry vector.
         std::unordered_map<Handle<gfx::Mesh>, uint32_t> mesh_indices;
     };
@@ -79,34 +79,34 @@ private:
     // These buffers may be reused even if the GPU is busy using the previous acceleration structure
 
     // Upload to instance_buffer
-    ph::RawBuffer instance_scratch_buffer {};
+    ph::RawBuffer instance_scratch_buffer{};
     // Instance buffer for TLAS creation.
-    ph::RawBuffer instance_buffer {};
+    ph::RawBuffer instance_buffer{};
     // Signals that the upload to the instance buffer is done.
-    VkSemaphore instance_upload_semaphore {};
+    VkSemaphore instance_upload_semaphore{};
 
     // Each in-flight frame needs one TLAS, since we're continuously updating these.
-    std::array<TLAS, 2> top_level {};
+    std::array<TLAS, 2> top_level{};
     // Index in the array of TLAS's. Indicates the TLAS used for this frame.
     uint32_t tlas_index = 0;
 
     // Scratch memory for TLAS build
-    ph::RawBuffer tlas_scratch {};
+    ph::RawBuffer tlas_scratch{};
 
     // We can share a single BLAS across frames because updates will be done asynchronously.
-    BLAS bottom_level {};
+    BLAS bottom_level{};
 
     // When a BLAS update is done, the result is stored here.
-    BLAS updated_blas {};
+    BLAS updated_blas{};
 
     // Signals that the BLAS update is completed
     std::atomic<bool> blas_update_done = false;
 
     // These must be deleted before checking blas_update_done and reassigning the new BLAS.
-    std::vector<BLAS> blas_deletion_queue {};
+    std::vector<BLAS> blas_deletion_queue{};
 
     // Protects access to the BLAS deletion queue
-    std::mutex queue_mutex {};
+    std::mutex queue_mutex{};
 
     // This exists to make sure we don't start two BLAS updates at the same time.
     thread::task_id blas_update_task = -1;

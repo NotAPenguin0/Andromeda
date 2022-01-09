@@ -33,15 +33,15 @@ namespace andromeda::gfx {
 class SceneDescription {
 public:
 
-	/**
-	 * @brief Each field in this structure stores an index into the textures array.
-	*/
-	struct MaterialTextures {
-		uint32_t const albedo = 0;
+    /**
+     * @brief Each field in this structure stores an index into the textures array.
+    */
+    struct MaterialTextures {
+        uint32_t const albedo = 0;
         uint32_t const normal = 0;
         uint32_t const metal_rough = 0;
         uint32_t const occlusion = 0;
-	};
+    };
 
     /**
      * @brief Describes a single draw command.
@@ -111,25 +111,25 @@ public:
         float max_log_luminance;
     };
 
-	/**
-	 * @brief Creates an empty scene description
-	*/
-	SceneDescription() = default;
+    /**
+     * @brief Creates an empty scene description
+    */
+    SceneDescription() = default;
 
-	/**
-	 * @brief Add a mesh to draw. 
-	 * @param mesh Handle to the mesh to draw.
-	 * @param material Handle to the material to draw this mesh with.
-	 * @param occluder Whether this mesh should occlude light and thus cast a shadow TODO: Move this to material settings?
-	 * @param transform Transformation matrix.
-	*/
-	void add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, bool occluder, glm::mat4 const& transform);
+    /**
+     * @brief Add a mesh to draw.
+     * @param mesh Handle to the mesh to draw.
+     * @param material Handle to the material to draw this mesh with.
+     * @param occluder Whether this mesh should occlude light and thus cast a shadow TODO: Move this to material settings?
+     * @param transform Transformation matrix.
+    */
+    void add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, bool occluder, glm::mat4 const& transform);
 
-	/**
-	 * @brief Register a material. All used materials must be added through this function.
-	 * @param material Handle to the material to register.
-	*/
-	void add_material(Handle<gfx::Material> material);
+    /**
+     * @brief Register a material. All used materials must be added through this function.
+     * @param material Handle to the material to register.
+    */
+    void add_material(Handle<gfx::Material> material);
 
     /**
      * @brief Register a point light.
@@ -145,13 +145,13 @@ public:
      */
     void add_light(DirectionalLight const& light, glm::vec3 const& rotation);
 
-	/**
-	 * @brief Adds a viewport + camera to the system.
-	 * @param vp Viewport to add
-	 * @param ecs Entity component system to retrieve camera data from
-	 * @param camera Camera entity in the ECS
-	*/
-	void add_viewport(gfx::Viewport const& vp, thread::LockedValue<const ecs::registry> const& ecs, ecs::entity_t camera);
+    /**
+     * @brief Adds a viewport + camera to the system.
+     * @param vp Viewport to add
+     * @param ecs Entity component system to retrieve camera data from
+     * @param camera Camera entity in the ECS
+    */
+    void add_viewport(gfx::Viewport const& vp, thread::LockedValue<const ecs::registry> const& ecs, ecs::entity_t camera);
 
     /**
      * @brief Sets the default albedo texture. This will be used as a placeholder if no albedo texture was loaded.
@@ -189,21 +189,21 @@ public:
      */
     void set_brdf_lut(Handle<gfx::Texture> handle);
 
-	/**
-	 * @brief Clears all data except things that are persistent across frames (such as
-	 *		  default textures).
-	*/
-	void reset();
+    /**
+     * @brief Clears all data except things that are persistent across frames (such as
+     *		  default textures).
+    */
+    void reset();
 
     // Accessor functions
 
-	/**
-	 * @brief Get indices for reach texture in the material. The material must be added with 
-	 *        add_material() before calling this.
-	 * @param material Material to query textures for.
-	 * @return An instance of MaterialTextures holding all indices.
-	*/
-	MaterialTextures get_material_textures(Handle<gfx::Material> material) const;
+    /**
+     * @brief Get indices for reach texture in the material. The material must be added with
+     *        add_material() before calling this.
+     * @param material Material to query textures for.
+     * @return An instance of MaterialTextures holding all indices.
+    */
+    MaterialTextures get_material_textures(Handle<gfx::Material> material) const;
 
     /**
      * @brief Get a list of draws
@@ -262,24 +262,24 @@ public:
 
 private:
 
-	/**
-	 * @brief Stores all draws to process.
-	*/
-	std::vector<Draw> draws;
+    /**
+     * @brief Stores all draws to process.
+    */
+    std::vector<Draw> draws;
     /**
      * @brief Stores all draw transformation matrices. The reason we put this in a separate vector is
      *        so we can upload it to the GPU buffer in a single memcpy()
      */
     std::vector<glm::mat4> draw_transforms;
 
-	// Each camera is indexed by a viewport index.
-	std::array<CameraInfo, gfx::MAX_VIEWPORTS> cameras;
+    // Each camera is indexed by a viewport index.
+    std::array<CameraInfo, gfx::MAX_VIEWPORTS> cameras;
 
-	struct {
-		// Array of all image views ready to send to the GPU.
-		std::vector<ph::ImageView> views;
-		// Map texture ID to an index in the above list.
-		mutable std::unordered_map<Handle<gfx::Texture>, uint32_t> id_to_index;
+    struct {
+        // Array of all image views ready to send to the GPU.
+        std::vector<ph::ImageView> views;
+        // Map texture ID to an index in the above list.
+        mutable std::unordered_map<Handle<gfx::Texture>, uint32_t> id_to_index;
 
         // Default textures that can be set by using set_default_xxx(). These are not reset when calling reset().
         Handle<gfx::Texture> default_albedo;
@@ -289,7 +289,7 @@ private:
 
         // BRDF lookup texture.
         Handle<gfx::Texture> brdf_lut;
-	} textures;
+    } textures;
 
     // Default environment. This environment has an empty irradiance and specular map, so they won't affect lighting.
     // The cubemap texture for this environment is transparent so that if you do render it nothing actually shows up.
@@ -302,10 +302,10 @@ private:
     // Will never be more than ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS in glsl/limits.glsl
     uint32_t num_shadowing_dir_lights = 0;
 
-	/**
-	 * @brief Adds an individual texture to the system.
-	*/
-	void add_texture(Handle<gfx::Texture> texture);
+    /**
+     * @brief Adds an individual texture to the system.
+    */
+    void add_texture(Handle<gfx::Texture> texture);
 };
 
 } // namespace andromeda::gfx

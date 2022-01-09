@@ -5,16 +5,16 @@ namespace andromeda::gfx::backend {
 void create_luminance_histogram_pipelines(gfx::Context& ctx) {
     {
         ph::ComputePipelineCreateInfo pci = ph::ComputePipelineBuilder::create(ctx, "luminance_accumulate")
-                .set_shader("data/shaders/luminance_accumulate.comp.spv", "main")
-                .reflect()
-                .get();
+            .set_shader("data/shaders/luminance_accumulate.comp.spv", "main")
+            .reflect()
+            .get();
         ctx.create_named_pipeline(std::move(pci));
     }
     {
         ph::ComputePipelineCreateInfo pci = ph::ComputePipelineBuilder::create(ctx, "luminance_average")
-                .set_shader("data/shaders/luminance_average.comp.spv", "main")
-                .reflect()
-                .get();
+            .set_shader("data/shaders/luminance_average.comp.spv", "main")
+            .reflect()
+            .get();
         ctx.create_named_pipeline(std::move(pci));
     }
 }
@@ -54,16 +54,16 @@ ph::Pass build_average_luminance_pass(gfx::Context& ctx, ph::InFlightContext& if
                     .get();
                 cmd.bind_descriptor_set(set);
 
-                float const pc[2] {
-                        camera.min_log_luminance,
-                        1.0f / (camera.max_log_luminance - camera.min_log_luminance)
+                float const pc[2]{
+                    camera.min_log_luminance,
+                    1.0f / (camera.max_log_luminance - camera.min_log_luminance)
                 };
                 cmd.push_constants(ph::ShaderStage::Compute, 0, sizeof(pc), &pc);
 
                 uint32_t const dispatches_x = std::ceil(
-                        viewport.width() / (float) ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE);
+                    viewport.width() / (float) ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE);
                 uint32_t const dispatches_y = std::ceil(
-                        viewport.height() / (float) ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE);
+                    viewport.height() / (float) ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE);
                 cmd.dispatch(dispatches_x, dispatches_y, 1);
             }
 
@@ -87,11 +87,11 @@ ph::Pass build_average_luminance_pass(gfx::Context& ctx, ph::InFlightContext& if
                     .get();
                 cmd.bind_descriptor_set(set);
 
-                float const pc[4] {
-                        camera.min_log_luminance,
-                        camera.max_log_luminance - camera.min_log_luminance,
-                        ctx.delta_time(),
-                        0.0 // padding
+                float const pc[4]{
+                    camera.min_log_luminance,
+                    camera.max_log_luminance - camera.min_log_luminance,
+                    ctx.delta_time(),
+                    0.0 // padding
                 };
 
                 uint32_t const num_pixels = viewport.width() * viewport.height();
@@ -116,15 +116,15 @@ ph::Pass build_tonemap_pass(gfx::Context& ctx, std::string_view main_hdr, std::s
             cmd.auto_viewport_scissor();
 
             VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                    .add_sampled_image("input_hdr", ctx.get_attachment(main_hdr).view, ctx.basic_sampler())
-                    .add_storage_buffer("average_luminance", luminance)
-                    .get();
+                .add_sampled_image("input_hdr", ctx.get_attachment(main_hdr).view, ctx.basic_sampler())
+                .add_storage_buffer("average_luminance", luminance)
+                .get();
             cmd.bind_descriptor_set(set);
 
             cmd.push_constants(ph::ShaderStage::Fragment, 0, sizeof(uint32_t), &samples);
             cmd.draw(6, 1, 0, 0);
         })
-    .get();
+        .get();
     return pass;
 }
 

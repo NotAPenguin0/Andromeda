@@ -4,15 +4,16 @@
 #include <andromeda/components/hierarchy.hpp>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/gtx/matrix_decompose.hpp>
 
 namespace glm {
 
 mat4 rotate(mat4 const& mat, vec3 euler) {
     mat4 result;
-    result = rotate(mat, euler.z, vec3{ 0, 0, 1 });
-    result = rotate(result, euler.y, vec3{ 0, 1, 0 });
-    result = rotate(result, euler.x, vec3{ 1, 0, 0 });
+    result = rotate(mat, euler.z, vec3{0, 0, 1});
+    result = rotate(result, euler.y, vec3{0, 1, 0});
+    result = rotate(result, euler.x, vec3{1, 0, 0});
     return result;
 }
 

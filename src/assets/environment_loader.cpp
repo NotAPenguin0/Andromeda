@@ -33,8 +33,8 @@ void load_environment(gfx::Context& ctx, Handle<gfx::Environment> handle, std::s
     gfx::Environment env{};
     env.cubemap = ctx.create_image(ph::ImageType::EnvMap, {info.hdr_extents[0], info.hdr_extents[1]},
                                    VK_FORMAT_R32G32B32A32_SFLOAT, std::log2(info.hdr_extents[0]) + 1);
-    env.irradiance = ctx.create_image(ph::ImageType::EnvMap, { info.irradiance_size, info.irradiance_size },VK_FORMAT_R32G32B32A32_SFLOAT);
-    env.specular = ctx.create_image(ph::ImageType::EnvMap, { info.specular_size, info.specular_size },
+    env.irradiance = ctx.create_image(ph::ImageType::EnvMap, {info.irradiance_size, info.irradiance_size}, VK_FORMAT_R32G32B32A32_SFLOAT);
+    env.specular = ctx.create_image(ph::ImageType::EnvMap, {info.specular_size, info.specular_size},
                                     VK_FORMAT_R32G32B32A32_SFLOAT, std::log2(info.specular_size) + 1);
     env.cubemap_view = ctx.create_image_view(env.cubemap);
     env.irradiance_view = ctx.create_image_view(env.irradiance);
@@ -97,7 +97,7 @@ void load_environment(gfx::Context& ctx, Handle<gfx::Environment> handle, std::s
     // Log some info about the loaded environment
     LOG_FORMAT(LogLevel::Info, "Loaded environment {}", path);
     LOG_FORMAT(LogLevel::Performance, "Environment {} (face size {}x{} pixels) loaded with {} mip levels. ({:.1f} MiB). Irradiance resolution: {}px, Specular resolution: {}px",
-               path, info.hdr_extents[0], info.hdr_extents[1], env.cubemap.mip_levels, (float)total_size / (1024.0f * 1024.0f), info.irradiance_size, info.specular_size);
+               path, info.hdr_extents[0], info.hdr_extents[1], env.cubemap.mip_levels, (float) total_size / (1024.0f * 1024.0f), info.irradiance_size, info.specular_size);
 }
 
 }

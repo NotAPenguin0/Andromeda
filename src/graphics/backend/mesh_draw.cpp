@@ -12,7 +12,7 @@ void for_each_ready_mesh(gfx::SceneDescription const& scene, std::function<void(
             continue;
         }
 
-        if (!assets::is_ready(draw.mesh)) continue;
+        if (!assets::is_ready(draw.mesh)) { continue; }
         gfx::Mesh const& mesh = *assets::get(draw.mesh);
         callback(draw, mesh, i);
     }

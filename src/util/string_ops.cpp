@@ -10,8 +10,9 @@ std::vector<std::string> split(std::string const& s, char delim) {
     std::string item;
 
     while (std::getline(ss, item, delim)) {
-        if (!item.empty())
+        if (!item.empty()) {
             result.push_back(item);
+        }
     }
 
     return result;

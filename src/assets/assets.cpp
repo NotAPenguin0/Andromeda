@@ -14,17 +14,17 @@ World* world = nullptr;
 
 template<>
 Handle<gfx::Texture> load_priv<gfx::Texture>(std::string const& path) {
-	return gfx_context->request_texture(path);
+    return gfx_context->request_texture(path);
 }
 
 template<>
 Handle<gfx::Mesh> load_priv<gfx::Mesh>(std::string const& path) {
-	return gfx_context->request_mesh(path);
+    return gfx_context->request_mesh(path);
 }
 
 template<>
 Handle<gfx::Material> load_priv<gfx::Material>(std::string const& path) {
-	return gfx_context->request_material(path);
+    return gfx_context->request_material(path);
 }
 
 template<>
@@ -55,7 +55,7 @@ void unload<gfx::Mesh>(Handle<gfx::Mesh> handle) {
 
 template<>
 void unload<gfx::Material>(Handle<gfx::Material> handle) {
-	// Do nothing, materials don't actually own any resources.
+    // Do nothing, materials don't actually own any resources.
 }
 
 template<>

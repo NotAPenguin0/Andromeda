@@ -7,7 +7,7 @@ namespace andromeda::gfx::backend {
 
 SceneAccelerationStructure::SceneAccelerationStructure(gfx::Context& ctx) : ctx(ctx) {
     // Create semaphores for each TLAS.
-    for (auto& tlas : top_level) {
+    for (auto& tlas: top_level) {
         tlas.build_completed = ctx.create_semaphore();
         tlas.buffer.type = ph::BufferType::AccelerationStructure; // Make sure to set buffer properly so ensure_buffer_size() works.
     }
@@ -22,7 +22,7 @@ SceneAccelerationStructure::SceneAccelerationStructure(gfx::Context& ctx) : ctx(
 
 SceneAccelerationStructure::~SceneAccelerationStructure() {
     // Destroy all objects.
-    for (auto& tlas : top_level) {
+    for (auto& tlas: top_level) {
         destroy(tlas);
 
         if (tlas.compute_cmd.handle() != nullptr) {
@@ -47,7 +47,7 @@ SceneAccelerationStructure::~SceneAccelerationStructure() {
     if (blas_update_task != static_cast<thread::task_id>(-1)) {
         ctx.get_scheduler().schedule([this](auto thread) {
             destroy(updated_blas);
-        }, { blas_update_task });
+        }, {blas_update_task});
     }
 }
 
@@ -92,19 +92,19 @@ void SceneAccelerationStructure::destroy(TLAS& tlas) {
 
 void SceneAccelerationStructure::destroy(BLAS& blas) {
     ctx.destroy_buffer(blas.buffer);
-    for (AllocatedAS& entry : blas.entries) {
+    for (AllocatedAS& entry: blas.entries) {
         ctx.destroy_acceleration_structure(entry.handle);
     }
 }
 
 void SceneAccelerationStructure::queue_delete(BLAS const& blas) {
-    std::lock_guard lock { queue_mutex };
+    std::lock_guard lock{queue_mutex};
     blas_deletion_queue.push_back(blas);
 }
 
 void SceneAccelerationStructure::process_deletion_queue() {
-    std::lock_guard lock { queue_mutex };
-    for (auto& blas : blas_deletion_queue) {
+    std::lock_guard lock{queue_mutex};
+    for (auto& blas: blas_deletion_queue) {
         destroy(blas);
     }
     blas_deletion_queue.clear();
@@ -112,13 +112,13 @@ void SceneAccelerationStructure::process_deletion_queue() {
 
 bool SceneAccelerationStructure::must_update_blas(gfx::SceneDescription const& scene) {
     // First check if there is no BLAS update task currently running, and return false if there is.
-    if (blas_update_task != static_cast<thread::task_id>(-1)) return false;
+    if (blas_update_task != static_cast<thread::task_id>(-1)) { return false; }
 
     auto scene_meshes = find_unique_meshes(scene);
     // Simple size test will already satisfy most cases.
-    if (scene_meshes.size() != bottom_level.mesh_indices.size()) return true;
+    if (scene_meshes.size() != bottom_level.mesh_indices.size()) { return true; }
     // If the sizes do match, check each mesh in scene_meshes against the BLAS mesh map.
-    for (Handle<gfx::Mesh> mesh : scene_meshes) {
+    for (Handle<gfx::Mesh> mesh: scene_meshes) {
         // If this mesh is not in the BLAS, return true (updated needed).
         if (bottom_level.mesh_indices.find(mesh) == bottom_level.mesh_indices.end()) {
             return true;
@@ -131,7 +131,7 @@ bool SceneAccelerationStructure::must_update_blas(gfx::SceneDescription const& s
 std::vector<Handle<gfx::Mesh>> SceneAccelerationStructure::find_unique_meshes(gfx::SceneDescription const& scene) {
     std::vector<Handle<gfx::Mesh>> result;
     // TODO: Slow algorithm, maybe optimize?
-    for (auto const& draw : scene.get_draws()) {
+    for (auto const& draw: scene.get_draws()) {
         if (assets::is_ready(draw.mesh) && std::find(result.begin(), result.end(), draw.mesh) == result.end()) {
             result.push_back(draw.mesh);
         }
@@ -167,10 +167,10 @@ struct BLASBuildInfo {
 };
 
 struct BLASBuildResources {
-    ph::RawBuffer scratch_buffer {};
-    VkDeviceAddress scratch_address {};
+    ph::RawBuffer scratch_buffer{};
+    VkDeviceAddress scratch_address{};
 
-    VkQueryPool compacted_size_qp {};
+    VkQueryPool compacted_size_qp{};
 };
 
 // Build a vector of BLAS entries. Assumes each mesh handle in the given meshes array is unique.
@@ -179,14 +179,14 @@ std::vector<BLASEntry> get_blas_entries(gfx::Context& ctx, std::vector<Handle<gf
     std::vector<BLASEntry> entries;
     entries.reserve(meshes.size());
 
-    for (Handle<gfx::Mesh> handle : meshes) {
+    for (Handle<gfx::Mesh> handle: meshes) {
         gfx::Mesh const& mesh = *assets::get(handle);
 
         BLASEntry entry{};
         entry.geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
         // TODO: Mark meshes as opaque/non-opaque. (Optimal for tracing is opaque).
         entry.geometry.flags = VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR | VK_GEOMETRY_OPAQUE_BIT_KHR;
-        entry.geometry.geometry.triangles = VkAccelerationStructureGeometryTrianglesDataKHR {
+        entry.geometry.geometry.triangles = VkAccelerationStructureGeometryTrianglesDataKHR{
             .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
             .pNext = nullptr,
             // This format only describes position data
@@ -201,7 +201,7 @@ std::vector<BLASEntry> get_blas_entries(gfx::Context& ctx, std::vector<Handle<gf
             .transformData = {}
         };
         entry.geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-        entry.range = VkAccelerationStructureBuildRangeInfoKHR {
+        entry.range = VkAccelerationStructureBuildRangeInfoKHR{
             .primitiveCount = mesh.num_indices / 3,
             .primitiveOffset = 0,
             .firstVertex = 0,
@@ -228,9 +228,9 @@ std::vector<BLASBuildInfo> get_blas_build_infos(gfx::Context& ctx, std::vector<B
     VkDeviceSize buffer_offset = 0;
     VkDeviceSize scratch_offset = 0;
 
-    for (BLASEntry const& entry : entries) {
+    for (BLASEntry const& entry: entries) {
         BLASBuildInfo info{};
-        info.geometry = VkAccelerationStructureBuildGeometryInfoKHR {
+        info.geometry = VkAccelerationStructureBuildGeometryInfoKHR{
             .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
             .pNext = nullptr,
             .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
@@ -270,7 +270,7 @@ std::vector<BLASBuildInfo> get_blas_build_infos(gfx::Context& ctx, std::vector<B
 // We do this so we can suballocate one large scratch buffer.
 VkDeviceSize total_scratch_memory(std::vector<impl::BLASBuildInfo> const& build_infos) {
     VkDeviceSize size = 0;
-    for (auto const& info : build_infos) {
+    for (auto const& info: build_infos) {
         size += info.sizes.buildScratchSize;
     }
     return size;
@@ -279,7 +279,7 @@ VkDeviceSize total_scratch_memory(std::vector<impl::BLASBuildInfo> const& build_
 // Get the total required memory for a BLAS. This includes extra bytes for alignment.
 VkDeviceSize total_blas_memory(std::vector<impl::BLASBuildInfo> const& build_infos) {
     VkDeviceSize size = 0;
-    for (auto const& info : build_infos) {
+    for (auto const& info: build_infos) {
         size += info.sizes.accelerationStructureSize;
     }
     return size;
@@ -296,12 +296,12 @@ void create_blas(gfx::Context& ctx, SceneAccelerationStructure::BLAS& blas, std:
     // One entry for each BuildInfo supplied.
     blas.entries.reserve(build_infos.size());
     // Now suballocate this buffer based on offsets computed earlier
-    for (impl::BLASBuildInfo& info : build_infos) {
+    for (impl::BLASBuildInfo& info: build_infos) {
         SceneAccelerationStructure::AllocatedAS entry{};
         entry.memory = blas.buffer.slice(info.buffer_offset, info.sizes.accelerationStructureSize);
 
         // Create the actual acceleration structure
-        VkAccelerationStructureCreateInfoKHR create_info {
+        VkAccelerationStructureCreateInfoKHR create_info{
             .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
             .pNext = nullptr,
             .createFlags = {},
@@ -321,7 +321,7 @@ void create_blas(gfx::Context& ctx, SceneAccelerationStructure::BLAS& blas, std:
 
 // Create scratch buffer and query pool
 BLASBuildResources create_build_resources(gfx::Context& ctx, std::vector<BLASBuildInfo> const& build_infos, uint32_t const thread) {
-    BLASBuildResources resources {};
+    BLASBuildResources resources{};
     VkDeviceSize const scratch_size = total_scratch_memory(build_infos);
     resources.scratch_buffer = ctx.create_buffer(ph::BufferType::AccelerationStructureScratch, scratch_size);
     ctx.name_object(resources.scratch_buffer.handle, "[Buffer] BLAS Scratch");
@@ -335,7 +335,7 @@ BLASBuildResources create_build_resources(gfx::Context& ctx, std::vector<BLASBui
 
 // Assign each BuildInfo a piece of the scratch memory buffer.
 void suballocate_scratch_memory(std::vector<BLASBuildInfo>& build_infos, BLASBuildResources const& resources) {
-    for (auto& info : build_infos) {
+    for (auto& info: build_infos) {
         info.geometry.scratchData.deviceAddress = resources.scratch_address + info.scratch_offset;
     }
 }
@@ -380,13 +380,13 @@ void compact_blas(gfx::Context& ctx, SceneAccelerationStructure::BLAS& blas, std
     std::vector<VkDeviceSize> offsets{};
     offsets.resize(num_blas);
     for (size_t i = 0; i < num_blas; ++i) {
-        compacted_sizes[i] = util::align_size(compacted_sizes[i], (uint32_t)as_buffer_alignment);
+        compacted_sizes[i] = util::align_size(compacted_sizes[i], (uint32_t) as_buffer_alignment);
         offsets[i] = total_size;
         total_size += compacted_sizes[i];
     }
 
     LOG_FORMAT_NOW(LogLevel::Performance, "RT: Total BLAS size (compacted): {:.2f} MiB ({:.1f}% of original).",
-                   util::bytes_to_MiB(total_size), ((float)total_size / blas.buffer.size) * 100.0f);
+                   util::bytes_to_MiB(total_size), ((float) total_size / blas.buffer.size) * 100.0f);
 
     std::vector<SceneAccelerationStructure::AllocatedAS> compacted_as{};
     compacted_as.reserve(num_blas);
@@ -427,7 +427,7 @@ void compact_blas(gfx::Context& ctx, SceneAccelerationStructure::BLAS& blas, std
 
     // Compaction is now complete, we need to destroy the old acceleration structures and swap them with the new ones.
     ctx.destroy_buffer(blas.buffer);
-    for (auto& as : blas.entries) {
+    for (auto& as: blas.entries) {
         ctx.destroy_acceleration_structure(as.handle);
     }
     blas.buffer = compacted_buffer;
@@ -475,8 +475,8 @@ struct TLASInstances {
 };
 
 struct TLASBuildInfo {
-    VkAccelerationStructureBuildGeometryInfoKHR geometry{ .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
-    VkAccelerationStructureBuildSizesInfoKHR size_info{ .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
+    VkAccelerationStructureBuildGeometryInfoKHR geometry{.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
+    VkAccelerationStructureBuildSizesInfoKHR size_info{.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
 };
 
 // return true if the buffer was resized
@@ -492,7 +492,7 @@ bool ensure_buffer_size(gfx::Context& ctx, ph::RawBuffer& buffer, VkDeviceSize s
 }
 
 std::vector<VkAccelerationStructureInstanceKHR> get_instance_data(gfx::Context& ctx, gfx::SceneDescription const& scene, SceneAccelerationStructure::BLAS const& blas) {
-    std::vector<VkAccelerationStructureInstanceKHR> result {};
+    std::vector<VkAccelerationStructureInstanceKHR> result{};
     auto draws = scene.get_draws();
     auto transforms = scene.get_draw_transforms();
     result.reserve(draws.size()); // this might be slightly too large due to assets that aren't ready, or the BLAS not being updated yet.
@@ -500,7 +500,7 @@ std::vector<VkAccelerationStructureInstanceKHR> get_instance_data(gfx::Context& 
         auto const& draw = draws[i];
         // Skip instances that are not in the BLAS
         auto it = blas.mesh_indices.find(draw.mesh);
-        if (it == blas.mesh_indices.end()) continue;
+        if (it == blas.mesh_indices.end()) { continue; }
 
         uint32_t const index = it->second;
 
@@ -547,7 +547,7 @@ ph::CommandBuffer create_instance_buffer(gfx::Context& ctx, ph::RawBuffer& scrat
 }
 
 TLASInstances get_instances(gfx::Context& ctx, ph::RawBuffer& instances, uint32_t const instance_count) {
-    TLASInstances info {};
+    TLASInstances info{};
     VkAccelerationStructureGeometryInstancesDataKHR instances_vk{};
     instances_vk.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
     instances_vk.arrayOfPointers = false;
@@ -583,7 +583,7 @@ bool allocate_tlas_memory(gfx::Context& ctx, ph::RawBuffer& memory, ph::RawBuffe
 }
 
 void create_tlas(gfx::Context& ctx, SceneAccelerationStructure::TLAS& tlas, TLASBuildInfo const& build_info, uint32_t const index) {
-    VkAccelerationStructureCreateInfoKHR info {};
+    VkAccelerationStructureCreateInfoKHR info{};
     info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
     info.size = build_info.size_info.accelerationStructureSize;
     info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
@@ -622,7 +622,7 @@ void SceneAccelerationStructure::do_tlas_build(gfx::SceneDescription const& scen
     // 1) Pack scene structure into instance data.
     std::vector<VkAccelerationStructureInstanceKHR> instances = impl::get_instance_data(ctx, scene, bottom_level);
     // If there are no instances, this is the moment to abort.
-    if (instances.empty()) return;
+    if (instances.empty()) { return; }
     // 2) Upload instance data to buffer
     tlas.transfer_cmd = impl::create_instance_buffer(ctx, instance_scratch_buffer, instance_buffer, instances, instance_upload_semaphore, tlas_index);
     // 3) Create structure to point build info to the instance buffer

@@ -10,7 +10,7 @@ namespace andromeda {
 
 struct [[component]] Environment {
     [[editor::tooltip("Environment asset to use.")]]
-    Handle<gfx::Environment> environment;
+    Handle <gfx::Environment> environment;
 };
 
 }

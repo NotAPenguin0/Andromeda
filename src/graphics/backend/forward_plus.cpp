@@ -21,7 +21,7 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
         ctx.create_attachment(color_attachments[i], {1, 1}, VK_FORMAT_R32G32B32A32_SFLOAT, render_data.msaa_samples, ph::ImageType::ColorAttachment);
 
         depth_attachments[i] = gfx::Viewport::local_string(i, "forward_plus_depth");
-        ctx.create_attachment(depth_attachments[i], { 1, 1 }, VK_FORMAT_D32_SFLOAT, render_data.msaa_samples, ph::ImageType::DepthStencilAttachment);
+        ctx.create_attachment(depth_attachments[i], {1, 1}, VK_FORMAT_D32_SFLOAT, render_data.msaa_samples, ph::ImageType::DepthStencilAttachment);
 
         heatmaps[i] = gfx::Viewport::local_string(i, "forward_plus_heatmap");
         ctx.create_attachment(heatmaps[i], {1, 1}, VK_FORMAT_R8G8B8A8_UNORM, ph::ImageType::StorageImage);
@@ -71,7 +71,7 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
 }
 
 ForwardPlusRenderer::~ForwardPlusRenderer() {
-    for (auto& vp : render_data.vp) {
+    for (auto& vp: render_data.vp) {
         ctx.destroy_buffer(vp.average_luminance);
     }
 }
@@ -96,7 +96,7 @@ void ForwardPlusRenderer::frame_setup(ph::InFlightContext& ifc, gfx::SceneDescri
     render_data.accel_structure.update(scene);
 }
 
-void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightContext &ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
+void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene) {
     // Create storage objects shared by the pipeline.
     create_render_data(ifc, viewport, scene);
 
@@ -116,7 +116,7 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph &graph, ph::InFlightConte
 }
 
 std::vector<std::string> ForwardPlusRenderer::debug_views(gfx::Viewport viewport) {
-    std::vector<std::string> result = { depth_attachments[viewport.index()], heatmaps[viewport.index()] };
+    std::vector<std::string> result = {depth_attachments[viewport.index()], heatmaps[viewport.index()]};
     return result;
 }
 
@@ -124,19 +124,19 @@ std::vector<ph::WaitSemaphore> ForwardPlusRenderer::wait_semaphores() {
     // Our main rendering pass must wait on the TLAS build to be completed.
     VkSemaphore semaphore = render_data.accel_structure.get_tlas_build_semaphore();
     // Do not actually wait if the TLAS contained no instances (and is therefore empty).
-    if (render_data.accel_structure.get_acceleration_structure() == nullptr) return {};
+    if (render_data.accel_structure.get_acceleration_structure() == nullptr) { return {}; }
     return {
         // Wait in the fragment shader. Note that we might need to update this as time goes by and we use
         // the acceleration structure in more stages.
-        ph::WaitSemaphore{ .handle = semaphore, .stage_flags = ph::PipelineStage::FragmentShader }
+        ph::WaitSemaphore{.handle = semaphore, .stage_flags = ph::PipelineStage::FragmentShader}
     };
 }
 
 void ForwardPlusRenderer::resize_viewport(gfx::Viewport viewport, uint32_t width, uint32_t height) {
     if (width != 0 && height != 0) {
-        ctx.resize_attachment(color_attachments[viewport.index()], { width, height });
-        ctx.resize_attachment(depth_attachments[viewport.index()], { width, height });
-        ctx.resize_attachment(heatmaps[viewport.index()], { width, height });
+        ctx.resize_attachment(color_attachments[viewport.index()], {width, height});
+        ctx.resize_attachment(depth_attachments[viewport.index()], {width, height});
+        ctx.resize_attachment(heatmaps[viewport.index()], {width, height});
     }
 }
 
@@ -157,9 +157,9 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     std::memcpy(vp_data.camera.data + 3 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
 
     // We can have at most MAX_LIGHTS in every tile, and there are ceil(W/TILE_SIZE) * ceil(H/TILE_SIZE) tiles, which gives us the size of the buffer
-    vp_data.n_tiles_x = static_cast<uint32_t>(std::ceil((float)viewport.width() / ANDROMEDA_TILE_SIZE));
-    vp_data.n_tiles_y = static_cast<uint32_t>(std::ceil((float)viewport.height() / ANDROMEDA_TILE_SIZE));
-    uint32_t const n_tiles =  vp_data.n_tiles_x * vp_data.n_tiles_y;
+    vp_data.n_tiles_x = static_cast<uint32_t>(std::ceil((float) viewport.width() / ANDROMEDA_TILE_SIZE));
+    vp_data.n_tiles_y = static_cast<uint32_t>(std::ceil((float) viewport.height() / ANDROMEDA_TILE_SIZE));
+    uint32_t const n_tiles = vp_data.n_tiles_x * vp_data.n_tiles_y;
     uint32_t const size = sizeof(uint32_t) * n_tiles * ANDROMEDA_MAX_LIGHTS_PER_TILE;
     vp_data.culled_lights = ifc.allocate_scratch_ssbo(size);
 }
@@ -182,13 +182,13 @@ ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport
                 .get();
             cmd.bind_descriptor_set(set);
 
-            uint32_t const pc[4] { viewport.width(), viewport.height(), vp_data.n_tiles_x, vp_data.n_tiles_y };
+            uint32_t const pc[4]{viewport.width(), viewport.height(), vp_data.n_tiles_x, vp_data.n_tiles_y};
             cmd.push_constants(ph::ShaderStage::Compute, 0, 4 * sizeof(uint32_t), &pc);
 
             // Dispatch the compute shader with one thread group for every tile.
             cmd.dispatch(vp_data.n_tiles_x, vp_data.n_tiles_y, 1);
         })
-    .get();
+        .get();
     return pass;
 }
 
@@ -200,8 +200,8 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
         .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader);
 
     ph::Pass pass = builder.execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
-            Handle<gfx::Environment> env = scene.get_camera_info(viewport).environment;
-            if (!env || !assets::is_ready(env)) env = scene.get_default_environment();
+            Handle <gfx::Environment> env = scene.get_camera_info(viewport).environment;
+            if (!env || !assets::is_ready(env)) { env = scene.get_default_environment(); }
             gfx::Environment const& environment = *assets::get(env);
 
             VkAccelerationStructureKHR tlas = render_data.accel_structure.get_acceleration_structure();
@@ -214,14 +214,15 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
 
                 VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_info{};
                 variable_count_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-                uint32_t counts[1] { MAX_TEXTURES };
+                uint32_t counts[1]{MAX_TEXTURES};
                 variable_count_info.descriptorSetCount = 1;
                 variable_count_info.pDescriptorCounts = counts;
 
-                Handle<gfx::Texture> brdf_lut_handle = scene.get_brdf_lookup();
-                if (!brdf_lut_handle || !assets::is_ready(brdf_lut_handle))
+                Handle <gfx::Texture> brdf_lut_handle = scene.get_brdf_lookup();
+                if (!brdf_lut_handle || !assets::is_ready(brdf_lut_handle)) {
                     brdf_lut_handle = scene.get_default_albedo();
-                gfx::Texture *brdf_lut = assets::get(brdf_lut_handle);
+                }
+                gfx::Texture* brdf_lut = assets::get(brdf_lut_handle);
 
                 VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
                     .add_uniform_buffer("camera", vp_data.camera)
@@ -241,22 +242,22 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
                 // Loop over each mesh, check if it's ready and if so render it
                 for_each_ready_mesh(scene, [&scene, &vp_data, &cmd](auto const& draw, gfx::Mesh const& mesh, uint32_t index) {
                     // Don't draw if the material isn't ready yet.
-                    if (!assets::is_ready(draw.material)) return;
-                    gfx::Material const &material = *assets::get(draw.material);
+                    if (!assets::is_ready(draw.material)) { return; }
+                    gfx::Material const& material = *assets::get(draw.material);
 
                     auto textures = scene.get_material_textures(draw.material);
 
                     uint32_t const vtx_pc[]{
-                            (uint32_t) index // Transform index
+                        (uint32_t) index // Transform index
                     };
 
                     uint32_t const frag_pc[]{
-                            vp_data.n_tiles_x,
-                            vp_data.n_tiles_y,
-                            textures.albedo,
-                            textures.normal,
-                            textures.metal_rough,
-                            textures.occlusion
+                        vp_data.n_tiles_x,
+                        vp_data.n_tiles_y,
+                        textures.albedo,
+                        textures.normal,
+                        textures.metal_rough,
+                        textures.occlusion
                     };
 
                     cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(uint32_t), vtx_pc);

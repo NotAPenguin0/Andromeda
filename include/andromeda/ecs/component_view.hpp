@@ -10,16 +10,17 @@ namespace andromeda::ecs {
 template<typename... Ts>
 class component_view {
 private:
-    using view_type = std::tuple<component_storage<Ts>* ...>;
+    using view_type = std::tuple<component_storage < Ts>* ...>;
 public:
     static_assert(sizeof...(Ts) > 0, "component_view must view at least one type.");
 
     class iterator {
     public:
-        using value_type = std::tuple<Ts&...>;
+        using value_type = std::tuple<Ts& ...>;
 
         iterator() = default;
-        iterator(view_type& view, component_storage_base::iterator entity, component_storage_base::iterator end) 
+
+        iterator(view_type& view, component_storage_base::iterator entity, component_storage_base::iterator end)
             : view(&view), entity(entity), end(end) {
             // Only do this if we're not at the end
             if (entity != end) {
@@ -39,7 +40,7 @@ public:
             assert(view && "Iterator pointing to invalid view");
             assert(entity != end && "Cannot dereference end iterator");
 
-            return std::tie(std::get<component_storage<Ts>*>(*view)->get(*entity) ... );
+            return std::tie(std::get<component_storage < Ts> * > (*view)->get(*entity) ...);
         }
 
         iterator operator++() {
@@ -65,9 +66,9 @@ public:
         void advance_to_next() {
             ++entity;
             if (entity == end) { return; }
-            while(
+            while (
                 !((std::get<component_storage<Ts>*>(*view)->find(*entity) != std::get<component_storage<Ts>*>(*view)->end()) && ...)
-            ) {
+                ) {
                 ++entity;
             }
         }
@@ -77,9 +78,9 @@ public:
         component_storage_base::iterator end;
     };
 
-    component_view(component_storage<Ts>& ... storages)
-        : storages { &storages ...} {
-        
+    component_view(component_storage <Ts>& ... storages)
+        : storages{&storages ...} {
+
         storage_to_check = find_smallest_storage();
     }
 
@@ -128,15 +129,16 @@ private:
 template<typename... Ts>
 class const_component_view {
 private:
-    using view_type = std::tuple<component_storage<Ts> const* ...>;
+    using view_type = std::tuple<component_storage < Ts> const* ...>;
 public:
     static_assert(sizeof...(Ts) > 0, "component_view must view at least one type.");
 
     class iterator {
     public:
-        using value_type = std::tuple<Ts const&...>;
+        using value_type = std::tuple<Ts const& ...>;
 
         iterator() = default;
+
         iterator(view_type& view, component_storage_base::iterator entity, component_storage_base::iterator end)
             : view(&view), entity(entity), end(end) {
             // Only do this if we're not at the end
@@ -157,7 +159,7 @@ public:
             assert(view && "Iterator pointing to invalid view");
             assert(entity != end && "Cannot dereference end iterator");
 
-            return std::tie(std::get<component_storage<Ts> const*>(*view)->get(*entity) ...);
+            return std::tie(std::get<component_storage < Ts> const* > (*view)->get(*entity) ...);
         }
 
         iterator operator++() {
@@ -195,8 +197,8 @@ public:
         component_storage_base::iterator end;
     };
 
-    const_component_view(component_storage<Ts> const& ... storages)
-        : storages{ &storages ... } {
+    const_component_view(component_storage <Ts> const& ... storages)
+        : storages{&storages ...} {
 
         storage_to_check = find_smallest_storage();
     }
@@ -228,7 +230,7 @@ private:
         component_storage_base const* cur_storage = std::get<Cur>(storages);
         return find_smallest_storage_impl<Next, Rest...>(
             cur_storage->size() < previous->size() ? cur_storage : previous
-            );
+        );
     }
 
     template<typename Cur>
