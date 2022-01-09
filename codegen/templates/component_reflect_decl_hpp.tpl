@@ -3,7 +3,6 @@
 // It is only meant to be included inside reflect/reflection.hpp. Do not use this file manually.
 
 namespace andromeda::meta {
-
 {{#decl}}
 template<>
 reflection_info<{{component}}> const& reflect<{{component}}>();
