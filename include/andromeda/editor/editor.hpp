@@ -7,6 +7,7 @@
 
 #include <andromeda/editor/console.hpp>
 #include <andromeda/editor/inspector.hpp>
+#include <andromeda/editor/performance.hpp>
 
 namespace andromeda {
 namespace editor {
@@ -38,6 +39,7 @@ private:
 	ImFont* font = nullptr;
 	Console console;
 	Inspector inspector;
+    PerformanceDisplay performance;
 
 	void show_main_menu_bar(World& world, gfx::Context& ctx, gfx::Renderer& renderer);
 
