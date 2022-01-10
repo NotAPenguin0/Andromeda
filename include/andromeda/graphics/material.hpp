@@ -7,7 +7,7 @@ namespace andromeda::gfx {
 
 struct Material {
     // Base color of the material
-	Handle<Texture> albedo;
+    Handle<Texture> albedo;
     // Normal map
     Handle<Texture> normal;
     // Metallic/roughness map. Roughness in G component, metallic in B component

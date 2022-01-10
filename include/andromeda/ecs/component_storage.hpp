@@ -172,10 +172,13 @@ public:
     };
 
     component_storage() = default;
+
     component_storage(component_storage const&) = default;
+
     component_storage(component_storage&&) = default;
 
     component_storage& operator=(component_storage const&) = default;
+
     component_storage& operator=(component_storage&&) = default;
 
     ~component_storage() = default;
@@ -206,7 +209,7 @@ public:
     }
 
     template<typename... Args>
-    iterator construct(entity_t entity, Args&&... args) {
+    iterator construct(entity_t entity, Args&& ... args) {
         components.push_back(T{std::forward<Args>(args) ...});
         underlying_storage::insert(entity);
 

@@ -59,10 +59,9 @@ public:
      * @param tooltip String to display when hovering over the field in the editor.
     */
     template<typename U>
-    field(U T::* ptr, std::string_view name, std::string_view tooltip, plib::bit_flag<field_flags> flags, 
-        editor_values values = {})
-        : field_name(std::string{ name }), field_tooltip(std::string{ tooltip }), flags_(flags), values(values)
-    {
+    field(U T::* ptr, std::string_view name, std::string_view tooltip, plib::bit_flag<field_flags> flags,
+          editor_values values = {})
+        : field_name(std::string{name}), field_tooltip(std::string{tooltip}), flags_(flags), values(values) {
         this->ptr = reinterpret_cast<void_t T::*>(ptr);
         this->field_type = impl::type_id<U>();
     }
@@ -150,7 +149,8 @@ public:
 private:
     // We define this struct so we can have a generic pointer type without having to cast to types like unsigned char*.
     // We can't use void because a pointer to a void member is not allowed.
-    struct void_t {};
+    struct void_t {
+    };
 
     void_t T::* ptr = nullptr;
     std::string field_name{};
@@ -191,7 +191,7 @@ public:
      * @param fields List of fields for type T.
     */
     reflection_info(std::string_view name, std::vector<field<T>> fields, plib::bit_flag<type_flags> flags = {})
-        : type_name(std::string{ name }), type_fields(std::move(fields)), flags_(flags), invalid_field() {
+        : type_name(std::string{name}), type_fields(std::move(fields)), flags_(flags), invalid_field() {
 
     }
 
@@ -217,8 +217,8 @@ public:
      * @return
      */
     field<T> const& field_with_name(std::string_view name) const {
-        for (auto const& field : type_fields) {
-            if (field.name() == name) return field;
+        for (auto const& field: type_fields) {
+            if (field.name() == name) { return field; }
         }
 
         return invalid_field;

@@ -13,14 +13,11 @@
 {{/includes}}
 
 namespace andromeda::meta {
-
 #define ANDROMEDA_META_COMPONENT_TYPES {{#component_types}}{{{type}}}{{comma}} {{/component_types}}
 
 namespace impl {
-
 template<template<typename> typename, typename...>
 struct for_each_component_impl;
-
 template<template<typename> typename F, typename CFirst>
 struct for_each_component_impl<F, CFirst> {
     template<typename... Args>
@@ -47,10 +44,8 @@ void for_each_component(Args&&... args) {
 
 
 namespace impl {
-
 template<typename T>
 uint32_t type_id();
-
 {{#field_types}}
 template<>
 inline uint32_t type_id<{{{type}}}>() {

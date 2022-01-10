@@ -13,9 +13,20 @@
     - https://discord.com/channels/318590007881236480/600645448394342402/924972103692873749
     - https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/AutomaticExposure/
 - [X] PBR shading model
-- [ ] Shadows
 - [ ] Organize backend code to be more re-usable.
   - [ ] Move postprocess pipeline to separate module
+- [ ] GPU driven rendering
+- [ ] Raytraced reflections
+- [ ] Fog
+- [ ] Water/fluid simulation
+- [ ] Atmospheric scattering
+- [ ] Vertex pulling instead of vertex attributes
+- [ ] Put all meshes in a single large VkBuffer
+- [ ] Terrain system
+- [ ] Particles
+- [X] Raytraced shadows using VK_KHR_ray_query
+  - Rebuild TLAS every frame
+  - Rebuild BLAS only when needed
 
 ## Asset pipeline
 
@@ -31,18 +42,26 @@
     - [X] add copying from blueprint ECS to real ECS.
     - [X] model loading creates a new blueprint entity
     - [X] loading model into scene copies the blueprint into the real ecs
+- [ ] Asset hot-reloading
+- [ ] Remove STB as it doesn't support DDS.
 
-## UI
+## UI/Editor
 
 - [ ] Asset browser
   - [ ] Preview rendering
   - [ ] Drag and drop for asset handles
   - [ ] Integrate `assettool` into the main Andromeda project
+- [ ] Gizmos
+  - [ ] Rendering world grid
+- [ ] Project system
+  - [ ] Scene serialization
+- [ ] Object picking in editor
 
 ## Small tweaks and patches
 
 - [ ] Settings menu
 - [ ] Performance display
+  - Timings for each pass
 - [ ] Color type for components fields to distinguish between vectors and colors
 - [ ] Correctly handle tangent W, formula is `bitangent = cross(normal, tangent.xyz) * tangent.w`
   - Maybe assimp already handles this internally?
@@ -51,18 +70,15 @@
 - [ ] Make `PostProcessingSettings` truly optional by removing stuff like automatic exposure from the pipeline if disabled.
 - [ ] Fix case in renderer with no lights loaded
 
+
+## Performance
+- [ ] Minimize allocations in the engine to further improve performance
+- [ ] Bind acceleration structure to different set to remove overhead from constantly allocating large descriptor sets.
+- [ ] Remove scalar block layout and replace with proper padding (each field 16-byte aligned most likely)
+
+
 ## Farther future
 
-- [ ] Project system
-  - [ ] Scene serialization
 - [ ] Raytraced rendering backend
-  - Also add "hybrid" backend that only uses raytracing for specific tasks
   - Full raytraced backend should probably not be real-time and only update at certain intervals.
-- [ ] Gizmos
-  - [ ] Rendering world grid
-- [ ] Water/fluid simulation
-- [ ] Object picking in editor
-- [ ] Atmospheric scattering
-- [ ] Asset hot-reloading
-- [ ] GPU driven rendering
-- [ ] Fog
+  

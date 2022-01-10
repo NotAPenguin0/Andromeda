@@ -11,28 +11,28 @@ namespace andromeda {
 */
 class World {
 public:
-	/**
-	 * @brief Creates the world with a single root entity.
-	*/
-	World();
+    /**
+     * @brief Creates the world with a single root entity.
+    */
+    World();
 
-	/**
-	 * @brief Get the root entity of the world. This is a dummy entity with ID 0.
-	 * @return The root entity.
-	*/
-	ecs::entity_t root() const;
+    /**
+     * @brief Get the root entity of the world. This is a dummy entity with ID 0.
+     * @return The root entity.
+    */
+    ecs::entity_t root() const;
 
-	/**
-	 * @brief Get access to the internal ECS to create and manage entities.
-	 * @return A thread-safe structure holding the ECS and a lock.
-	*/
-	thread::LockedValue<ecs::registry> ecs();
+    /**
+     * @brief Get access to the internal ECS to create and manage entities.
+     * @return A thread-safe structure holding the ECS and a lock.
+    */
+    thread::LockedValue<ecs::registry> ecs();
 
-	/**
-	 * @brief Get access to the internal ECS to create and manage entities.
-	 * @return A thread-safe structure holding the ECS and a lock.
-	*/
-	thread::LockedValue<ecs::registry const> ecs() const;
+    /**
+     * @brief Get access to the internal ECS to create and manage entities.
+     * @return A thread-safe structure holding the ECS and a lock.
+    */
+    thread::LockedValue<ecs::registry const> ecs() const;
 
     /**
      * @brief Get access to the internal ECS storing the blueprint entities.
@@ -46,12 +46,12 @@ public:
      */
     thread::LockedValue<ecs::registry const> blueprints() const;
 
-	/**
-	 * @brief Creates a new entity with all necessary components
-	 * @param parent The parent entity. Default value is the root entity.
-	 * @return The newly created entity.
-	*/
-	ecs::entity_t create_entity(ecs::entity_t parent = 0);
+    /**
+     * @brief Creates a new entity with all necessary components
+     * @param parent The parent entity. Default value is the root entity.
+     * @return The newly created entity.
+    */
+    ecs::entity_t create_entity(ecs::entity_t parent = 0);
 
     /**
      * @brief Creates a new entity with all necessary components. Use this overload if you already have thread-safe access to the ECS;
@@ -85,21 +85,21 @@ public:
     ecs::entity_t import_entity(ecs::entity_t entity, ecs::entity_t parent = 0);
 
 private:
-	mutable std::mutex mutex;
+    mutable std::mutex mutex;
     mutable std::mutex blueprint_mutex;
 
-	ecs::registry entities;
+    ecs::registry entities;
     ecs::registry blueprint_entities;
-	ecs::entity_t root_entity = 0;
+    ecs::entity_t root_entity = 0;
     ecs::entity_t blueprint_root = 0;
 
-	/**
-	 * @brief Adds the required components to an entity. This function is NOT thread safe and must be
-	 *		  externally synchronized.
-	 * @param entity The entity to initialize.
-	 * @param parent The parent entity.
-	*/
-	void initialize_entity(ecs::entity_t entity, ecs::entity_t parent);
+    /**
+     * @brief Adds the required components to an entity. This function is NOT thread safe and must be
+     *		  externally synchronized.
+     * @param entity The entity to initialize.
+     * @param parent The parent entity.
+    */
+    void initialize_entity(ecs::entity_t entity, ecs::entity_t parent);
 
     /**
      * @brief Initializes a blueprint entity. This function is NOT thread safe and must be externally synchronized.

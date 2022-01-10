@@ -8,11 +8,11 @@ namespace andromeda {
 template<typename T, typename IdType = uint32_t>
 struct IDGen {
 private:
-	static inline std::atomic<IdType> cur = 0;
+    static inline std::atomic<IdType> cur = 0;
 public:
-	static IdType next() {
-		return cur++;
-	}
+    static IdType next() {
+        return cur++;
+    }
 };
 
 }

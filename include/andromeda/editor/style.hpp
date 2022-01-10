@@ -7,6 +7,7 @@
 namespace andromeda::editor::style {
 
 void set_rounding(float rounding);
+
 void color_preset_gray();
 
 // Get the default style. Useful to temporarily revert style vars.
@@ -19,19 +20,21 @@ ImGuiStyle const& default_style();
 */
 template<typename T> requires std::same_as<T, ImVec2> || std::same_as<T, float>
 struct ScopedStyleVar {
-	[[nodiscard]] ScopedStyleVar(ImGuiStyleVar var, T value) {
-		ImGui::PushStyleVar(var, value);
-	}
+    [[nodiscard]] ScopedStyleVar(ImGuiStyleVar var, T value) {
+        ImGui::PushStyleVar(var, value);
+    }
 
-	ScopedStyleVar(ScopedStyleVar const&) = delete;
-	ScopedStyleVar(ScopedStyleVar&&) = delete;
+    ScopedStyleVar(ScopedStyleVar const&) = delete;
 
-	ScopedStyleVar& operator=(ScopedStyleVar const&) = delete;
-	ScopedStyleVar& operator=(ScopedStyleVar&&) = delete;
+    ScopedStyleVar(ScopedStyleVar&&) = delete;
 
-	~ScopedStyleVar() {
-		ImGui::PopStyleVar();
-	}
+    ScopedStyleVar& operator=(ScopedStyleVar const&) = delete;
+
+    ScopedStyleVar& operator=(ScopedStyleVar&&) = delete;
+
+    ~ScopedStyleVar() {
+        ImGui::PopStyleVar();
+    }
 };
 
 /**
@@ -39,19 +42,21 @@ struct ScopedStyleVar {
  * @brief Pushes a style color onto the stack and pops it when going out of scope.
 */
 struct ScopedStyleColor {
-	[[nodiscard]] inline ScopedStyleColor(ImGuiCol color, ImVec4 value) {
-		ImGui::PushStyleColor(color, value);
-	}
+    [[nodiscard]] inline ScopedStyleColor(ImGuiCol color, ImVec4 value) {
+        ImGui::PushStyleColor(color, value);
+    }
 
-	ScopedStyleColor(ScopedStyleColor const&) = delete;
-	ScopedStyleColor(ScopedStyleColor&&) = delete;
+    ScopedStyleColor(ScopedStyleColor const&) = delete;
 
-	ScopedStyleColor& operator=(ScopedStyleColor const&) = delete;
-	ScopedStyleColor& operator=(ScopedStyleColor&&) = delete;
+    ScopedStyleColor(ScopedStyleColor&&) = delete;
 
-	~ScopedStyleColor() {
-		ImGui::PopStyleColor();
-	}
+    ScopedStyleColor& operator=(ScopedStyleColor const&) = delete;
+
+    ScopedStyleColor& operator=(ScopedStyleColor&&) = delete;
+
+    ~ScopedStyleColor() {
+        ImGui::PopStyleColor();
+    }
 };
 
 /**
@@ -59,35 +64,39 @@ struct ScopedStyleColor {
  * @brief Pushes an item width value onto the stack with ImGui::PushItemWidth
 */
 struct ScopedWidthModifier {
-	[[nodiscard]] inline ScopedWidthModifier(float value) {
-		ImGui::PushItemWidth(value);
-	}
+    [[nodiscard]] inline ScopedWidthModifier(float value) {
+        ImGui::PushItemWidth(value);
+    }
 
-	ScopedWidthModifier(ScopedWidthModifier const&) = delete;
-	ScopedWidthModifier(ScopedWidthModifier&&) = delete;
+    ScopedWidthModifier(ScopedWidthModifier const&) = delete;
 
-	ScopedWidthModifier& operator=(ScopedWidthModifier const&) = delete;
-	ScopedWidthModifier& operator=(ScopedWidthModifier&&) = delete;
+    ScopedWidthModifier(ScopedWidthModifier&&) = delete;
 
-	~ScopedWidthModifier() {
-		ImGui::PopItemWidth();
-	}
+    ScopedWidthModifier& operator=(ScopedWidthModifier const&) = delete;
+
+    ScopedWidthModifier& operator=(ScopedWidthModifier&&) = delete;
+
+    ~ScopedWidthModifier() {
+        ImGui::PopItemWidth();
+    }
 };
 
 struct ScopedTextWrapModifier {
-	[[nodiscard]] inline ScopedTextWrapModifier(float value) {
-		ImGui::PushTextWrapPos(value);
-	}
+    [[nodiscard]] inline ScopedTextWrapModifier(float value) {
+        ImGui::PushTextWrapPos(value);
+    }
 
-	ScopedTextWrapModifier(ScopedTextWrapModifier const&) = delete;
-	ScopedTextWrapModifier(ScopedTextWrapModifier&&) = delete;
+    ScopedTextWrapModifier(ScopedTextWrapModifier const&) = delete;
 
-	ScopedTextWrapModifier& operator=(ScopedTextWrapModifier const&) = delete;
-	ScopedTextWrapModifier& operator=(ScopedTextWrapModifier&&) = delete;
+    ScopedTextWrapModifier(ScopedTextWrapModifier&&) = delete;
 
-	~ScopedTextWrapModifier() {
-		ImGui::PopTextWrapPos();
-	}
+    ScopedTextWrapModifier& operator=(ScopedTextWrapModifier const&) = delete;
+
+    ScopedTextWrapModifier& operator=(ScopedTextWrapModifier&&) = delete;
+
+    ~ScopedTextWrapModifier() {
+        ImGui::PopTextWrapPos();
+    }
 };
 
 /**

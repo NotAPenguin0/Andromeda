@@ -8,7 +8,7 @@ namespace andromeda {
  * @brief Name component
 */
 struct [[component, editor::hide]] Name {
-	std::string name;
+    std::string name;
 };
 
 }

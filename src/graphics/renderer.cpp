@@ -1,6 +1,5 @@
 #include <andromeda/graphics/renderer.hpp>
 
-#include <andromeda/graphics/backend/simple.hpp>
 #include <andromeda/graphics/backend/forward_plus.hpp>
 #include <andromeda/graphics/imgui.hpp>
 
@@ -64,7 +63,7 @@ static Handle<gfx::Texture> create_1x1_texture(gfx::Context& ctx, VkFormat forma
     transfer.free_single_time(cmd, 0);
     ctx.destroy_buffer(staging);
 
-    gfx::Texture texture {
+    gfx::Texture texture{
         .image = image,
         .view = view
     };
@@ -73,11 +72,11 @@ static Handle<gfx::Texture> create_1x1_texture(gfx::Context& ctx, VkFormat forma
 }
 
 static Handle<gfx::Environment> create_default_environment(gfx::Context& ctx) {
-    gfx::Environment env {};
+    gfx::Environment env{};
 
-    env.cubemap = ctx.create_image(ph::ImageType::EnvMap, { 1, 1 }, VK_FORMAT_R32G32B32A32_SFLOAT);
-    env.irradiance = ctx.create_image(ph::ImageType::EnvMap, { 1, 1 }, VK_FORMAT_R32G32B32A32_SFLOAT);
-    env.specular = ctx.create_image(ph::ImageType::EnvMap, { 1, 1 }, VK_FORMAT_R32G32B32A32_SFLOAT);
+    env.cubemap = ctx.create_image(ph::ImageType::EnvMap, {1, 1}, VK_FORMAT_R32G32B32A32_SFLOAT);
+    env.irradiance = ctx.create_image(ph::ImageType::EnvMap, {1, 1}, VK_FORMAT_R32G32B32A32_SFLOAT);
+    env.specular = ctx.create_image(ph::ImageType::EnvMap, {1, 1}, VK_FORMAT_R32G32B32A32_SFLOAT);
     env.cubemap_view = ctx.create_image_view(env.cubemap);
     env.irradiance_view = ctx.create_image_view(env.irradiance);
     env.specular_view = ctx.create_image_view(env.specular);
@@ -92,7 +91,7 @@ static Handle<gfx::Environment> create_default_environment(gfx::Context& ctx) {
     ph::Queue& queue = *ctx.get_queue(ph::QueueType::Transfer);
     ph::CommandBuffer cmd = queue.begin_single_time(0);
 
-    float data[4] {0.0f, 0.0f, 0.0f, 0.0f}; // zero alpha so this will never affect anything
+    float data[4]{0.0f, 0.0f, 0.0f, 0.0f}; // zero alpha so this will never affect anything
     ph::RawBuffer upload = ctx.create_buffer(ph::BufferType::TransferBuffer, sizeof(data));
     std::byte* mem = ctx.map_memory(upload);
     std::memcpy(mem, data, sizeof(data));
@@ -104,8 +103,8 @@ static Handle<gfx::Environment> create_default_environment(gfx::Context& ctx) {
             img, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         cmd.copy_buffer_to_image(upload, img);
         cmd.transition_layout(
-                ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT, ph::PipelineStage::BottomOfPipe, VK_ACCESS_MEMORY_READ_BIT,
-                img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            ph::PipelineStage::Transfer, VK_ACCESS_MEMORY_WRITE_BIT, ph::PipelineStage::BottomOfPipe, VK_ACCESS_MEMORY_READ_BIT,
+            img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         );
     };
 
@@ -124,25 +123,25 @@ static Handle<gfx::Environment> create_default_environment(gfx::Context& ctx) {
 }
 
 Renderer::Renderer(gfx::Context& ctx, Window& window) {
-	gfx::imgui::init(ctx, window);
+    gfx::imgui::init(ctx, window);
 
-	// Initialize viewports
-	for (uint32_t i = 0; i < gfx::MAX_VIEWPORTS; ++i) {
-		gfx::Viewport& vp = viewports[i].vp;
-		vp.id = i;
-		vp.target_name = gfx::Viewport::local_string(vp, "rendertarget");
-		vp.width_px = window.width();
-		vp.height_px = window.height();
-		
-		ctx.create_attachment(vp.target(), { vp.width(), vp.height() }, VK_FORMAT_R8G8B8A8_SRGB, ph::ImageType::ColorAttachment);
-	}
+    // Initialize viewports
+    for (uint32_t i = 0; i < gfx::MAX_VIEWPORTS; ++i) {
+        gfx::Viewport& vp = viewports[i].vp;
+        vp.id = i;
+        vp.target_name = gfx::Viewport::local_string(vp, "rendertarget");
+        vp.width_px = window.width();
+        vp.height_px = window.height();
+
+        ctx.create_attachment(vp.target(), {vp.width(), vp.height()}, VK_FORMAT_R8G8B8A8_SRGB, ph::ImageType::ColorAttachment);
+    }
 
     // Create default textures and add them to the scene
     {
-        uint8_t magenta[4] { 255, 0, 255, 255 };
-        uint8_t up[4] { 128, 128, 255, 255 };
-        uint8_t arm[4] { 0, 255, 0, 0 };
-        uint8_t white[1] { 255 };
+        uint8_t magenta[4]{255, 0, 255, 255};
+        uint8_t up[4]{128, 128, 255, 255};
+        uint8_t arm[4]{0, 255, 0, 0};
+        uint8_t white[1]{255};
         Handle<gfx::Texture> albedo = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_SRGB, magenta, sizeof(magenta));
         Handle<gfx::Texture> normal = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, up, sizeof(up));
         Handle<gfx::Texture> metal_rough = create_1x1_texture(ctx, VK_FORMAT_R8G8B8A8_UNORM, arm, sizeof(arm));
@@ -168,141 +167,155 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
     scene.set_default_environment(create_default_environment(ctx));
     scene.set_brdf_lut(assets::load<gfx::Texture>("data/textures/brdf_lut.tx"));
 
-	impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
+    backend::DebugGeometryList::initialize(ctx);
+    // register global pointer
+    backend::impl::_debug_geometry_list_ptr = &debug_geometry;
+    impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
 }
 
 void Renderer::shutdown(gfx::Context& ctx) {
-	gfx::imgui::shutdown();
+    gfx::imgui::shutdown();
     impl.reset(nullptr);
 }
 
 void Renderer::render_frame(gfx::Context& ctx, World const& world) {
-	ph::InFlightContext ifc = ctx.wait_for_frame();
-	
-	// Reset scene description from last frame
-	scene.reset();
+    ph::InFlightContext ifc = ctx.wait_for_frame();
 
-	fill_scene_description(world);
+    // Reset scene description from last frame
+    scene.reset();
 
-	ph::Pass clear_swap = ph::PassBuilder::create("clear")
-		.add_attachment(ctx.get_swapchain_attachment_name(), 
-                        ph::LoadOp::Clear, { .color = {0.0f, 0.0f, 0.0f, 1.0f} })
-		.get();
+    fill_scene_description(world);
 
-	ph::RenderGraph graph{};
-	graph.add_pass(std::move(clear_swap));
+    ph::Pass clear_swap = ph::PassBuilder::create("clear")
+        .add_attachment(ctx.get_swapchain_attachment_name(),
+                        ph::LoadOp::Clear, {.color = {0.0f, 0.0f, 0.0f, 1.0f}})
+        .get();
 
-	for (auto const& viewport : viewports) {
-		if (viewport.in_use) {
-			impl->render_scene(graph, ifc, viewport.vp, scene);
-		}
-	}
+    ph::RenderGraph graph{};
+    graph.add_pass(std::move(clear_swap));
 
-	// After all passes we add the imgui render pass
-	imgui::render(graph, ifc, ctx.get_swapchain_attachment_name());
+    impl->frame_setup(ifc, scene);
+    for (auto const& viewport: viewports) {
+        if (viewport.in_use) {
+            debug_geometry.clear(viewport.vp);
+            DEBUG_SET_COLOR(viewport.vp, glm::vec3(1, 1, 1)); // Default color to white
+            impl->render_scene(graph, ifc, viewport.vp, scene);
 
-	graph.build(ctx);
+            graph.add_pass(debug_geometry.build_render_pass(viewport.vp, ctx, ifc, scene.get_camera_info(viewport.vp).proj_view));
+        }
+    }
 
-	ph::RenderGraphExecutor executor{};
-	ifc.command_buffer.begin();
-	executor.execute(ifc.command_buffer, graph);
-	ifc.command_buffer.end();
+    // After all passes we add the imgui render pass
+    imgui::render(graph, ifc, ctx.get_swapchain_attachment_name());
 
-	ctx.submit_frame_commands(*ctx.get_queue(ph::QueueType::Graphics), ifc.command_buffer);
-	ctx.present(*ctx.get_present_queue());
+    graph.build(ctx);
+
+    ph::RenderGraphExecutor executor{};
+    ifc.command_buffer.begin();
+    executor.execute(ifc.command_buffer, graph);
+    ifc.command_buffer.end();
+
+    ctx.submit_frame_commands(*ctx.get_queue(ph::QueueType::Graphics), ifc.command_buffer, impl->wait_semaphores());
+    ctx.present(*ctx.get_present_queue());
 }
 
 std::optional<gfx::Viewport> Renderer::create_viewport(uint32_t width, uint32_t height, ecs::entity_t camera) {
-	// Find the first viewport slot that's not in use
-	auto it = viewports.begin();
-	while (it != viewports.end()) {
-		// Found a free slot.
-		if (!it->in_use) break;
-		++it;
-	}
+    // Find the first viewport slot that's not in use
+    auto it = viewports.begin();
+    while (it != viewports.end()) {
+        // Found a free slot.
+        if (!it->in_use) { break; }
+        ++it;
+    }
 
-	// No free slots found
-	if (it == viewports.end()) {
-		return std::nullopt;
-	}
+    // No free slots found
+    if (it == viewports.end()) {
+        return std::nullopt;
+    }
 
-	it->vp.camera_id = camera;
-	it->in_use = true;
-	return it->vp;
+    it->vp.camera_id = camera;
+    it->in_use = true;
+    return it->vp;
 }
 
 void Renderer::resize_viewport(gfx::Context& ctx, gfx::Viewport& viewport, uint32_t width, uint32_t height) {
-	// Don't resize when one parameter is zero.
-	if (width != 0 && height != 0) {
-		ctx.resize_attachment(viewport.target(), { width, height });
-		// Update viewport information
-		viewport.width_px = width;
-		viewport.height_px = height;
+    // Don't resize when one parameter is zero.
+    if (width != 0 && height != 0) {
+        ctx.resize_attachment(viewport.target(), {width, height});
+        // Update viewport information
+        viewport.width_px = width;
+        viewport.height_px = height;
 
-		viewports[viewport.index()].vp.width_px = width;
-		viewports[viewport.index()].vp.height_px = height;
+        viewports[viewport.index()].vp.width_px = width;
+        viewports[viewport.index()].vp.height_px = height;
 
-		impl->resize_viewport(viewport, width, height);
-	}
+        impl->resize_viewport(viewport, width, height);
+    }
 }
 
 std::vector<gfx::Viewport> Renderer::get_active_viewports() {
-	std::vector<gfx::Viewport> result{};
-	result.reserve(gfx::MAX_VIEWPORTS);
-	for (auto const& viewport : viewports) {
-		if (viewport.in_use) {
-			result.push_back(viewport.vp);
-		}
-	}
-	return result;
+    std::vector<gfx::Viewport> result{};
+    result.reserve(gfx::MAX_VIEWPORTS);
+    for (auto const& viewport: viewports) {
+        if (viewport.in_use) {
+            result.push_back(viewport.vp);
+        }
+    }
+    return result;
 }
 
 void Renderer::set_viewport_camera(gfx::Viewport& viewport, ecs::entity_t camera) {
-	viewport.camera_id = camera;
-	viewports[viewport.index()].vp.camera_id = camera;
+    viewport.camera_id = camera;
+    viewports[viewport.index()].vp.camera_id = camera;
 }
 
 void Renderer::destroy_viewport(gfx::Viewport viewport) {
-	viewports[viewport.index()].in_use = false;
+    viewports[viewport.index()].in_use = false;
 }
 
 std::vector<std::string> Renderer::get_debug_views(gfx::Viewport viewport) {
-	return impl->debug_views(viewport);
+    return impl->debug_views(viewport);
 }
 
 void Renderer::fill_scene_description(World const& world) {
-	// Access the ECS.
-	auto ecs = world.ecs();
-	
-	std::unordered_map<ecs::entity_t, glm::mat4> transform_lookup{};
+    // Access the ECS.
+    auto ecs = world.ecs();
 
-	// Register all used materials
-	for (auto [_, mesh] : ecs->view<Transform, MeshRenderer>()) {
-		scene.add_material(mesh.material);
-	}
+    std::unordered_map<ecs::entity_t, glm::mat4> transform_lookup{};
 
-	// Add all meshes in the world to the draw list
-	for (auto [_, mesh, hierarchy] : ecs->view<Transform, MeshRenderer, Hierarchy>()) {
-		glm::mat4 world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
-		scene.add_draw(mesh.mesh, mesh.material, world_transform);
-	}
+    // Register all used materials
+    for (auto[_, mesh]: ecs->view<Transform, MeshRenderer>()) {
+        scene.add_material(mesh.material);
+    }
+
+    // Add all meshes in the world to the draw list
+    for (auto[_, mesh, hierarchy]: ecs->view<Transform, MeshRenderer, Hierarchy>()) {
+        glm::mat4 world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
+        scene.add_draw(mesh.mesh, mesh.material, mesh.occluder, world_transform);
+    }
 
     // Add lighting information
-    for (auto[_, light, hierarchy] : ecs->view<Transform, PointLight, Hierarchy>()) {
+    for (auto[_, light, hierarchy]: ecs->view<Transform, PointLight, Hierarchy>()) {
         glm::mat4 const world_transform = math::local_to_world(hierarchy.this_entity, ecs, transform_lookup);
         glm::vec3 const position = world_transform[3]; // Position is stored in the last column
         scene.add_light(light, position);
     }
 
-	// Add every camera/viewport combo.
-	for (auto const& viewport : viewports) {
-		if (viewport.in_use) {
-			ecs::entity_t camera = viewport.vp.camera();
-			// Don't render viewports with no camera
-			if (camera == ecs::no_entity) continue;
-			scene.add_viewport(viewport.vp, ecs, camera);
-		}
-	}
+    for (auto[transform, light, hierarchy]: ecs->view<Transform, DirectionalLight, Hierarchy>()) {
+        // Directional lights do not respect parent rotations.
+        glm::vec3 const rotation = transform.rotation;
+        scene.add_light(light, rotation);
+    }
+
+    // Add every camera/viewport combo.
+    for (auto const& viewport: viewports) {
+        if (viewport.in_use) {
+            ecs::entity_t camera = viewport.vp.camera();
+            // Don't render viewports with no camera
+            if (camera == ecs::no_entity) { continue; }
+            scene.add_viewport(viewport.vp, ecs, camera);
+        }
+    }
 }
 
 } // namespace andromeda::gfx

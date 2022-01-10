@@ -15,10 +15,13 @@ namespace andromeda::ecs {
 class registry {
 public:
     registry();
+
     registry(registry const&) = delete;
+
     registry(registry&&) = default;
-    
+
     registry& operator=(registry const&) = delete;
+
     registry& operator=(registry&&) = default;
 
     ~registry() = default;
@@ -26,7 +29,7 @@ public:
     entity_t create_entity();
 
     template<typename T, typename... Args>
-    T& add_component(entity_t entity, Args&&... args) {
+    T& add_component(entity_t entity, Args&& ... args) {
         component_storage<T>& storage = get_or_emplace_storage<T>();
         auto it = storage.construct(entity, std::forward<Args>(args) ...);
         return *it;
@@ -60,21 +63,21 @@ public:
 
         auto view = this->view<Ts...>();
         size_t n = 0;
-        for (auto const& _ : view) {
+        for (auto const& _: view) {
             ++n;
         }
         return n;
     }
-    
+
 
     template<typename... Ts>
     component_view<Ts...> view() {
-        return { get_or_emplace_storage<Ts>() ... };
+        return {get_or_emplace_storage<Ts>() ...};
     }
 
     template<typename... Ts>
     const_component_view<Ts...> view() const {
-        return { get_or_emplace_storage<Ts>() ... };
+        return {get_or_emplace_storage<Ts>() ...};
     }
 
     std::vector<entity_t> const& get_entities() const;
@@ -100,7 +103,7 @@ private:
         // If the index is not found, we have to register the new component
         if (index >= storages.size()) {
             storages.resize(index + 1);
-            storages[index].type_id = index;    
+            storages[index].type_id = index;
             storages[index].storage = std::make_unique<component_storage<T>>();
         }
         // Initialize storage if it wasn't created yet
@@ -120,7 +123,7 @@ private:
         // If the index is not found, we have to register the new component
         if (index >= storages.size()) {
             storages.resize(index + 1);
-            storages[index].type_id = index;    
+            storages[index].type_id = index;
             storages[index].storage = std::make_unique<component_storage<T>>();
         }
         // Initialize storage if it wasn't created yet

@@ -5,14 +5,14 @@
 namespace andromeda::editor::style {
 
 namespace impl {
-    static ImGuiStyle default_style{};
+static ImGuiStyle default_style{};
 }
 
 void set_rounding(float rounding) {
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.FrameRounding = rounding;
-	style.ChildRounding = rounding;
-	style.PopupRounding = rounding;
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FrameRounding = rounding;
+    style.ChildRounding = rounding;
+    style.PopupRounding = rounding;
 }
 
 void color_preset_gray() {

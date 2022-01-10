@@ -30,8 +30,8 @@ namespace assets {
  * @brief Status of an asset. As long as an asset is in the Pending status it cannot be used.
 */
 enum class Status {
-	Ready, 
-	Pending
+    Ready,
+    Pending
 };
 
 // Private storage of the asset system. Do not touch.
@@ -40,25 +40,25 @@ namespace impl {
 // Initializer for storage_type
 template<typename T>
 struct delay_storage_init {
-	delay_storage_init(Status status, T data) : status{ status }, data{ std::move(data) } {}
+    delay_storage_init(Status status, T data) : status{status}, data{std::move(data)} {}
 
-	Status status;
-	T data;
+    Status status;
+    T data;
 };
 
 // Stores a single asset and its status.
 template<typename T>
 struct asset_storage_type {
-	asset_storage_type(delay_storage_init<T>&& init) : status{ init.status }, data{ std::move(init.data) } {}
+    asset_storage_type(delay_storage_init<T>&& init) : status{init.status}, data{std::move(init.data)} {}
 
-	std::atomic<Status> status;
-	T data;
+    std::atomic<Status> status;
+    T data;
 
-	// Additional information
-	thread::task_id load_task_id = static_cast<thread::task_id>(-1);
-	// Path to the asset file. This will be used to prevent loading the same asset multiple times.
+    // Additional information
+    thread::task_id load_task_id = static_cast<thread::task_id>(-1);
+    // Path to the asset file. This will be used to prevent loading the same asset multiple times.
     // This is stored as an absolute path
-	fs::path path;
+    fs::path path;
 };
 
 template<typename T>
@@ -81,7 +81,7 @@ extern World* world;
 */
 template<typename T>
 thread::LockedValue<container<T>> acquire() {
-	return thread::LockedValue<container<T>>{ ._lock = std::lock_guard{ data_mutex<T> }, .value = data<T> };
+    return thread::LockedValue<container<T>>{._lock = std::lock_guard{data_mutex<T>}, .value = data<T>};
 }
 
 /**
@@ -92,12 +92,12 @@ thread::LockedValue<container<T>> acquire() {
 */
 template<typename T>
 Handle<T> insert_pending() requires std::default_initializable<T> && std::movable<T> {
-	// Implementation similar to take()
+    // Implementation similar to take()
 
-	auto [_, storage] = acquire<T>();
-	Handle<T> handle = Handle<T>::next();
-	storage.emplace(handle, delay_storage_init<T>{Status::Pending, T{}});
-	return handle;
+    auto[_, storage] = acquire<T>();
+    Handle<T> handle = Handle<T>::next();
+    storage.emplace(handle, delay_storage_init<T>{Status::Pending, T{}});
+    return handle;
 }
 
 /**
@@ -108,8 +108,8 @@ Handle<T> insert_pending() requires std::default_initializable<T> && std::movabl
 */
 template<typename T>
 void delete_asset(Handle<T> handle) {
-	auto [_, storage] = acquire<T>();
-	storage.erase(handle);
+    auto[_, storage] = acquire<T>();
+    storage.erase(handle);
 }
 
 /**
@@ -120,15 +120,15 @@ void delete_asset(Handle<T> handle) {
 */
 template<typename T>
 void make_ready(Handle<T> handle, T asset) requires std::movable<T> {
-	if (!handle) {
-		LOG_WRITE(LogLevel::Error, "Tried to mark null handle as ready");
-		return;
-	}
+    if (!handle) {
+        LOG_WRITE(LogLevel::Error, "Tried to mark null handle as ready");
+        return;
+    }
 
-	auto [_, storage] = acquire<T>();
-	asset_storage_type<T>& element = storage.at(handle);
-	element.status = Status::Ready;
-	element.data = std::move(asset);
+    auto[_, storage] = acquire<T>();
+    asset_storage_type<T>& element = storage.at(handle);
+    element.status = Status::Ready;
+    element.data = std::move(asset);
 }
 
 /**
@@ -139,14 +139,14 @@ void make_ready(Handle<T> handle, T asset) requires std::movable<T> {
 */
 template<typename T>
 void set_load_task(Handle<T> handle, thread::task_id task) {
-	if (!handle) {
-		LOG_WRITE(LogLevel::Error, "Tried to set load task of a null handle");
-		return;
-	}
+    if (!handle) {
+        LOG_WRITE(LogLevel::Error, "Tried to set load task of a null handle");
+        return;
+    }
 
-	auto [_, storage] = acquire<T>();
-	asset_storage_type<T>& element = storage.at(handle);
-	element.load_task_id = task;
+    auto[_, storage] = acquire<T>();
+    asset_storage_type<T>& element = storage.at(handle);
+    element.load_task_id = task;
 }
 
 /**
@@ -157,14 +157,14 @@ void set_load_task(Handle<T> handle, thread::task_id task) {
 */
 template<typename T>
 thread::task_id get_load_task(Handle<T> handle) {
-	if (!handle) {
-		LOG_WRITE(LogLevel::Error, "Tried to query load task of a null handle");
-		return static_cast<thread::task_id>(-1);
-	}
+    if (!handle) {
+        LOG_WRITE(LogLevel::Error, "Tried to query load task of a null handle");
+        return static_cast<thread::task_id>(-1);
+    }
 
-	auto [_, storage] = acquire<T>();
-	asset_storage_type<T>& element = storage.at(handle);
-	return element.load_task_id;
+    auto[_, storage] = acquire<T>();
+    asset_storage_type<T>& element = storage.at(handle);
+    return element.load_task_id;
 }
 
 /**
@@ -175,14 +175,14 @@ thread::task_id get_load_task(Handle<T> handle) {
 */
 template<typename T>
 void set_path(Handle<T> handle, fs::path const& path) {
-	if (!handle) {
-		LOG_WRITE(LogLevel::Error, "Tried to set path of a null handle");
-		return;
-	}
+    if (!handle) {
+        LOG_WRITE(LogLevel::Error, "Tried to set path of a null handle");
+        return;
+    }
 
-	auto [_, storage] = acquire<T>();
-	asset_storage_type<T>& element = storage.at(handle);
-	element.path = fs::absolute(path);
+    auto[_, storage] = acquire<T>();
+    asset_storage_type<T>& element = storage.at(handle);
+    element.path = fs::absolute(path);
 }
 
 /**
@@ -216,21 +216,21 @@ inline void set_global_pointers(gfx::Context* ctx, World* wrld) {
 */
 template<typename T>
 Handle<T> load(std::string const& path) {
-	// First we look for the asset in the list of already loaded assets by comparing paths.
-	{
-		fs::path path_fs = fs::absolute(path);
-		auto [_, storage] = impl::acquire<T>();
-		for (auto const& [handle, element] : storage) {
+    // First we look for the asset in the list of already loaded assets by comparing paths.
+    {
+        fs::path path_fs = fs::absolute(path);
+        auto[_, storage] = impl::acquire<T>();
+        for (auto const&[handle, element]: storage) {
             // Do not compare assets with empty paths (these can be created internally).
-            if (element.path == "") continue;
+            if (element.path == "") { continue; }
             // Use equality compare because std::filesystem::equivalent is very expensive (and also errors on invalid paths, which we want to handle later in the pipeline).
-			if (element.path == path_fs) return handle;
-		}
-	}
+            if (element.path == path_fs) { return handle; }
+        }
+    }
 
-	// Asset wasn't found, we'll call the private load function to actually load it.
-	Handle<T> handle = impl::load_priv<T>(path);
-	return handle;
+    // Asset wasn't found, we'll call the private load function to actually load it.
+    Handle<T> handle = impl::load_priv<T>(path);
+    return handle;
 }
 
 /**
@@ -251,13 +251,13 @@ void unload(Handle<T> handle);
 */
 template<typename T>
 Handle<T> take(T asset) requires std::movable<T> {
-	// Get thread-safe access
-	auto [_, storage] = impl::acquire<T>();
-	// Create a handle
-	Handle<T> handle = Handle<T>::next();
-	// Store the asset away
-	storage.emplace(handle, impl::delay_storage_init<T>{ Status::Ready, std::move(asset) });
-	return handle;
+    // Get thread-safe access
+    auto[_, storage] = impl::acquire<T>();
+    // Create a handle
+    Handle<T> handle = Handle<T>::next();
+    // Store the asset away
+    storage.emplace(handle, impl::delay_storage_init<T>{Status::Ready, std::move(asset)});
+    return handle;
 }
 
 /**
@@ -268,14 +268,14 @@ Handle<T> take(T asset) requires std::movable<T> {
 */
 template<typename T>
 bool is_ready(Handle<T> handle) {
-	if (!handle) {
-		LOG_WRITE(LogLevel::Error, "Tried to query if null handle is ready.");
-		return false;
-	}
+    if (!handle) {
+        LOG_WRITE(LogLevel::Error, "Tried to query if null handle is ready.");
+        return false;
+    }
 
-	auto [_, storage] = impl::acquire<T>();
-	impl::asset_storage_type<T>& element = storage.at(handle);
-	return element.status == Status::Ready;
+    auto[_, storage] = impl::acquire<T>();
+    impl::asset_storage_type<T>& element = storage.at(handle);
+    return element.status == Status::Ready;
 }
 
 /**
@@ -286,24 +286,24 @@ bool is_ready(Handle<T> handle) {
 */
 template<typename T>
 T* get(Handle<T> handle) {
-	if (!handle) {
-		LOG_WRITE(LogLevel::Error, "Tried to get asset for null handle");
-		return nullptr;
-	}
+    if (!handle) {
+        LOG_WRITE(LogLevel::Error, "Tried to get asset for null handle");
+        return nullptr;
+    }
 
-	auto [_, storage] = impl::acquire<T>();
-	try {
-		impl::asset_storage_type<T>& element = storage.at(handle);
-		if (element.status != Status::Ready) {
-			LOG_WRITE(LogLevel::Warning, "Tried to get asset while it is in the pending state.");
-			return nullptr;
-		}
-		return &element.data;
-	}
-	catch (std::out_of_range const& not_found) {
-		LOG_WRITE(LogLevel::Error, "Tried to get asset for invalid handle");
-	}
-	return nullptr;
+    auto[_, storage] = impl::acquire<T>();
+    try {
+        impl::asset_storage_type<T>& element = storage.at(handle);
+        if (element.status != Status::Ready) {
+            LOG_WRITE(LogLevel::Warning, "Tried to get asset while it is in the pending state.");
+            return nullptr;
+        }
+        return &element.data;
+    }
+    catch (std::out_of_range const& not_found) {
+        LOG_WRITE(LogLevel::Error, "Tried to get asset for invalid handle");
+    }
+    return nullptr;
 }
 
 /**
@@ -314,14 +314,14 @@ T* get(Handle<T> handle) {
  */
 template<typename T>
 std::optional<fs::path> get_path(Handle<T> handle) {
-    if (!handle) return std::nullopt;
+    if (!handle) { return std::nullopt; }
 
-    auto [_, storage] = impl::acquire<T>();
+    auto[_, storage] = impl::acquire<T>();
     try {
         impl::asset_storage_type<T>& element = storage.at(handle);
         return element.path;
     }
-    catch(std::out_of_range const& not_found) {
+    catch (std::out_of_range const& not_found) {
         return std::nullopt;
     }
 }
@@ -332,19 +332,20 @@ std::optional<fs::path> get_path(Handle<T> handle) {
 */
 template<typename T>
 void unload_all() {
-	// We need to collect all handles in a vector first so we can release the lock again, since
-	// unload() indirectly tries to lock the asset system again.
-	std::vector<Handle<T>> handles;
-	{
-		auto [_, storage] = impl::acquire<T>();
-		handles.reserve(storage.size());
-		for (auto& [handle, _] : storage) {
-			handles.push_back(handle);
-		}
-	}
-	for (auto handle : handles) {
-		unload(handle);
-	}
+    // We need to collect all handles in a vector first so we can release the lock again, since
+    // unload() indirectly tries to lock the asset system again.
+    std::vector<Handle < T>>
+    handles;
+    {
+        auto[_, storage] = impl::acquire<T>();
+        handles.reserve(storage.size());
+        for (auto&[handle, _]: storage) {
+            handles.push_back(handle);
+        }
+    }
+    for (auto handle: handles) {
+        unload(handle);
+    }
 }
 
 } // namespace assets

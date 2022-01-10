@@ -1,6 +1,7 @@
 #pragma once
 
 #include <andromeda/graphics/backend/renderer_backend.hpp>
+#include <andromeda/graphics/backend/rtx.hpp>
 #include <array>
 
 namespace andromeda::gfx::backend {
@@ -14,6 +15,8 @@ public:
     explicit ForwardPlusRenderer(gfx::Context& ctx);
 
     ~ForwardPlusRenderer() override;
+
+    void frame_setup(ph::InFlightContext& ifc, gfx::SceneDescription const& scene) override;
 
     /**
      * @brief Renders a scene to a viewport.
@@ -32,6 +35,8 @@ public:
 	*/
     std::vector<std::string> debug_views(gfx::Viewport viewport) override;
 
+    std::vector<ph::WaitSemaphore> wait_semaphores() override;
+
     /**
      * @brief Called by the renderer when a viewport is resized.
      * @param viewport The viewport that is being resized.
@@ -39,6 +44,7 @@ public:
      * @param height The new height of the viewport
     */
     void resize_viewport(gfx::Viewport viewport, uint32_t width, uint32_t height) override;
+
 private:
     inline static constexpr uint32_t MAX_TEXTURES = 4096;
 
@@ -51,6 +57,8 @@ private:
 
     // This structure owns buffers and storage images shared by the pipeline.
     struct RenderData {
+        explicit inline RenderData(gfx::Context& ctx) : accel_structure(ctx) {}
+
         // Per-viewport render data, indexed by viewport ID.
         struct PerViewport {
             ph::BufferSlice camera;
@@ -58,26 +66,27 @@ private:
             uint32_t n_tiles_x = 0;
             uint32_t n_tiles_y = 0;
 
-            ph::RawBuffer luminance_histogram;
             ph::RawBuffer average_luminance;
         } vp[gfx::MAX_VIEWPORTS];
 
         // Can be shared by all viewports.
         ph::TypedBufferSlice<gpu::PointLight> point_lights;
+        ph::TypedBufferSlice<gpu::DirectionalLight> dir_lights;
+        ph::TypedBufferSlice<gpu::CascadeMapInfo> cascade_infos;
         ph::TypedBufferSlice<glm::mat4> transforms;
 
         // Note that casting this to uint32_t gives back the amount of samples
         VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_8_BIT;
         float msaa_sample_ratio = 0.1f;
+
+        SceneAccelerationStructure accel_structure;
     } render_data;
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
 
-    ph::Pass depth_prepass(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
-    ph::Pass light_cull(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
-    ph::Pass shading(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
-    ph::Pass luminance_histogram(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
-    ph::Pass tonemap(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);
+    ph::Pass light_cull(ph::InFlightContext& ifc, gfx::Viewport const& viewport, gfx::SceneDescription const& scene);
+
+    ph::Pass shading(ph::InFlightContext& ifc, gfx::Viewport const& viewport, gfx::SceneDescription const& scene);
 };
 
 }

@@ -6,7 +6,6 @@
 #include <stdexcept>
 
 namespace andromeda::meta {
-
 /**
  * @brief Dispatches a function to a field pointer.
  *        This function will:
@@ -17,16 +16,16 @@ namespace andromeda::meta {
 */
 template<typename F, typename T, typename... Args>
 void dispatch(field<T>& field, T& instance, F&& func, Args&&... args) {
-	uint32_t const type_id = field.type();
-	switch(type_id) {
-		{{#type_list}}
-		case {{id}}:
-			func(field.template as<{{{type}}}>(instance), std::forward<Args>(args)...);
-			break;
-		{{/type_list}}
-		default:
-			throw std::runtime_error("Reflection missing type information for field type");
-	}
+    uint32_t const type_id = field.type();
+    switch(type_id) {
+        {{#type_list}}
+        case {{id}}:
+            func(field.template as<{{{type}}}>(instance), std::forward<Args>(args)...);
+            break;
+            {{/type_list}}
+        default:
+            throw std::runtime_error("Reflection missing type information for field type");
+    }
 }
 
 /**
@@ -39,16 +38,16 @@ void dispatch(field<T>& field, T& instance, F&& func, Args&&... args) {
 */
 template<typename F, typename T, typename... Args>
 void dispatch(field<T> const& field, T const& instance, F&& func, Args&&... args) {
-	uint32_t const type_id = field.type();
-	switch(type_id) {
-		{{#type_list}}
-		case {{id}}:
-			func(field.template as<{{{type}}}>(instance), std::forward<Args>(args)...);
-			break;
-		{{/type_list}}
-		default:
-			throw std::runtime_error("Reflection missing type information for field type");
-	}
+uint32_t const type_id = field.type();
+switch(type_id) {
+{{#type_list}}
+case {{id}}:
+func(field.template as<{{{type}}}>(instance), std::forward<Args>(args)...);
+break;
+{{/type_list}}
+default:
+throw std::runtime_error("Reflection missing type information for field type");
+}
 }
 
 } // namespace andromeda::meta

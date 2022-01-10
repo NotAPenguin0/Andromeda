@@ -40,9 +40,9 @@ void create_pipeline() {
         .add_vertex_attribute(0, 2, VK_FORMAT_R8G8B8A8_UNORM) // col
         .set_cull_mode(VK_CULL_MODE_NONE)
         .enable_blend_op(false)
-        .add_blend_attachment(true, 
-            VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
-            VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD)
+        .add_blend_attachment(true,
+                              VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+                              VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD)
         .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
         .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
         .set_depth_test(false)
@@ -56,7 +56,7 @@ void create_pipeline() {
 void fill_buffer_data(ph::TypedBufferSlice<ImDrawVert>& vertex, ph::TypedBufferSlice<ImDrawIdx>& index, ImDrawData* data) {
     ImDrawVert* vtx = vertex.data;
     ImDrawIdx* idx = index.data;
-    for (size_t i = 0; i < (size_t)data->CmdListsCount; ++i) {
+    for (size_t i = 0; i < (size_t) data->CmdListsCount; ++i) {
         ImDrawList const* cmd_list = data->CmdLists[i];
         // Copy data
         memcpy(vtx, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
@@ -80,7 +80,7 @@ void create_fonts_texture() {
     uint32_t width = w, height = h;
     size_t upload_size = width * height * 4 * sizeof(char);
 
-    impl::font_image = impl::context->create_image(ph::ImageType::Texture, { width, height }, VK_FORMAT_R8G8B8A8_UNORM);
+    impl::font_image = impl::context->create_image(ph::ImageType::Texture, {width, height}, VK_FORMAT_R8G8B8A8_UNORM);
     impl::font_view = impl::context->create_image_view(impl::font_image);
 
     impl::context->name_object(impl::font_image.handle, "ImGui Font Image");
@@ -154,10 +154,10 @@ void new_frame() {
 void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view target) {
     ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();
-    
+
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-    uint32_t fb_width = (uint32_t)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
-    uint32_t fb_height = (uint32_t)(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
+    uint32_t fb_width = (uint32_t) (draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
+    uint32_t fb_height = (uint32_t) (draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
     if (fb_width <= 0 || fb_height <= 0 || draw_data->TotalVtxCount == 0) {
         return;
     }
@@ -166,9 +166,9 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
         .add_attachment(target, ph::LoadOp::Load);
 
     // Check if any of the sampled images are attachments
-    for (size_t i = 0; i < (size_t)draw_data->CmdListsCount; ++i) {
+    for (size_t i = 0; i < (size_t) draw_data->CmdListsCount; ++i) {
         ImDrawList const* draw_list = draw_data->CmdLists[i];
-        for (size_t cmd_i = 0; cmd_i < (size_t)draw_list->CmdBuffer.Size; ++cmd_i) {
+        for (size_t cmd_i = 0; cmd_i < (size_t) draw_list->CmdBuffer.Size; ++cmd_i) {
             ImDrawCmd const* cmd = &draw_list->CmdBuffer[cmd_i];
             ph::ImageView view = impl::context->get_image_view(reinterpret_cast<uint64_t>(cmd->GetTexID()));
             // Font is definitely not an attachment, easy skip
@@ -180,7 +180,7 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
             }
         }
     }
-   
+
 
     builder.execute([draw_data, &ifc, fb_width, fb_height](ph::CommandBuffer& cmd_buf) {
         cmd_buf.bind_pipeline("imgui_impl_phobos");
@@ -201,8 +201,8 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
         VkViewport viewport{};
         viewport.x = 0;
         viewport.y = 0;
-        viewport.width = (float)fb_width;
-        viewport.height = (float)fb_height;
+        viewport.width = (float) fb_width;
+        viewport.height = (float) fb_height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         cmd_buf.set_viewport(viewport);
@@ -220,9 +220,9 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
         // Render command lists
         size_t global_vtx_offset = 0;
         size_t global_idx_offset = 0;
-        for (size_t i = 0; i < (size_t)draw_data->CmdListsCount; ++i) {
+        for (size_t i = 0; i < (size_t) draw_data->CmdListsCount; ++i) {
             ImDrawList const* cmd_list = draw_data->CmdLists[i];
-            for (size_t cmd_i = 0; cmd_i < (size_t)cmd_list->CmdBuffer.Size; ++cmd_i) {
+            for (size_t cmd_i = 0; cmd_i < (size_t) cmd_list->CmdBuffer.Size; ++cmd_i) {
                 ImDrawCmd const* cmd = &cmd_list->CmdBuffer[cmd_i];
                 // We don't support user callbacks yet
                 ImVec4 clip_rect;
@@ -233,22 +233,24 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
 
                 if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f) {
                     // Negative offsets are illegal for vkCmdSetScissor
-                    if (clip_rect.x < 0.0f)
+                    if (clip_rect.x < 0.0f) {
                         clip_rect.x = 0.0f;
-                    if (clip_rect.y < 0.0f)
+                    }
+                    if (clip_rect.y < 0.0f) {
                         clip_rect.y = 0.0f;
+                    }
 
                     VkRect2D scissor;
-                    scissor.offset.x = (int32_t)(clip_rect.x);
-                    scissor.offset.y = (int32_t)(clip_rect.y);
-                    scissor.extent.width = (uint32_t)(clip_rect.z - clip_rect.x);
-                    scissor.extent.height = (uint32_t)(clip_rect.w - clip_rect.y);
+                    scissor.offset.x = (int32_t) (clip_rect.x);
+                    scissor.offset.y = (int32_t) (clip_rect.y);
+                    scissor.extent.width = (uint32_t) (clip_rect.z - clip_rect.x);
+                    scissor.extent.height = (uint32_t) (clip_rect.w - clip_rect.y);
 
                     cmd_buf.set_scissor(scissor);
                     // Bind descriptorset with font or user texture
                     ph::ImageView img_view = impl::context->get_image_view(reinterpret_cast<uint64_t>(cmd->GetTexID()));
-                    
-                    uint32_t depth_val = 0;
+
+                    int depth_val = 0;
                     if (img_view.aspect == ph::ImageAspect::Depth) {
                         depth_val = 1;
                     }
@@ -258,8 +260,8 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
                     if (img_view != impl::font_view) user_tex_val = 1;
                     cmd_buf.push_constants(ph::ShaderStage::Fragment, 4 * sizeof(float) + sizeof(int), sizeof(int), &user_tex_val);
 */
-                    VkDescriptorSet set = ph::DescriptorBuilder::create(*impl::context, 
-                        cmd_buf.get_bound_pipeline())
+                    VkDescriptorSet set = ph::DescriptorBuilder::create(*impl::context,
+                                                                        cmd_buf.get_bound_pipeline())
                         .add_sampled_image("sTexture", img_view, impl::sampler)
                         .get();
 
@@ -271,7 +273,7 @@ void render(ph::RenderGraph& graph, ph::InFlightContext& ifc, std::string_view t
             global_vtx_offset += cmd_list->VtxBuffer.Size;
         }
     });
-    
+
     ph::Pass pass = builder.get();
     graph.add_pass(std::move(pass));
 }

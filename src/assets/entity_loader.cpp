@@ -20,6 +20,7 @@ struct json_convert {
         assert(false && "from_json not implemented");
         return {};
     }
+
     static json::JSON to_json(T const& value) {
         assert(false && "to_json not implemented");
         return {};
@@ -37,6 +38,17 @@ struct json_convert<std::string> {
     }
 };
 
+template<>
+struct json_convert<bool> {
+    [[nodiscard]] static bool from_json(json::JSON const& json) {
+        return json.ToBool();
+    }
+
+    [[nodiscard]] static json::JSON from_json(bool const& value) {
+        return {value};
+    }
+};
+
 template<typename A>
 struct json_convert<Handle<A>> {
     [[nodiscard]] static Handle<A> from_json(json::JSON const& json) {
@@ -46,7 +58,7 @@ struct json_convert<Handle<A>> {
     [[nodiscard]] static json::JSON to_json(Handle<A> const& value) {
         auto path = assets::get_path(value);
         if (path) {
-            return { path->generic_string() };
+            return {path->generic_string()};
         } else {
             // Invalid asset, we leave this empty
             return {};
@@ -61,7 +73,7 @@ struct json_convert<float> {
     }
 
     [[nodiscard]] static json::JSON to_json(float value) {
-        return { value };
+        return {value};
     }
 };
 
@@ -98,7 +110,7 @@ struct load_component_json {
     void operator()(ecs::entity_t entity, World& world, thread::LockedValue<ecs::registry>& blueprints, json::JSON const& json) const {
         meta::reflection_info<C> const& refl = meta::reflect<C>();
         // Check if JSON data has matching key for this component. If not, we can return early and skip importing fields.
-        if (!json.hasKey(refl.name())) return;
+        if (!json.hasKey(refl.name())) { return; }
         // Only add if not yet present
         if (!blueprints->has_component<C>(entity)) {
             blueprints->add_component<C>(entity);
@@ -107,7 +119,7 @@ struct load_component_json {
         json::JSON const& component_json = json.at(refl.name());
 
         // Similarly to the old looping over each component, we'll now try looping over each field and finding it in the JSON object
-        for (meta::field<C> field : refl.fields()) {
+        for (meta::field<C> field: refl.fields()) {
             // If key was found in the component's json, dispatch a call to load_field_json to load its data.
             if (component_json.hasKey(field.name())) {
                 meta::dispatch(field, component, load_field_json{}, component_json.at(field.name()));
@@ -130,7 +142,7 @@ static ecs::entity_t load_entity_and_children(World& world, thread::LockedValue<
     // Load child entities
     if (json.hasKey("children")) {
         auto children = json.at("children").ArrayRange();
-        for (auto const& child_json : children) {
+        for (auto const& child_json: children) {
             ecs::entity_t child = load_entity_and_children(world, blueprints, entity, child_json);
         }
     }

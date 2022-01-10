@@ -4,7 +4,7 @@
 // Useful if you only need handles to a type.
 
 namespace andromeda::gfx {
-	
+
 class Context;
 
 struct Mesh;

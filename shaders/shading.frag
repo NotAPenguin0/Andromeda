@@ -2,6 +2,9 @@
 
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
 
 #include "include/glsl/inputs.glsl"
 #include "include/glsl/types.glsl"
@@ -10,7 +13,8 @@
 
 layout(location = 0) in vec2 UV;
 layout(location = 1) in vec3 world_pos;
-layout(location = 2) in mat3 TBN;
+layout(location = 2) in vec3 viewspace_pos;
+layout(location = 3) in mat3 TBN;
 
 layout(location = 0) out vec4 FragColor;
 
@@ -18,16 +22,21 @@ layout(std430, set = 0, binding = 2) buffer readonly Lights {
     PointLight l[];
 } lights;
 
+layout(std430, set = 0, binding = 3) buffer readonly DirectionalLights {
+    DirectionalLight l[];
+} dir_lights;
+
+
 // These lights index into the lights.l array
-layout(std430, set = 0, binding = 3) buffer readonly LightVisibility {
+layout(std430, set = 0, binding = 4) buffer readonly LightVisibility {
     uint data[];
 } visible_lights;
 
-layout(set = 0, binding = 4) uniform samplerCube irradiance_map;
-layout(set = 0, binding = 5) uniform samplerCube specular_map;
-layout(set = 0, binding = 6) uniform sampler2D brdf_lut;
-
-layout(set = 0, binding = 7) uniform sampler2D textures[];
+layout(set = 0, binding = 5) uniform samplerCube irradiance_map;
+layout(set = 0, binding = 6) uniform samplerCube specular_map;
+layout(set = 0, binding = 7) uniform sampler2D brdf_lut;
+layout(set = 0, binding = 8) uniform accelerationStructureEXT scene_tlas;
+layout(set = 0, binding = 9) uniform sampler2D textures[];
 
 layout(push_constant) uniform PC {
     // Vertex shader
@@ -145,6 +154,35 @@ vec3 apply_point_light(PointLight light, vec3 normal, vec3 albedo, float metalli
     return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
+vec3 apply_directional_light(DirectionalLight light, vec3 normal, vec3 albedo, float metallic, float roughness) {
+    vec3 light_dir = -light.direction_shadow.xyz;
+    vec3 view_dir = normalize(camera.position.xyz - world_pos);
+    vec3 halfway_dir = normalize(light_dir + view_dir);
+
+    vec3 radiance = light.color_intensity.rgb * light.color_intensity.a;
+
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
+    vec3 F = fresnel_schlick(max(dot(halfway_dir, view_dir), 0.0), F0);
+
+    // Calculate Cook-Torrance BRDF.
+    float NDF = distribution_ggx(normal, halfway_dir, roughness);
+    float G = geometry_smith(normal, view_dir, light_dir, roughness);
+
+    vec3 num = NDF * G * F;
+    float denom = 4.0 * max(dot(normal, view_dir), 0.0) * max(dot(normal, light_dir), 0.0);
+    vec3 specular = num / max(denom, 0.001); // Make sure to not divide by zero
+
+    // No falloff for directional lights as they are infinitely far.
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metallic;
+
+    float NdotL = max(dot(normal, light_dir), 0.0);
+    return (kD * albedo / PI + specular) * radiance * NdotL;
+}
+
 vec3 calculate_indirect_light(vec3 normal, vec3 albedo, float ao, float roughness, float metallic) {
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
@@ -171,13 +209,32 @@ vec3 calculate_indirect_light(vec3 normal, vec3 albedo, float ao, float roughnes
     return (kD * diffuse + specular) * ao;
 }
 
+// dir, min ray distance, max ray distance
+float shadow_ray(vec3 direction, float min, float max) {
+    rayQueryEXT shadow_query;
+    // We can terminate on first hit.
+    // Cull mask is 0xFF for now, we will customize this better later
+    rayQueryInitializeEXT(shadow_query, scene_tlas, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, world_pos, min, direction, max);
+
+    // This function returns false while the query is not done.
+    // The reason it works like this is so we can reject hits in the shader (which we don't want right now).
+    while (rayQueryProceedEXT(shadow_query)) { }
+
+    // If there was a triangle hit, we have a shadow.
+    if (rayQueryGetIntersectionTypeEXT(shadow_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT ) {
+        return 0.1;
+    }
+    return 1.0;
+}
+
 void main() {
     // Determine tile index to retrieve lighting information
     const ivec2 pixel = ivec2(gl_FragCoord.xy);
     const ivec2 tile_id = pixel / ivec2(ANDROMEDA_TILE_SIZE, ANDROMEDA_TILE_SIZE);
     const uint tile = tile_id.y * pc.num_tiles.x + tile_id.x;
 
-    vec3 albedo = texture(textures[pc.albedo_idx], UV).rgb;
+    vec4 sample_color = texture(textures[pc.albedo_idx], UV);
+    vec3 albedo = sample_color.rgb;
     vec3 color = vec3(0.0);
 
     vec3 normal = normalize(TBN * (texture(textures[pc.normal_idx], UV).rgb * 2.0f - 1.0f));
@@ -192,11 +249,30 @@ void main() {
     for (uint i = 0; (i < ANDROMEDA_MAX_LIGHTS_PER_TILE) && (visible_lights.data[offset + i] != uint(-1)); ++i) {
         const uint index = visible_lights.data[offset + i];
         PointLight light = lights.l[index];
-        color += apply_point_light(light, normal, albedo, metallic, roughness);
+        vec3 light_color = apply_point_light(light, normal, albedo, metallic, roughness);
+        if (light.shadow >= 0) {
+            vec3 direction = normalize(light.pos_radius.xyz - world_pos);
+            light_color *= shadow_ray(direction, 0.01f, 1000.0);
+        }
+        color += light_color;
+    }
+
+    // Process directional lights and shadowing
+    for (uint i = 0; i < dir_lights.l.length(); ++i) {
+        DirectionalLight light = dir_lights.l[i];
+        vec3 light_color = apply_directional_light(light, normal, albedo, metallic, roughness);
+
+        // Skip shadow rays if light is not a shadow caster
+        if (light.direction_shadow.w >= 0) {
+            vec3 direction = -light.direction_shadow.xyz;
+            light_color *= shadow_ray(direction, 0.01, 1000.0);
+        }
+
+        color += light_color;
     }
 
     // Add indirect light from the environment to the final color
     color += calculate_indirect_light(normal, albedo, ao, roughness, metallic);
 
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(color, sample_color.a);
 }

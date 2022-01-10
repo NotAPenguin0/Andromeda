@@ -15,67 +15,67 @@ namespace andromeda {
 template<typename T>
 struct Handle {
 
-	/**
-	 * @brief Constructs a handle as a null handle.
-	*/
-	Handle() = default;
+    /**
+     * @brief Constructs a handle as a null handle.
+    */
+    Handle() = default;
 
-	/**
-	 * @brief Copies a handle.
-	 * @param rhs The handle to copy.
-	*/
-	Handle(Handle const& rhs) = default;
+    /**
+     * @brief Copies a handle.
+     * @param rhs The handle to copy.
+    */
+    Handle(Handle const& rhs) = default;
 
-	/**
-	 * @brief Copies a handle.
-	 * @param rhs The handle to copy.
-	 * @return *this.
-	*/
-	Handle& operator=(Handle const& rhs) = default;
+    /**
+     * @brief Copies a handle.
+     * @param rhs The handle to copy.
+     * @return *this.
+    */
+    Handle& operator=(Handle const& rhs) = default;
 
-	/**
-	 * @var static Handle none 
-	 * @brief Represents a null handle.
-	*/
-	static Handle none;
+    /**
+     * @var static Handle none
+     * @brief Represents a null handle.
+    */
+    static Handle none;
 
-	/**
-	 * @brief Comparator for handles.
-	 * @param rhs The handle to compare with.
-	 * @return true if the handles refer to the same id.
-	*/
-	bool operator==(Handle const& rhs) const {
-		return id == rhs.id;
-	}
+    /**
+     * @brief Comparator for handles.
+     * @param rhs The handle to compare with.
+     * @return true if the handles refer to the same id.
+    */
+    bool operator==(Handle const& rhs) const {
+        return id == rhs.id;
+    }
 
-	/**
-	 * @brief Converts a handle to a boolean
-	 * @return true if the handle is not null, false otherwise.
-	*/
-	explicit operator bool() const {
-		return id != none.id;
-	}
+    /**
+     * @brief Converts a handle to a boolean
+     * @return true if the handle is not null, false otherwise.
+    */
+    explicit operator bool() const {
+        return id != none.id;
+    }
 
-	/**
-	 * @brief Get the next availble handle of this type.
-	 * @return A unique handle of the given type.
-	*/
-	static Handle next() {
-		return Handle{ IDGen<T, uint64_t>::next() };
-	}
+    /**
+     * @brief Get the next availble handle of this type.
+     * @return A unique handle of the given type.
+    */
+    static Handle next() {
+        return Handle{IDGen<T, uint64_t>::next()};
+    }
 
-	uint64_t get_id() const { return id; }
+    uint64_t get_id() const { return id; }
 
 private:
-	friend class std::hash<Handle<T>>;
+    friend class std::hash<Handle<T>>;
 
-	uint64_t id = none.id;
+    uint64_t id = none.id;
 
-	Handle(uint64_t id) : id(id) {}
+    Handle(uint64_t id) : id(id) {}
 };
 
 template<typename T>
-Handle<T> Handle<T>::none = Handle<T>{ static_cast<uint64_t>(-1) };
+Handle<T> Handle<T>::none = Handle<T>{static_cast<uint64_t>(-1)};
 
 }
 
@@ -83,10 +83,10 @@ namespace std {
 
 template<typename T>
 struct hash<andromeda::Handle<T>> {
-	size_t operator()(andromeda::Handle<T> const& x) const {
-		hash<uint64_t> hash{};
-		return hash(x.id);
-	}
+    size_t operator()(andromeda::Handle<T> const& x) const {
+        hash<uint64_t> hash{};
+        return hash(x.id);
+    }
 };
 
 }

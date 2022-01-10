@@ -50,7 +50,7 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/NotAPenguin0/SimpleJSON
 )
 
-#set(PHOBOS_ENABLE_RAY_TRACING ON)
+set(PHOBOS_ENABLE_RAY_TRACING ON)
 
 FetchContent_MakeAvailable(phobos)
 FetchContent_MakeAvailable(glfw)
