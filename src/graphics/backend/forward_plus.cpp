@@ -186,7 +186,7 @@ ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport
             cmd.push_constants(ph::ShaderStage::Compute, 0, 4 * sizeof(uint32_t), &pc);
 
             // Dispatch the compute shader with one thread group for every tile.
-            cmd.dispatch(vp_data.n_tiles_x, vp_data.n_tiles_y, 1);
+            vkCmdDispatch_Tracked(cmd, vp_data.n_tiles_x, vp_data.n_tiles_y, 1);
         })
         .get();
     return pass;

@@ -3,6 +3,7 @@
 #include <andromeda/graphics/context.hpp>
 #include <andromeda/graphics/scene_description.hpp>
 #include <andromeda/graphics/viewport.hpp>
+#include <andromeda/graphics/performance_counters.hpp>
 
 #include <phobos/render_graph.hpp>
 

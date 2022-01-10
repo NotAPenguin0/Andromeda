@@ -21,7 +21,7 @@ void for_each_ready_mesh(gfx::SceneDescription const& scene, std::function<void(
 void bind_and_draw(ph::CommandBuffer& cmd, gfx::Mesh const& mesh) {
     cmd.bind_vertex_buffer(0, mesh.vertices);
     cmd.bind_index_buffer(mesh.indices, VK_INDEX_TYPE_UINT32);
-    cmd.draw_indexed(mesh.num_indices, 1, 0, 0, 0);
+    vkCmdDrawIndexed_Tracked(cmd, mesh.num_indices, mesh.num_vertices, 1, 0, 0, 0);
 }
 
 }

@@ -44,6 +44,9 @@
     - [X] loading model into scene copies the blueprint into the real ecs
 - [ ] Asset hot-reloading
 - [ ] Remove STB as it doesn't support DDS.
+- [ ] Move away from assimp and create own loader
+- [ ] Possibly create smart model splitter that splits meshes by locality to improve raytracing performance.
+- 
 
 ## UI/Editor
 
@@ -81,4 +84,4 @@
 
 - [ ] Raytraced rendering backend
   - Full raytraced backend should probably not be real-time and only update at certain intervals.
-  
+- [ ] Possibly integrate Nvidia RT denoiser API 

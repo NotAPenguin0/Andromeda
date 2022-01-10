@@ -72,7 +72,7 @@ ph::Pass DebugGeometryList::build_render_pass(gfx::Viewport const& viewport, gfx
                     glm::vec4 value = glm::vec4(command.color.color, 1.0);
                     cmd.push_constants(ph::ShaderStage::Fragment, 0, sizeof(glm::vec4), &value);
                 } else if (command.type == CommandType::DrawLine) {
-                    cmd.draw(command.draw.num_vertices, 1, command.draw.vbo_offset, 0);
+                    vkCmdDraw_Tracked(cmd, command.draw.num_vertices, 1, command.draw.vbo_offset, 0);
                 }
             }
         })

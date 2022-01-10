@@ -40,6 +40,7 @@ target_sources(andromeda PRIVATE
         "graphics/context.cpp"
         "graphics/imgui_impl.cpp"
         "graphics/imgui_impl_glfw.cpp"
+        "graphics/performance_counters.cpp"
         "graphics/renderer.cpp"
         "graphics/scene_description.cpp"
 

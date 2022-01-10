@@ -171,6 +171,8 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
     // register global pointer
     backend::impl::_debug_geometry_list_ptr = &debug_geometry;
     impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
+
+    StatTracker::set_interval(60); // At 60 fps, this would update once every second.
 }
 
 void Renderer::shutdown(gfx::Context& ctx) {
@@ -183,6 +185,8 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
 
     // Reset scene description from last frame
     scene.reset();
+
+    StatTracker::new_frame();
 
     fill_scene_description(world);
 

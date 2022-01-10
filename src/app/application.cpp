@@ -46,8 +46,8 @@ int Application::run() {
 //    Handle<ecs::entity_t> gallery = assets::load<ecs::entity_t>("data/gallery/gallery.ent");
 //    world->import_entity(*assets::get(gallery));
 
-//    Handle<ecs::entity_t> rungholt = assets::load<ecs::entity_t>("data/rungholt/rungholt.ent");
-//    world->import_entity(*assets::get(rungholt));
+    Handle<ecs::entity_t> rungholt = assets::load<ecs::entity_t>("data/rungholt/rungholt.ent");
+    world->import_entity(*assets::get(rungholt));
 
     uint64_t frame = 0;
     while (window->is_open()) {

@@ -64,7 +64,7 @@ ph::Pass build_average_luminance_pass(gfx::Context& ctx, ph::InFlightContext& if
                     viewport.width() / (float) ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE);
                 uint32_t const dispatches_y = std::ceil(
                     viewport.height() / (float) ANDROMEDA_LUMINANCE_ACCUMULATE_GROUP_SIZE);
-                cmd.dispatch(dispatches_x, dispatches_y, 1);
+                vkCmdDispatch_Tracked(cmd, dispatches_x, dispatches_y, 1);
             }
 
             // Add a barrier to protect the histogram buffer
@@ -99,7 +99,7 @@ ph::Pass build_average_luminance_pass(gfx::Context& ctx, ph::InFlightContext& if
                 cmd.push_constants(ph::ShaderStage::Compute, 0, 4 * sizeof(float), &pc);
                 cmd.push_constants(ph::ShaderStage::Compute, 4 * sizeof(float), sizeof(uint32_t), &num_pixels);
 
-                cmd.dispatch(1, 1, 1);
+                vkCmdDispatch_Tracked(cmd, 1, 1, 1);
             }
         })
         .get();
@@ -122,7 +122,7 @@ ph::Pass build_tonemap_pass(gfx::Context& ctx, std::string_view main_hdr, std::s
             cmd.bind_descriptor_set(set);
 
             cmd.push_constants(ph::ShaderStage::Fragment, 0, sizeof(uint32_t), &samples);
-            cmd.draw(6, 1, 0, 0);
+            vkCmdDraw_Tracked(cmd, 6, 1, 0, 0);
         })
         .get();
     return pass;

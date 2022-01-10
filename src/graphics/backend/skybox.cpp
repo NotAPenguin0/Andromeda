@@ -84,7 +84,7 @@ void render_skybox(gfx::Context& ctx, ph::InFlightContext& ifc, ph::CommandBuffe
     cmd.push_constants(ph::ShaderStage::Vertex, 0, sizeof(glm::mat4), &camera.projection);
     glm::mat4 view_no_position = glm::mat4(glm::mat3(camera.view));
     cmd.push_constants(ph::ShaderStage::Vertex, sizeof(glm::mat4), sizeof(glm::mat4), &view_no_position);
-    cmd.draw(36, 1, 0, 0);
+    vkCmdDraw_Tracked(cmd, 36, 1, 0, 0);
 }
 
 }
