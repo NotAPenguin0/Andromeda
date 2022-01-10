@@ -38,6 +38,17 @@ struct json_convert<std::string> {
     }
 };
 
+template<>
+struct json_convert<bool> {
+    [[nodiscard]] static bool from_json(json::JSON const& json) {
+        return json.ToBool();
+    }
+
+    [[nodiscard]] static json::JSON from_json(bool const& value) {
+        return {value};
+    }
+};
+
 template<typename A>
 struct json_convert<Handle<A>> {
     [[nodiscard]] static Handle<A> from_json(json::JSON const& json) {

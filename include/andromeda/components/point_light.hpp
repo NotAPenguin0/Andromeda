@@ -17,6 +17,9 @@ struct [[component]] PointLight {
     [[editor::tooltip("Intensity multiplier for the light. Increasing this does not increase the radius of the light.")]]
     [[editor::drag_speed(0.1f)]]
     float intensity = 1.0f;
+
+    [[editor::tooltip("Whether this light will cast shadows.")]]
+    bool casts_shadows = true;
 };
 
 }

@@ -37,6 +37,8 @@ void SceneDescription::add_light(PointLight const& light, glm::vec3 const& posit
     gpu::PointLight info{};
     info.pos_radius = glm::vec4(position, light.radius);
     info.color_intensity = glm::vec4(light.color, light.intensity);
+    if (light.casts_shadows) info.shadow = 1;
+    else info.shadow = -1;
     point_lights.push_back(info);
 }
 

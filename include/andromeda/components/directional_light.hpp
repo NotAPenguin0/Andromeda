@@ -16,7 +16,7 @@ struct [[component]] DirectionalLight {
     [[editor::drag_speed(0.1f)]]
     float intensity = 1.0f;
 
-    [[editor::tooltip("Whether this light casts shadows. There is a limit of how many of these you can have.")]]
+    [[editor::tooltip("Whether this light casts shadows.")]]
     bool cast_shadows = true;
 };
 

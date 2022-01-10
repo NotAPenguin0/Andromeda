@@ -16,6 +16,7 @@
 - [ ] Organize backend code to be more re-usable.
   - [ ] Move postprocess pipeline to separate module
 - [ ] GPU driven rendering
+- [ ] Raytraced reflections
 - [ ] Fog
 - [ ] Water/fluid simulation
 - [ ] Atmospheric scattering
@@ -23,7 +24,7 @@
 - [ ] Put all meshes in a single large VkBuffer
 - [ ] Terrain system
 - [ ] Particles
-- [ ] Raytraced shadows using VK_KHR_ray_query
+- [X] Raytraced shadows using VK_KHR_ray_query
   - Rebuild TLAS every frame
   - Rebuild BLAS only when needed
 
@@ -42,6 +43,7 @@
     - [X] model loading creates a new blueprint entity
     - [X] loading model into scene copies the blueprint into the real ecs
 - [ ] Asset hot-reloading
+- [ ] Remove STB as it doesn't support DDS.
 
 ## UI/Editor
 

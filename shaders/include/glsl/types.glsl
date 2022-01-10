@@ -15,14 +15,21 @@ namespace gpu {
 #define alignas(x)
 #endif
 
-struct alignas(8 * sizeof(float)) PointLight {
+#ifdef __cplusplus
+#pragma pack(push, 1)
+#endif
+struct PointLight {
     vec4 pos_radius;
     vec4 color_intensity;
+    int shadow; // <0 if shadow caster, >=0 otherwise
+    int _pad0[3]; // align to 16 bytes
 };
+#ifdef __cplusplus
+#pragma pack(pop)
+#endif
 
 struct alignas(8 * sizeof(float)) DirectionalLight {
-    // If w < 0, this directional light is not a shadow caster or does not have a shadow map associated with it.
-    // If w >= 0, int(w) is the index of this light's shadow map.
+    // If w < 0, this directional light is not a shadow caster.
     vec4 direction_shadow;
     vec4 color_intensity;
 };

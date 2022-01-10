@@ -61,7 +61,7 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
             .set_depth_op(VK_COMPARE_OP_LESS_OR_EQUAL)
             .set_depth_write(false) // Do not write to the depth buffer since we already have depth information
             .set_cull_mode(VK_CULL_MODE_BACK_BIT)
-            .add_blend_attachment(false)
+            .add_blend_attachment(true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD)
             .set_samples(render_data.msaa_samples)
             .set_sample_shading(render_data.msaa_sample_ratio)
             .reflect()

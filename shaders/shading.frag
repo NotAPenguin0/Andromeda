@@ -209,13 +209,32 @@ vec3 calculate_indirect_light(vec3 normal, vec3 albedo, float ao, float roughnes
     return (kD * diffuse + specular) * ao;
 }
 
+// dir, min ray distance, max ray distance
+float shadow_ray(vec3 direction, float min, float max) {
+    rayQueryEXT shadow_query;
+    // We can terminate on first hit.
+    // Cull mask is 0xFF for now, we will customize this better later
+    rayQueryInitializeEXT(shadow_query, scene_tlas, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, world_pos, min, direction, max);
+
+    // This function returns false while the query is not done.
+    // The reason it works like this is so we can reject hits in the shader (which we don't want right now).
+    while (rayQueryProceedEXT(shadow_query)) { }
+
+    // If there was a triangle hit, we have a shadow.
+    if (rayQueryGetIntersectionTypeEXT(shadow_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT ) {
+        return 0.1;
+    }
+    return 1.0;
+}
+
 void main() {
     // Determine tile index to retrieve lighting information
     const ivec2 pixel = ivec2(gl_FragCoord.xy);
     const ivec2 tile_id = pixel / ivec2(ANDROMEDA_TILE_SIZE, ANDROMEDA_TILE_SIZE);
     const uint tile = tile_id.y * pc.num_tiles.x + tile_id.x;
 
-    vec3 albedo = texture(textures[pc.albedo_idx], UV).rgb;
+    vec4 sample_color = texture(textures[pc.albedo_idx], UV);
+    vec3 albedo = sample_color.rgb;
     vec3 color = vec3(0.0);
 
     vec3 normal = normalize(TBN * (texture(textures[pc.normal_idx], UV).rgb * 2.0f - 1.0f));
@@ -230,7 +249,12 @@ void main() {
     for (uint i = 0; (i < ANDROMEDA_MAX_LIGHTS_PER_TILE) && (visible_lights.data[offset + i] != uint(-1)); ++i) {
         const uint index = visible_lights.data[offset + i];
         PointLight light = lights.l[index];
-        color += apply_point_light(light, normal, albedo, metallic, roughness);
+        vec3 light_color = apply_point_light(light, normal, albedo, metallic, roughness);
+        if (light.shadow >= 0) {
+            vec3 direction = normalize(light.pos_radius.xyz - world_pos);
+            light_color *= shadow_ray(direction, 0.01f, 1000.0);
+        }
+        color += light_color;
     }
 
     // Process directional lights and shadowing
@@ -239,24 +263,9 @@ void main() {
         vec3 light_color = apply_directional_light(light, normal, albedo, metallic, roughness);
 
         // Skip shadow rays if light is not a shadow caster
-        if (light.direction_shadow.w < 0) {
-            color += light_color;
-            continue;
-        }
-
-        // Use ray queries to determine whether light is blocked by scene geometry.
-        rayQueryEXT shadow_query;
-        // We can terminate on first hit.
-        // Cull mask is 0xFF for now, we will customize this better later
-        rayQueryInitializeEXT(shadow_query, scene_tlas, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, world_pos, 0.01, -light.direction_shadow.xyz, 1000.0);
-
-        // This function returns false while the query is not done.
-        // The reason it works like this is so we can reject hits in the shader (which we don't want right now).
-        while (rayQueryProceedEXT(shadow_query)) { }
-
-        // If there was a triangle hit, we have a shadow.
-        if (rayQueryGetIntersectionTypeEXT(shadow_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT ) {
-            light_color *= 0.1;
+        if (light.direction_shadow.w >= 0) {
+            vec3 direction = -light.direction_shadow.xyz;
+            light_color *= shadow_ray(direction, 0.01, 1000.0);
         }
 
         color += light_color;
@@ -265,5 +274,5 @@ void main() {
     // Add indirect light from the environment to the final color
     color += calculate_indirect_light(normal, albedo, ao, roughness, metallic);
 
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(color, sample_color.a);
 }
