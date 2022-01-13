@@ -36,13 +36,16 @@ layout(set = 0, binding = 5) uniform samplerCube irradiance_map;
 layout(set = 0, binding = 6) uniform samplerCube specular_map;
 layout(set = 0, binding = 7) uniform sampler2D brdf_lut;
 layout(set = 0, binding = 8) uniform accelerationStructureEXT scene_tlas;
-layout(set = 0, binding = 9) uniform sampler2D textures[];
+layout(set = 0, binding = 9, r16f) uniform image2DArray shadow_history;
+layout(set = 0, binding = 10) uniform sampler2D textures[];
 
 layout(push_constant) uniform PC {
     // Vertex shader
     uint transform_idx;
     // Fragment shader
     uvec2 num_tiles;
+    // frame number for denoising shadows
+    uint frame;
     uint albedo_idx;
     uint normal_idx;
     uint metal_rough_idx;
@@ -210,21 +213,29 @@ vec3 calculate_indirect_light(vec3 normal, vec3 albedo, float ao, float roughnes
 }
 
 // dir, min ray distance, max ray distance
-float shadow_ray(vec3 direction, float min, float max) {
-    rayQueryEXT shadow_query;
-    // We can terminate on first hit.
-    // Cull mask is 0xFF for now, we will customize this better later
-    rayQueryInitializeEXT(shadow_query, scene_tlas, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, world_pos, min, direction, max);
+float shadow_ray(vec3 direction, float min, float max, inout uint seed) {
+    float shadow = 1.0;
+    int rays = 1;
+    for (int i = 0; i < rays; ++i) {
+        rayQueryEXT shadow_query;
 
-    // This function returns false while the query is not done.
-    // The reason it works like this is so we can reject hits in the shader (which we don't want right now).
-    while (rayQueryProceedEXT(shadow_query)) { }
+        // todo: fix + don't hardcode angular diameter
+        vec3 sample_dir = sample_cone(direction, 0.5 * (PI / 180.0), seed);
 
-    // If there was a triangle hit, we have a shadow.
-    if (rayQueryGetIntersectionTypeEXT(shadow_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT ) {
-        return 0.1;
+        // We can terminate on first hit.
+        // Cull mask is 0xFF for now, we will customize this better later
+        rayQueryInitializeEXT(shadow_query, scene_tlas, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, world_pos, min, sample_dir, max);
+
+        // This function returns false while the query is not done.
+        // The reason it works like this is so we can reject hits in the shader (which we don't want right now).
+        while (rayQueryProceedEXT(shadow_query)) { }
+
+        // If there was a triangle hit, we have a shadow.
+        if (rayQueryGetIntersectionTypeEXT(shadow_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT) {
+            shadow -= 1.0 / rays;
+        }
     }
-    return 1.0;
+    return shadow;
 }
 
 void main() {
@@ -243,6 +254,8 @@ void main() {
     float roughness = rough_metal.x;
     float ao = texture(textures[pc.occlusion_idx], UV).r;
 
+    uint seed = tea(floatBitsToUint(gl_FragCoord.x) ^ floatBitsToUint(gl_FragCoord.y), pc.frame);
+
     // Offset for this tile's information in the visible_lights array
     const uint offset = ANDROMEDA_MAX_LIGHTS_PER_TILE * tile;
     // Loop over every entry in the visible_lights array
@@ -252,7 +265,7 @@ void main() {
         vec3 light_color = apply_point_light(light, normal, albedo, metallic, roughness);
         if (light.shadow >= 0) {
             vec3 direction = normalize(light.pos_radius.xyz - world_pos);
-            light_color *= shadow_ray(direction, 0.01f, 1000.0);
+            light_color *= shadow_ray(direction, 0.01f, 1000.0, seed);
         }
         color += light_color;
     }
@@ -265,11 +278,21 @@ void main() {
         // Skip shadow rays if light is not a shadow caster
         if (light.direction_shadow.w >= 0) {
             vec3 direction = -light.direction_shadow.xyz;
-            light_color *= shadow_ray(direction, 0.01, 1000.0);
+            float shadow_factor = shadow_ray(direction, 0.01, 1000.0, seed);
+            // denoise shadow
+            uint index = uint(light.direction_shadow.w);
+            ivec3 texel = ivec3(pixel, index);
+            if (pc.frame > 0) {
+                float a = 1.0 / (pc.frame + 1);
+                float old_factor = imageLoad(shadow_history, texel).r;
+                shadow_factor = mix(old_factor, shadow_factor, a);
+            }
+            imageStore(shadow_history, texel, vec4(shadow_factor, 0, 0, 0));
+            light_color *= shadow_factor;
         }
-
         color += light_color;
     }
+
 
     // Add indirect light from the environment to the final color
     color += calculate_indirect_light(normal, albedo, ao, roughness, metallic);

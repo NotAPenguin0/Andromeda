@@ -3,6 +3,8 @@
 #include <andromeda/graphics/backend/mesh_draw.hpp>
 #include <andromeda/graphics/backend/skybox.hpp>
 #include <andromeda/graphics/backend/tonemap.hpp>
+#include <andromeda/graphics/backend/debug_geometry.hpp>
+
 
 #include <andromeda/util/memory.hpp>
 
@@ -25,6 +27,11 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
 
         heatmaps[i] = gfx::Viewport::local_string(i, "forward_plus_heatmap");
         ctx.create_attachment(heatmaps[i], {1, 1}, VK_FORMAT_R8G8B8A8_UNORM, ph::ImageType::StorageImage);
+
+        shadow_history[i] = gfx::Viewport::local_string(i, "shadow_history");
+        // One layer for each directional light
+        ctx.create_attachment(shadow_history[i], {1, 1}, VK_FORMAT_R16_SFLOAT,
+                              VK_SAMPLE_COUNT_1_BIT, ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS, ph::ImageType::StorageImage);
 
         // Create average luminance buffer
         render_data.vp[i].average_luminance = ctx.create_buffer(ph::BufferType::StorageBufferStatic, sizeof(float));
@@ -100,7 +107,26 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightConte
     // Create storage objects shared by the pipeline.
     create_render_data(ifc, viewport, scene);
 
-    auto const& vp = render_data.vp[viewport.index()];
+    auto& vp = render_data.vp[viewport.index()];
+
+    // TODO: reset when lights are updated
+    if (glm::mat4 const& pv = scene.get_camera_info(viewport).proj_view; pv != vp.prev_pv) {
+        vp.frame = 0;
+        vp.prev_pv = pv;
+    } else {
+        // increment frame number
+        vp.frame += 1;
+    }
+
+    for (auto const& l : scene.get_directional_lights()) {
+        // Draw light direction vector
+        glm::vec3 dir = -l.direction_shadow;
+        glm::vec3 R = glm::cross(dir, glm::vec3(0, 1, 0));
+        DEBUG_SET_COLOR(viewport, glm::vec3(1, 0, 0));
+        DEBUG_DRAW_LINE(viewport, dir, glm::vec3(0.0));
+        DEBUG_SET_COLOR(viewport, glm::vec3(0, 1, 0));
+        DEBUG_DRAW_LINE(viewport, R, glm::vec3(0.0));
+    }
 
     // Step 1 is to do a depth prepass of the entire scene. This will greatly increase efficiency of the final shading step by
     // eliminating pixel overdraw.
@@ -116,7 +142,7 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightConte
 }
 
 std::vector<std::string> ForwardPlusRenderer::debug_views(gfx::Viewport viewport) {
-    std::vector<std::string> result = {depth_attachments[viewport.index()], heatmaps[viewport.index()]};
+    std::vector<std::string> result = {depth_attachments[viewport.index()], heatmaps[viewport.index()], shadow_history[viewport.index()]};
     return result;
 }
 
@@ -137,6 +163,7 @@ void ForwardPlusRenderer::resize_viewport(gfx::Viewport viewport, uint32_t width
         ctx.resize_attachment(color_attachments[viewport.index()], {width, height});
         ctx.resize_attachment(depth_attachments[viewport.index()], {width, height});
         ctx.resize_attachment(heatmaps[viewport.index()], {width, height});
+        ctx.resize_attachment(shadow_history[viewport.index()], {width, height});
     }
 }
 
@@ -197,6 +224,7 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
     ph::PassBuilder builder = ph::PassBuilder::create("fdw_plus_shading")
         .add_attachment(color_attachments[viewport.index()], ph::LoadOp::Clear, ph::ClearValue{.color = {0.0, 0.0, 0.0, 1.0}})
         .add_depth_attachment(depth_attachments[viewport.index()], ph::LoadOp::Load, {})
+        .write_storage_image(ctx.get_attachment(shadow_history[viewport.index()]).view, ph::PipelineStage::FragmentShader)
         .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader);
 
     ph::Pass pass = builder.execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
@@ -234,6 +262,7 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
                     .add_sampled_image("specular_map", environment.specular_view, ctx.basic_sampler())
                     .add_sampled_image("brdf_lut", brdf_lut->view, ctx.basic_sampler())
                     .add_acceleration_structure("scene_tlas", tlas)
+                    .add_storage_image("shadow_history", ctx.get_attachment(shadow_history[viewport.index()]).view)
                     .add_sampled_image_array("textures", scene.get_textures(), ctx.basic_sampler())
                     .add_pNext(&variable_count_info)
                     .get();
@@ -254,6 +283,7 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
                     uint32_t const frag_pc[]{
                         vp_data.n_tiles_x,
                         vp_data.n_tiles_y,
+                        vp_data.frame,
                         textures.albedo,
                         textures.normal,
                         textures.metal_rough,

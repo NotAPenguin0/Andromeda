@@ -6,6 +6,8 @@
 
 #include <phobos/command_buffer.hpp>
 
+#include <andromeda/graphics/context.hpp>
+
 namespace andromeda::gfx {
 
 struct PerformanceCounters {
@@ -17,20 +19,28 @@ struct PerformanceCounters {
     uint64_t triangles = 0;
     // Total number of submitted vertices.
     uint64_t vertices = 0;
-
+    // Amount of invocations for each shader stage
+    uint32_t vertex_invocations = 0;
+    uint32_t fragment_invocations = 0;
+    uint32_t compute_invocations = 0;
     // Memory in bytes used by raytracing backend (optional).
     std::optional<uint64_t> rtx_memory = std::nullopt;
 };
 
 class StatTracker {
 public:
+    static void initialize(gfx::Context& ctx);
+    static void shutdown(gfx::Context& ctx);
     static void set_interval(uint32_t i);
-    static void new_frame();
+    static void new_frame(gfx::Context& ctx);
     static gfx::PerformanceCounters const& get();
 
     static void draw(ph::CommandBuffer& cmd, uint32_t num_vertices, uint32_t num_instances, uint32_t first_vertex, uint32_t first_instance);
     static void draw_indexed(ph::CommandBuffer& cmd, uint32_t num_indices, uint32_t num_vertices, uint32_t num_instances, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance);
     static void dispatch(ph::CommandBuffer& cmd, uint32_t x, uint32_t y, uint32_t z);
+
+    static void begin_query(ph::CommandBuffer& cmd);
+    static void end_query(ph::CommandBuffer& cmd);
 
 private:
     static inline gfx::PerformanceCounters stats{};
@@ -38,6 +48,9 @@ private:
     // Only update every N frames, other frames are just ignored.
     static inline uint32_t interval = 1;
     static inline uint32_t frame = 0;
+
+    static inline VkQueryPool query_pool = nullptr;
+    static inline std::array<uint32_t, 3> queries {};
 
     static bool must_update();
 };

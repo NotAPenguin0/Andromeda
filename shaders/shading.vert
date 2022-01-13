@@ -14,6 +14,7 @@ layout(push_constant) uniform PC {
     uint transform_idx;
     // Fragment shader
     uvec2 num_tiles;
+    uint frame;
     uint albedo_idx;
     uint normal_idx;
     uint metal_rough_idx;

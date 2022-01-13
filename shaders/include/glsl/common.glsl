@@ -189,3 +189,79 @@ float aces_tonemap(float x) {
     const float e = 0.14;
     return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
+
+// map from a1, a2 to b1, b2
+float map(float s, float a1, float a2, float b1, float b2){
+    return b1 + (s-a1)*(b2-b1)/(a2-a1);
+}
+
+// Generate a random unsigned int from two unsigned int values, using 16 pairs
+// of rounds of the Tiny Encryption Algorithm. See Zafar, Olano, and Curtis,
+// "GPU Random Numbers via the Tiny Encryption Algorithm"
+uint tea(uint val0, uint val1) {
+    uint v0 = val0;
+    uint v1 = val1;
+    uint s0 = 0;
+
+    for(uint n = 0; n < 16; n++) {
+        s0 += 0x9e3779b9;
+        v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4);
+        v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761e);
+    }
+
+    return v0;
+}
+
+// Generate a random unsigned int in [0, 2^24) given the previous RNG state
+// using the Numerical Recipes linear congruential generator
+uint lcg(inout uint prev) {
+    uint LCG_A = 1664525u;
+    uint LCG_C = 1013904223u;
+    prev = (LCG_A * prev + LCG_C);
+    return prev & uint(0x00FFFFFF);
+}
+
+// Generate a random float in [0, 1) given the previous RNG state
+float rnd(inout uint prev) {
+    return (float(lcg(prev)) / float(0x01000000));
+}
+
+// Rotation with angle (in radians) and axis
+// adapted from https://gist.github.com/keijiro/ee439d5e7388f3aafc5296005c8c3f33
+mat3 angle_axis_rotation(float angle, vec3 axis) {
+    float c = cos(angle), s = sin(angle);
+
+    float t = 1 - c;
+    float x = axis.x;
+    float y = axis.y;
+    float z = axis.z;
+
+    // transpose becasue the original code is in HLSL, which is row-major.
+    return transpose(mat3(
+        t * x * x + c,      t * x * y - s * z,  t * x * z + s * y,
+        t * x * y + s * z,  t * y * y + c,      t * y * z - s * x,
+        t * x * z - s * y,  t * y * z + s * x,  t * z * z + c
+    ));
+}
+
+// get a random uniformly distributed direction vector in a cone centered around given axis and angle of the cone.
+// assumes axis is normalized
+// angle is in radians.
+vec3 sample_cone(vec3 axis, float angle, inout uint seed) {
+    // from https://math.stackexchange.com/questions/56784/generate-a-random-direction-within-a-cone/205589#205589
+    // the linked answer assumes z up, we will be using y up here.
+    float y = map(rnd(seed), 0, 1, cos(angle), 1);
+    float phi = rnd(seed) * 2 * PI;
+
+    // generate random vector oriented towards the north pole.
+    vec3 vec = vec3(sqrt(1 - y * y) * cos(phi), y, sqrt(1 - y * y) * sin(phi));
+    // now we rotate this vector towards our axis.
+    if (axis == vec3(0, 1, 0)) return vec;
+    if (axis == vec3(0, -1, 0)) return vec3(vec.x, -vec.y, vec.z);
+    // rotation axis
+    vec3 R = cross(axis, vec3(0, 1, 0));
+    // rotation angle
+    float theta = dot(axis, vec3(0, 1, 0));
+    mat3 rotation = angle_axis_rotation(theta, R);
+    return rotation * vec;
+}

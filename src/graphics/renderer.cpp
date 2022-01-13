@@ -172,10 +172,12 @@ Renderer::Renderer(gfx::Context& ctx, Window& window) {
     backend::impl::_debug_geometry_list_ptr = &debug_geometry;
     impl = std::make_unique<backend::ForwardPlusRenderer>(ctx);
 
+    StatTracker::initialize(ctx);
     StatTracker::set_interval(60); // At 60 fps, this would update once every second.
 }
 
 void Renderer::shutdown(gfx::Context& ctx) {
+    StatTracker::shutdown(ctx);
     gfx::imgui::shutdown();
     impl.reset(nullptr);
 }
@@ -186,7 +188,12 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
     // Reset scene description from last frame
     scene.reset();
 
-    StatTracker::new_frame();
+    for (auto const& viewport : viewports) {
+        debug_geometry.clear(viewport.vp);
+        DEBUG_SET_COLOR(viewport.vp, glm::vec3(1, 1, 1)); // Default color to white
+    }
+
+    StatTracker::new_frame(ctx);
 
     fill_scene_description(world);
 
@@ -201,10 +208,7 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
     impl->frame_setup(ifc, scene);
     for (auto const& viewport: viewports) {
         if (viewport.in_use) {
-            debug_geometry.clear(viewport.vp);
-            DEBUG_SET_COLOR(viewport.vp, glm::vec3(1, 1, 1)); // Default color to white
             impl->render_scene(graph, ifc, viewport.vp, scene);
-
             graph.add_pass(debug_geometry.build_render_pass(viewport.vp, ctx, ifc, scene.get_camera_info(viewport.vp).proj_view));
         }
     }
@@ -216,7 +220,9 @@ void Renderer::render_frame(gfx::Context& ctx, World const& world) {
 
     ph::RenderGraphExecutor executor{};
     ifc.command_buffer.begin();
+    StatTracker::begin_query(ifc.command_buffer);
     executor.execute(ifc.command_buffer, graph);
+    StatTracker::end_query(ifc.command_buffer);
     ifc.command_buffer.end();
 
     ctx.submit_frame_commands(*ctx.get_queue(ph::QueueType::Graphics), ifc.command_buffer, impl->wait_semaphores());

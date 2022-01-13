@@ -46,8 +46,15 @@ int Application::run() {
 //    Handle<ecs::entity_t> gallery = assets::load<ecs::entity_t>("data/gallery/gallery.ent");
 //    world->import_entity(*assets::get(gallery));
 
-    Handle<ecs::entity_t> rungholt = assets::load<ecs::entity_t>("data/rungholt/rungholt.ent");
-    world->import_entity(*assets::get(rungholt));
+//    Handle<ecs::entity_t> rungholt = assets::load<ecs::entity_t>("data/rungholt/rungholt.ent");
+//    world->import_entity(*assets::get(rungholt));
+
+//    ecs::entity_t powerplant_root = world->create_entity();
+
+    for (uint32_t i = 0; i < 21; ++i) {
+//        Handle<ecs::entity_t> part = assets::load<ecs::entity_t>(fmt::format(FMT_STRING("data/SM_Powerplant/SM_Powerplant{}.ent"), i));
+//       world->import_entity(*assets::get(part), powerplant_root);
+    }
 
     uint64_t frame = 0;
     while (window->is_open()) {

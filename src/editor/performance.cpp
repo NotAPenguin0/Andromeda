@@ -23,6 +23,9 @@ void PerformanceDisplay::display(gfx::Context& ctx) {
             ImGui::TextUnformatted(geometry_text.c_str());
             std::string const commands_text = fmt::format(FMT_STRING("drawcalls: {}\ndispatches: {}"), stats.drawcalls, stats.dispatches);
             ImGui::TextUnformatted(commands_text.c_str());
+            std::string const invocations_text = fmt::format(FMT_STRING("shader stage invocations:\nvertex shader: {}\nfragment shader: {}\ncompute shader: {}"),
+                                                             stats.vertex_invocations, stats.fragment_invocations, stats.compute_invocations);
+            ImGui::TextUnformatted(invocations_text.c_str());
         }
         ImGui::End();
     }

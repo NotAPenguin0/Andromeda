@@ -54,6 +54,8 @@ private:
     std::array<std::string, gfx::MAX_VIEWPORTS> depth_attachments;
     // Heatmap attachments
     std::array<std::string, gfx::MAX_VIEWPORTS> heatmaps;
+    // shadow history buffer for simple temporal denoising
+    std::array<std::string, gfx::MAX_VIEWPORTS> shadow_history;
 
     // This structure owns buffers and storage images shared by the pipeline.
     struct RenderData {
@@ -67,6 +69,11 @@ private:
             uint32_t n_tiles_y = 0;
 
             ph::RawBuffer average_luminance;
+
+            // frame number used to denoise shadows.
+            uint32_t frame = 0;
+            // compared to current proj-view matrix to reset frame number
+            glm::mat4 prev_pv;
         } vp[gfx::MAX_VIEWPORTS];
 
         // Can be shared by all viewports.

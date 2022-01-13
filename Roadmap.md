@@ -27,6 +27,9 @@
 - [X] Raytraced shadows using VK_KHR_ray_query
   - Rebuild TLAS every frame
   - Rebuild BLAS only when needed
+- [ ] Support different vertex formats so shading doesn't break on ex. powerplant.
+- [ ] Improve soft shadow sampling
+- [ ] Denoise shadows
 
 ## Asset pipeline
 
