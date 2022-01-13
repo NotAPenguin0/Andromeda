@@ -15,8 +15,9 @@ public:
     /**
      * @brief Displays the inspector UI, if visible.
      * @param world Reference to the world being inspected.
+     * @return Whether the scene was updated by the inspector
     */
-    void display(World& world);
+    bool display(World& world);
 
     /**
      * @brief Obtain a reference to the visible variable. Useful if you want to control visibility of this widget from menus for example.
@@ -41,12 +42,12 @@ private:
 
     ecs::entity_t selected_entity = ecs::no_entity;
 
-    void show_entity_list(World& world);
+    // These functions all return a dirty flag
 
+    bool show_entity_list(World& world);
     // Show a tree item for this entity, and recursively for its children.
-    void show_entity_tree_item(thread::LockedValue<ecs::registry>& ecs, ecs::entity_t entity);
-
-    void show_details_panel(World& world);
+    bool show_entity_tree_item(thread::LockedValue<ecs::registry>& ecs, ecs::entity_t entity);
+    bool show_details_panel(World& world);
 };
 
 }

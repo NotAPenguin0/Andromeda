@@ -14,6 +14,14 @@
 
 namespace andromeda::gfx {
 
+bool SceneDescription::is_dirty() const {
+    return dirty;
+}
+
+void SceneDescription::set_dirty(bool d) {
+    dirty = d;
+}
+
 void SceneDescription::add_draw(Handle<gfx::Mesh> mesh, Handle<gfx::Material> material, bool occluder, glm::mat4 const& transform) {
     draws.push_back(Draw{mesh, material, occluder});
     draw_transforms.push_back(transform);
@@ -135,6 +143,7 @@ void SceneDescription::set_brdf_lut(Handle<gfx::Texture> handle) {
 }
 
 void SceneDescription::reset() {
+    dirty = false;
     draws.clear();
     draw_transforms.clear();
     textures.views.clear();

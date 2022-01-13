@@ -32,8 +32,9 @@ public:
      * @param world Reference to the world to build the editor for.
      * @param ctx Reference to the graphics context
      * @param renderer Reference to the rendering interface.
+     * @return Whether the scene was updated or not.
     */
-    void update(World& world, gfx::Context& ctx, gfx::Renderer& renderer);
+    bool update(World& world, gfx::Context& ctx, gfx::Renderer& renderer);
 
 private:
     ImFont* font = nullptr;

@@ -117,6 +117,18 @@ public:
     SceneDescription() = default;
 
     /**
+     * @brief Whether the scene was edited since last frame
+     * @return
+     */
+    bool is_dirty() const;
+
+    /**
+     * @brief Signal that the scene was or was not edited since last frame.
+     * @param d
+     */
+    void set_dirty(bool d);
+
+    /**
      * @brief Add a mesh to draw.
      * @param mesh Handle to the mesh to draw.
      * @param material Handle to the material to draw this mesh with.
@@ -261,6 +273,7 @@ public:
     std::span<gpu::DirectionalLight const> get_directional_lights() const;
 
 private:
+    bool dirty = false;
 
     /**
      * @brief Stores all draws to process.

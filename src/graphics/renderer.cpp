@@ -182,11 +182,12 @@ void Renderer::shutdown(gfx::Context& ctx) {
     impl.reset(nullptr);
 }
 
-void Renderer::render_frame(gfx::Context& ctx, World const& world) {
+void Renderer::render_frame(gfx::Context& ctx, World const& world, bool dirty) {
     ph::InFlightContext ifc = ctx.wait_for_frame();
 
     // Reset scene description from last frame
     scene.reset();
+    scene.set_dirty(dirty);
 
     for (auto const& viewport : viewports) {
         debug_geometry.clear(viewport.vp);

@@ -38,8 +38,10 @@ Editor::Editor(gfx::Context& ctx, Window& window) : console(ctx, window) {
     });
 }
 
-void Editor::update(World& world, gfx::Context& ctx, gfx::Renderer& renderer) {
+bool Editor::update(World& world, gfx::Context& ctx, gfx::Renderer& renderer) {
     show_main_menu_bar(world, ctx, renderer);
+
+    bool dirty = false;
 
     DockSpace main_dock_space{
         "main_editor_space##dock",
@@ -49,14 +51,15 @@ void Editor::update(World& world, gfx::Context& ctx, gfx::Renderer& renderer) {
     };
 
     // Display each active viewport
-    for (gfx::Viewport vp: renderer.get_active_viewports()) {
+    for (gfx::Viewport vp : renderer.get_active_viewports()) {
         // Display the viewport
         SceneViewport viewport{vp, ctx, renderer, world};
     }
 
     console.display();
-    inspector.display(world);
+    dirty |= inspector.display(world);
     performance.display(ctx);
+    return dirty;
 }
 
 void Editor::show_main_menu_bar(World& world, gfx::Context& ctx, gfx::Renderer& renderer) {

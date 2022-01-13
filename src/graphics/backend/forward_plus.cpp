@@ -109,10 +109,8 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightConte
 
     auto& vp = render_data.vp[viewport.index()];
 
-    // TODO: reset when lights are updated
-    if (glm::mat4 const& pv = scene.get_camera_info(viewport).proj_view; pv != vp.prev_pv) {
+    if (scene.is_dirty()) {
         vp.frame = 0;
-        vp.prev_pv = pv;
     } else {
         // increment frame number
         vp.frame += 1;

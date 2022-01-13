@@ -37,8 +37,9 @@ public:
      * @brief Render a single frame. Must be called on the main thread.
      * @param ctx Reference to the graphics context.
      * @param world Reference to the world to render.
+     * @param dirty Whether the scene was modified since last frame
     */
-    void render_frame(gfx::Context& ctx, World const& world);
+    void render_frame(gfx::Context& ctx, World const& world, bool dirty);
 
     /**
      * @brief Creates a new viewport with given size.

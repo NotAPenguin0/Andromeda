@@ -61,8 +61,8 @@ int Application::run() {
         window->poll_events();
         gfx::imgui::new_frame();
 
-        editor->update(*world, *graphics, *renderer);
-        renderer->render_frame(*graphics, *world);
+        bool dirty = editor->update(*world, *graphics, *renderer);
+        renderer->render_frame(*graphics, *world, dirty);
 
         ++frame;
         // Flush every 10 frames

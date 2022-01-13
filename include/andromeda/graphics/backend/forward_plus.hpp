@@ -72,8 +72,6 @@ private:
 
             // frame number used to denoise shadows.
             uint32_t frame = 0;
-            // compared to current proj-view matrix to reset frame number
-            glm::mat4 prev_pv;
         } vp[gfx::MAX_VIEWPORTS];
 
         // Can be shared by all viewports.
