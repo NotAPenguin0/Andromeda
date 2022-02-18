@@ -515,8 +515,10 @@ std::vector<VkAccelerationStructureInstanceKHR> get_instance_data(gfx::Context& 
         info.accelerationStructureReference = blas_address;
         info.instanceCustomIndex = i;
         info.instanceShaderBindingTableRecordOffset = 0; // TODO: hit group index. -> This will probably go in material settings
-        info.mask = 0xFF; // TODO: various culling masks.
-        info.flags = {};
+        if (!draw.occluder) info.mask = 0x00;
+        else info.mask = 0xFF; // TODO: various culling masks.
+        // Disable culling, this is actually more performant on NVIDIA cards (TODO: Check performance on AMD).
+        info.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         // 4x3 transposed transform matrix
         glm::mat4 transform = glm::transpose(transforms[i]);
         std::memcpy(&info.transform, &transform, 12 * sizeof(float));

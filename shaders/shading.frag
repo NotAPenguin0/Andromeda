@@ -212,16 +212,26 @@ vec3 calculate_indirect_light(vec3 normal, vec3 albedo, float ao, float roughnes
     return (kD * diffuse + specular) * ao;
 }
 
+#define RAY_SHADOW_BIAS 0.01
+
 // dir, min ray distance, max ray distance
-float shadow_ray(vec3 direction, float min, float max, inout uint seed) {
+float shadow_ray(vec3 direction, vec3 normal, float max, inout uint seed) {
     float shadow = 1.0;
-    int rays = 1;
+    int rays = ANDROMEDA_SHADOW_RAYS;
     for (int i = 0; i < rays; ++i) {
         rayQueryEXT shadow_query;
 
-        // todo: fix + don't hardcode angular diameter
+        // todo: don't hardcode angular diameter
         vec3 sample_dir = sample_cone(direction, 0.5 * (PI / 180.0), seed);
 
+        // Make sure our vector doesn't point the wrong way
+        if (dot(normal, sample_dir) < 0) {
+            sample_dir *= -1;
+        }
+
+        // https://github.com/DethRaid/SanityEngine/blob/0f99fd77939d6a13988ae154eb06bb58e4c71669/SanityEngine/data/shaders/inc/shadow.hlsl#L61
+        const float cos_theta = dot(sample_dir, normal);
+        const float min = RAY_SHADOW_BIAS * (1.0 - cos_theta);
         // We can terminate on first hit.
         // Cull mask is 0xFF for now, we will customize this better later
         rayQueryInitializeEXT(shadow_query, scene_tlas, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, world_pos, min, sample_dir, max);
@@ -265,7 +275,7 @@ void main() {
         vec3 light_color = apply_point_light(light, normal, albedo, metallic, roughness);
         if (light.shadow >= 0) {
             vec3 direction = normalize(light.pos_radius.xyz - world_pos);
-            light_color *= shadow_ray(direction, 0.01f, 1000.0, seed);
+            light_color *= shadow_ray(direction, normal, 1000.0, seed);
         }
         color += light_color;
     }
@@ -278,7 +288,7 @@ void main() {
         // Skip shadow rays if light is not a shadow caster
         if (light.direction_shadow.w >= 0) {
             vec3 direction = -light.direction_shadow.xyz;
-            float shadow_factor = shadow_ray(direction, 0.01, 1000.0, seed);
+            float shadow_factor = shadow_ray(direction, normal, 1000.0, seed);
             // denoise shadow
             uint index = uint(light.direction_shadow.w);
             ivec3 texel = ivec3(pixel, index);
@@ -286,6 +296,7 @@ void main() {
                 float a = 1.0 / (pc.frame + 1);
                 float old_factor = imageLoad(shadow_history, texel).r;
                 shadow_factor = mix(old_factor, shadow_factor, a);
+                shadow_factor = clamp(shadow_factor, 0, 1);
             }
             imageStore(shadow_history, texel, vec4(shadow_factor, 0, 0, 0));
             light_color *= shadow_factor;
@@ -297,5 +308,5 @@ void main() {
     // Add indirect light from the environment to the final color
     color += calculate_indirect_light(normal, albedo, ao, roughness, metallic);
 
-    FragColor = vec4(color, sample_color.a);
+    FragColor = vec4(color, 1.0);
 }

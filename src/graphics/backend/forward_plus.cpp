@@ -65,7 +65,7 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
             .add_dynamic_state(VK_DYNAMIC_STATE_SCISSOR)
             .add_dynamic_state(VK_DYNAMIC_STATE_VIEWPORT)
             .set_depth_test(true)
-            .set_depth_op(VK_COMPARE_OP_LESS_OR_EQUAL)
+            .set_depth_op(VK_COMPARE_OP_EQUAL)
             .set_depth_write(false) // Do not write to the depth buffer since we already have depth information
             .set_cull_mode(VK_CULL_MODE_BACK_BIT)
             .add_blend_attachment(true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD)
@@ -111,19 +111,14 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightConte
 
     if (scene.is_dirty()) {
         vp.frame = 0;
+        // Clear the shadow history attachment
+        ph::Pass pass = ph::PassBuilder::create("clear_shadow_history")
+            .add_attachment(shadow_history[viewport.index()], ph::LoadOp::Clear, ph::ClearValue{{1.0, 1.0, 1.0, 1.0}})
+            .get();
+        graph.add_pass(std::move(pass));
     } else {
         // increment frame number
         vp.frame += 1;
-    }
-
-    for (auto const& l : scene.get_directional_lights()) {
-        // Draw light direction vector
-        glm::vec3 dir = -l.direction_shadow;
-        glm::vec3 R = glm::cross(dir, glm::vec3(0, 1, 0));
-        DEBUG_SET_COLOR(viewport, glm::vec3(1, 0, 0));
-        DEBUG_DRAW_LINE(viewport, dir, glm::vec3(0.0));
-        DEBUG_SET_COLOR(viewport, glm::vec3(0, 1, 0));
-        DEBUG_DRAW_LINE(viewport, R, glm::vec3(0.0));
     }
 
     // Step 1 is to do a depth prepass of the entire scene. This will greatly increase efficiency of the final shading step by

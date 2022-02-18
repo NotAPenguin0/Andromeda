@@ -11,4 +11,5 @@
 #define ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS 8
 #define ANDROMEDA_SHADOW_CASCADE_COUNT 4
 
-#define ANDROMEDA_SHADOW_RAYS 16
+// Since we use simple temporal denoise we don't need a lot of rays
+#define ANDROMEDA_SHADOW_RAYS 4

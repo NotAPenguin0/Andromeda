@@ -244,24 +244,59 @@ mat3 angle_axis_rotation(float angle, vec3 axis) {
     ));
 }
 
+// Adapted from https://github.com/NVIDIA/Q2RTX/blob/9d987e755063f76ea86e426043313c2ba564c3b7/src/refresh/vkpt/shader/utils.glsl#L240
+mat3 construct_onb_frisvad(vec3 normal) {
+    mat3 ret;
+    ret[1] = normal;
+    if(normal.z < -0.999805696f) {
+        ret[0] = vec3(0.0f, -1.0f, 0.0f);
+        ret[2] = vec3(-1.0f, 0.0f, 0.0f);
+    } else {
+        float a = 1.0f / (1.0f + normal.z);
+        float b = -normal.x * normal.y * a;
+        ret[0] = vec3(1.0f - normal.x * normal.x * a, b, -normal.x);
+        ret[2] = vec3(b, 1.0f - normal.y * normal.y * a, -normal.y);
+    }
+    return ret;
+}
+
+// from https://jcgt.org/published/0006/01/01/
+mat3 revised_onb(vec3 n) {
+    vec3 b1, b2;
+    if (n.z < 0.0) {
+        const float a = 1.0f / (1.0f - n.z);
+        const float b = n.x * n.y * a;
+        b1 = vec3(1.0f - n.x * n.x * a, -b, n.x);
+        b2 = vec3(b, n.y * n.y*a - 1.0f, -n.y);
+    }
+    else {
+        const float a = 1.0f / (1.0f + n.z);
+        const float b = -n.x * n.y * a;
+        b1 = vec3(1.0f - n.x * n.x * a, b, -n.x);
+        b2 = vec3(b, 1.0f - n.y * n.y * a, -n.y);
+    }
+
+    return mat3(b1, n, b2);
+}
+
 // get a random uniformly distributed direction vector in a cone centered around given axis and angle of the cone.
 // assumes axis is normalized
 // angle is in radians.
 vec3 sample_cone(vec3 axis, float angle, inout uint seed) {
     // from https://math.stackexchange.com/questions/56784/generate-a-random-direction-within-a-cone/205589#205589
     // the linked answer assumes z up, we will be using y up here.
+
     float y = map(rnd(seed), 0, 1, cos(angle), 1);
     float phi = rnd(seed) * 2 * PI;
 
     // generate random vector oriented towards the north pole.
-    vec3 vec = vec3(sqrt(1 - y * y) * cos(phi), y, sqrt(1 - y * y) * sin(phi));
+    vec3 vec = normalize(vec3(sqrt(1 - y * y) * cos(phi), y, sqrt(1 - y * y) * sin(phi)));
     // now we rotate this vector towards our axis.
     if (axis == vec3(0, 1, 0)) return vec;
     if (axis == vec3(0, -1, 0)) return vec3(vec.x, -vec.y, vec.z);
-    // rotation axis
-    vec3 R = cross(axis, vec3(0, 1, 0));
-    // rotation angle
-    float theta = dot(axis, vec3(0, 1, 0));
-    mat3 rotation = angle_axis_rotation(theta, R);
-    return rotation * vec;
+
+    const mat3 onb = revised_onb(axis);
+    vec = onb[0] * vec.x + onb[1] * vec.y + onb[2] * vec.z;
+
+    return vec;
 }
