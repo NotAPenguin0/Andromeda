@@ -36,8 +36,9 @@ layout(set = 0, binding = 5) uniform samplerCube irradiance_map;
 layout(set = 0, binding = 6) uniform samplerCube specular_map;
 layout(set = 0, binding = 7) uniform sampler2D brdf_lut;
 layout(set = 0, binding = 8) uniform accelerationStructureEXT scene_tlas;
-layout(set = 0, binding = 9, r16f) uniform image2DArray shadow_history;
-layout(set = 0, binding = 10) uniform sampler2D textures[];
+layout(set = 0, binding = 9, r16f) uniform image2DArray shadow_read_history;
+layout(set = 0, binding = 10, r16f) uniform image2DArray shadow_write_history;
+layout(set = 0, binding = 11) uniform sampler2D textures[];
 
 layout(push_constant) uniform PC {
     // Vertex shader
@@ -294,11 +295,11 @@ void main() {
             ivec3 texel = ivec3(pixel, index);
             if (pc.frame > 0) {
                 float a = 1.0 / (pc.frame + 1);
-                float old_factor = imageLoad(shadow_history, texel).r;
+                float old_factor = imageLoad(shadow_read_history, texel).r;
                 shadow_factor = mix(old_factor, shadow_factor, a);
                 shadow_factor = clamp(shadow_factor, 0, 1);
             }
-            imageStore(shadow_history, texel, vec4(shadow_factor, 0, 0, 0));
+            imageStore(shadow_write_history, texel, vec4(shadow_factor, 0, 0, 0));
             light_color *= shadow_factor;
         }
         color += light_color;

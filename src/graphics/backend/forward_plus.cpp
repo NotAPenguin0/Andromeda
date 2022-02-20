@@ -28,9 +28,14 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
         heatmaps[i] = gfx::Viewport::local_string(i, "forward_plus_heatmap");
         ctx.create_attachment(heatmaps[i], {1, 1}, VK_FORMAT_R8G8B8A8_UNORM, ph::ImageType::StorageImage);
 
-        shadow_history[i] = gfx::Viewport::local_string(i, "shadow_history");
+        shadow_history[2 * i] = gfx::Viewport::local_string(2 * i, "shadow_history");
         // One layer for each directional light
-        ctx.create_attachment(shadow_history[i], {1, 1}, VK_FORMAT_R16_SFLOAT,
+        ctx.create_attachment(shadow_history[2 * i], {1, 1}, VK_FORMAT_R16_SFLOAT,
+                              VK_SAMPLE_COUNT_1_BIT, ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS, ph::ImageType::StorageImage);
+
+        shadow_history[2 * i + 1] = gfx::Viewport::local_string(2 * i + 1, "shadow_history");
+        // One layer for each directional light
+        ctx.create_attachment(shadow_history[2 * i + 1], {1, 1}, VK_FORMAT_R16_SFLOAT,
                               VK_SAMPLE_COUNT_1_BIT, ANDROMEDA_MAX_SHADOWING_DIRECTIONAL_LIGHTS, ph::ImageType::StorageImage);
 
         // Create average luminance buffer
@@ -156,7 +161,8 @@ void ForwardPlusRenderer::resize_viewport(gfx::Viewport viewport, uint32_t width
         ctx.resize_attachment(color_attachments[viewport.index()], {width, height});
         ctx.resize_attachment(depth_attachments[viewport.index()], {width, height});
         ctx.resize_attachment(heatmaps[viewport.index()], {width, height});
-        ctx.resize_attachment(shadow_history[viewport.index()], {width, height});
+        ctx.resize_attachment(shadow_history[2 * viewport.index()], {width, height});
+        ctx.resize_attachment(shadow_history[2 * viewport.index() + 1], {width, height});
     }
 }
 
@@ -214,13 +220,22 @@ ph::Pass ForwardPlusRenderer::light_cull(ph::InFlightContext& ifc, gfx::Viewport
 
 ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport const& viewport, gfx::SceneDescription const& scene) {
     auto& vp_data = render_data.vp[viewport.index()];
+    unsigned int const frame_idx = vp_data.frame % 2;
+    // if frame_idx == 0: read from 2 * i, write to 2 * i + 1
+    // if frame_idx == 1: write to 2 * i, read from 2 * i + 1
+
+    ph::ImageView shadow_read = ctx.get_attachment(shadow_history[2 * viewport.index()]).view;
+    ph::ImageView shadow_write = ctx.get_attachment(shadow_history[2 * viewport.index() + 1]).view;
+    if (frame_idx == 1) std::swap(shadow_read, shadow_write);
+
     ph::PassBuilder builder = ph::PassBuilder::create("fdw_plus_shading")
         .add_attachment(color_attachments[viewport.index()], ph::LoadOp::Clear, ph::ClearValue{.color = {0.0, 0.0, 0.0, 1.0}})
         .add_depth_attachment(depth_attachments[viewport.index()], ph::LoadOp::Load, {})
-        .write_storage_image(ctx.get_attachment(shadow_history[viewport.index()]).view, ph::PipelineStage::FragmentShader)
+        .write_storage_image(shadow_write, ph::PipelineStage::FragmentShader)
+        .read_storage_image(shadow_read, ph::PipelineStage::FragmentShader)
         .shader_read_buffer(vp_data.culled_lights, ph::PipelineStage::FragmentShader);
 
-    ph::Pass pass = builder.execute([this, viewport, &vp_data, &scene, &ifc](ph::CommandBuffer& cmd) {
+    ph::Pass pass = builder.execute([this, viewport, &vp_data, &scene, &ifc, shadow_read, shadow_write](ph::CommandBuffer& cmd) {
             Handle <gfx::Environment> env = scene.get_camera_info(viewport).environment;
             if (!env || !assets::is_ready(env)) { env = scene.get_default_environment(); }
             gfx::Environment const& environment = *assets::get(env);
@@ -255,7 +270,8 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
                     .add_sampled_image("specular_map", environment.specular_view, ctx.basic_sampler())
                     .add_sampled_image("brdf_lut", brdf_lut->view, ctx.basic_sampler())
                     .add_acceleration_structure("scene_tlas", tlas)
-                    .add_storage_image("shadow_history", ctx.get_attachment(shadow_history[viewport.index()]).view)
+                    .add_storage_image("shadow_read_history", shadow_read)
+                    .add_storage_image("shadow_write_history", shadow_write)
                     .add_sampled_image_array("textures", scene.get_textures(), ctx.basic_sampler())
                     .add_pNext(&variable_count_info)
                     .get();

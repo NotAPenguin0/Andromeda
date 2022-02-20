@@ -55,7 +55,7 @@ private:
     // Heatmap attachments
     std::array<std::string, gfx::MAX_VIEWPORTS> heatmaps;
     // shadow history buffer for simple temporal denoising
-    std::array<std::string, gfx::MAX_VIEWPORTS> shadow_history;
+    std::array<std::string, 2 * gfx::MAX_VIEWPORTS> shadow_history;
 
     // This structure owns buffers and storage images shared by the pipeline.
     struct RenderData {
