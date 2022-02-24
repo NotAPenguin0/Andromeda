@@ -80,36 +80,6 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
             .get();
         ctx.create_named_pipeline(std::move(pci));
     }
-
-    // Testing: create transmittance LUT
-    ph::ComputePipelineCreateInfo pci = ph::ComputePipelineBuilder::create(ctx, "transmittance")
-        .set_shader("data/shaders/transmittance_lut.comp.spv", "main")
-        .reflect()
-        .get();
-    ctx.create_named_pipeline(pci);
-    ctx.get_scheduler().schedule([this, &ctx](uint32_t const thread) {
-        ph::Queue& compute = *ctx.get_queue(ph::QueueType::Compute);
-
-        ph::RawImage lut = ctx.create_image(ph::ImageType::StorageImage, {ANDROMEDA_TRANSMITTANCE_LUT_WIDTH, ANDROMEDA_TRANSMITTANCE_LUT_HEIGHT}, VK_FORMAT_R32G32B32A32_SFLOAT);
-        ph::ImageView lut_view = ctx.create_image_view(lut);
-        ctx.name_object(lut.handle, "Transmittance LUT");
-
-        ph::CommandBuffer cmd = compute.begin_single_time(thread);
-        cmd.transition_layout(ph::PipelineStage::TopOfPipe, {}, ph::PipelineStage::ComputeShader, ph::ResourceAccess::ShaderWrite, lut_view, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-        cmd.bind_compute_pipeline("transmittance");
-        VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-            .add_storage_image("lut", lut_view)
-            .get();
-        cmd.bind_descriptor_set(set);
-        uint32_t dispatches_x = ANDROMEDA_TRANSMITTANCE_LUT_WIDTH / 16;
-        uint32_t dispatches_y = ANDROMEDA_TRANSMITTANCE_LUT_HEIGHT / 16;
-        vkCmdDispatch_Tracked(cmd, dispatches_x, dispatches_y, 1);
-        VkFence fence = ctx.create_fence();
-        compute.end_single_time(cmd, fence);
-        ctx.wait_for_fence(fence);
-        compute.free_single_time(cmd, thread);
-        LOG_WRITE(LogLevel::Debug, "Transmittance LUT created");
-    }, {});
 }
 
 ForwardPlusRenderer::~ForwardPlusRenderer() {
@@ -156,16 +126,12 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightConte
         vp.frame += 1;
     }
 
-    // Step 1 is to do a depth prepass of the entire scene. This will greatly increase efficiency of the final shading step by
-    // eliminating pixel overdraw.
+
+    graph.add_pass(render_data.atmosphere.lut_update_pass(ifc, scene));
     graph.add_pass(build_depth_pass(ctx, ifc, depth_attachments[viewport.index()], scene, vp.camera, render_data.transforms));
-    // Step 2: a compute-based light culling pass that determines what part of the screen is covered by which lights, using the depth information from before.
     graph.add_pass(light_cull(ifc, viewport, scene));
-    // Step 3: Apply shading
     graph.add_pass(shading(ifc, viewport, scene));
-    // Step 4: Run the luminance accumulation pass to calculate the average luminance in the scene.
     graph.add_pass(build_average_luminance_pass(ctx, ifc, color_attachments[viewport.index()], viewport, scene, vp.average_luminance));
-    // Step 5: Tonemap HDR color to final color attachment
     graph.add_pass(build_tonemap_pass(ctx, color_attachments[viewport.index()], viewport.target(), render_data.msaa_samples, vp.average_luminance));
 }
 

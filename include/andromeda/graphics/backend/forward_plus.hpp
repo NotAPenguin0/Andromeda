@@ -1,6 +1,7 @@
 #pragma once
 
 #include <andromeda/graphics/backend/renderer_backend.hpp>
+#include <andromeda/graphics/backend/atmosphere.hpp>
 #include <andromeda/graphics/backend/rtx.hpp>
 #include <array>
 
@@ -59,7 +60,7 @@ private:
 
     // This structure owns buffers and storage images shared by the pipeline.
     struct RenderData {
-        explicit inline RenderData(gfx::Context& ctx) : accel_structure(ctx) {}
+        explicit inline RenderData(gfx::Context& ctx) : accel_structure(ctx), atmosphere(ctx) {}
 
         // Per-viewport render data, indexed by viewport ID.
         struct PerViewport {
@@ -85,6 +86,7 @@ private:
         float msaa_sample_ratio = 0.1f;
 
         SceneAccelerationStructure accel_structure;
+        AtmosphereRendering atmosphere;
     } render_data;
 
     void create_render_data(ph::InFlightContext& ifc, gfx::Viewport viewport, gfx::SceneDescription const& scene);

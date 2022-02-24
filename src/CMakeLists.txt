@@ -29,6 +29,7 @@ target_sources(andromeda PRIVATE
         "editor/widgets/table.cpp"
         "editor/widgets/tooltip.cpp"
 
+        "graphics/backend/atmosphere.cpp"
         "graphics/backend/csm.cpp"
         "graphics/backend/debug_geometry.cpp"
         "graphics/backend/depth_pass.cpp"
