@@ -300,3 +300,7 @@ vec3 sample_cone(vec3 axis, float angle, inout uint seed) {
 
     return vec;
 }
+
+float clamp_cosine(float mu) {
+    return clamp(mu, float(-1.0), float(1.0));
+}

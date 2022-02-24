@@ -1,0 +1,109 @@
+#version 450
+
+#include "include/glsl/common.glsl"
+#include "include/glsl/limits.glsl"
+
+// Transmittance LUT
+// Remap (µ, r) to (u, v) to index.
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rgba32f) uniform writeonly image2D lut;
+
+// everything expressed in km! This is important for lookup later as well
+const float KM = 1.0f;
+// earth parameters.
+const float BOTTOM_RADIUS = 6360 * KM;
+const float TOP_RADIUS = 6460 * KM;
+
+const vec3 RAYLEIGH_SCATTERING = vec3(5.802, 13.558, 33.1);
+const vec3 MIE_SCATTERING = vec3(3.996);
+
+const vec3 RAYLEIGH_ABSORPTION = vec3(0.0);
+const vec3 MIE_ABSORPTION = vec3(4.40);
+
+const vec3 OZONE_SCATTERING = vec3(0.0);
+const vec3 OZONE_ABSORPTION = vec3(0.650, 1.881, 0.085);
+
+float safe_sqrt(float x) {
+    return sqrt(max(x, 0));
+}
+
+float unit_range_from_tex_coord(float u, uint size) {
+    return (u - 0.5 / float(size)) / (1.0 - 1.0 / float(size));
+}
+
+// adapted from https://github.com/sebh/UnrealEngineSkyAtmosphere/blob/a0229bc5a008c83ee5df8c5b50d9bb3b9f6583fe/Resources/Bruneton17/functions.glsl#L427
+vec2 r_mu_from_uv(vec2 uv, uvec2 size) {
+    // x = µ, y = r
+    const float x_mu = unit_range_from_tex_coord(uv.x, size.x);
+    const float x_r = unit_range_from_tex_coord(uv.y, size.y);
+
+    // distance to top boundary of atmosphere for a horizontal ray at ground level
+    const float H = safe_sqrt(TOP_RADIUS * TOP_RADIUS - BOTTOM_RADIUS * BOTTOM_RADIUS);
+
+    // Compute r from the distance to the horizon
+    const float rho = H * x_r;
+    const float r = safe_sqrt(rho * rho + BOTTOM_RADIUS * BOTTOM_RADIUS);
+
+    // Distance to the top atmosphere boundary for the ray (r,mu), and its minimum
+    // and maximum values over all mu - obtained for (r,1) and (r,mu_horizon) -
+    // from which we can recover mu:
+    const float d_min = TOP_RADIUS - r;
+    const float d_max = rho + H;
+    const float d = d_min + x_mu * (d_max - d_min);
+    const float mu = d == 0.0 ? float(1.0) : (H * H - rho * rho - d * d) / (2.0 * r * d);
+    return vec2(r, clamp_cosine(mu));
+}
+
+float rayleigh_density(float alt) {
+    return exp(-alt / (8.0 * KM));
+}
+
+float mie_density(float alt) {
+    return exp(-alt / (1.2 * KM));
+}
+
+float ozone_density(float alt) {
+    return max(0, 1 - abs(alt - 25 * KM) / (15 * KM));
+}
+
+float distance_to_top_atmosphere(float r, float mu) {
+    float discriminant = r * r * (mu * mu - 1.0) + TOP_RADIUS * TOP_RADIUS;
+    return max(-r * mu + safe_sqrt(discriminant), 0.0); // make sure returned value is >= 0
+}
+
+vec3 evaluate_transmittance(float r, float mu) {
+    if (!(r >= BOTTOM_RADIUS)) return vec3(1, 0, 0);
+    if (!(r <= TOP_RADIUS)) return vec3(0, 1, 0);
+    if (!(mu >= -1.0 && mu <= 1.0)) return vec3(0, 0, 1);
+    const int NUM_SAMPLES = 512;
+    const float dx = distance_to_top_atmosphere(r, mu) / float(NUM_SAMPLES);
+    vec3 result = vec3(0.0);
+    for (int i = 0; i < NUM_SAMPLES; ++i) {
+        const float d_i = i * dx;
+        // distance between current sample point and planet center
+        const float r_i = safe_sqrt(d_i * d_i + 2.0 * r * mu * d_i + r * r);
+        // the altitude is now simple to compute:
+        const float altitude = r_i - BOTTOM_RADIUS;
+        vec3 sample_point = vec3(0.0);
+        sample_point += rayleigh_density(altitude) * (RAYLEIGH_ABSORPTION + RAYLEIGH_SCATTERING);
+        sample_point += mie_density(altitude) * (MIE_ABSORPTION + MIE_SCATTERING);
+        sample_point += ozone_density(altitude) * (OZONE_ABSORPTION + OZONE_SCATTERING);
+        // Only take half weight at edges of integration interval
+        const float weight = (i == 0 || i == NUM_SAMPLES - 1) ? 0.5 : 1.0;
+        result += sample_point * dx * weight;
+    }
+    return exp(-result);
+}
+
+void main() {
+    const uvec2 size = imageSize(lut).xy;
+    const uvec2 pixel = gl_GlobalInvocationID.xy;
+    const vec2 uv = vec2(pixel) / vec2(size);
+
+    const vec2 r_mu = r_mu_from_uv(uv, size);
+
+    vec3 transmittance = evaluate_transmittance(r_mu.x, r_mu.y);
+    imageStore(lut, ivec2(pixel), vec4(transmittance, 1.0));
+}

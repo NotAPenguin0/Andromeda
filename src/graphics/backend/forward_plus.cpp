@@ -80,6 +80,36 @@ ForwardPlusRenderer::ForwardPlusRenderer(gfx::Context& ctx) : RendererBackend(ct
             .get();
         ctx.create_named_pipeline(std::move(pci));
     }
+
+    // Testing: create transmittance LUT
+    ph::ComputePipelineCreateInfo pci = ph::ComputePipelineBuilder::create(ctx, "transmittance")
+        .set_shader("data/shaders/transmittance_lut.comp.spv", "main")
+        .reflect()
+        .get();
+    ctx.create_named_pipeline(pci);
+    ctx.get_scheduler().schedule([this, &ctx](uint32_t const thread) {
+        ph::Queue& compute = *ctx.get_queue(ph::QueueType::Compute);
+
+        ph::RawImage lut = ctx.create_image(ph::ImageType::StorageImage, {ANDROMEDA_TRANSMITTANCE_LUT_WIDTH, ANDROMEDA_TRANSMITTANCE_LUT_HEIGHT}, VK_FORMAT_R32G32B32A32_SFLOAT);
+        ph::ImageView lut_view = ctx.create_image_view(lut);
+        ctx.name_object(lut.handle, "Transmittance LUT");
+
+        ph::CommandBuffer cmd = compute.begin_single_time(thread);
+        cmd.transition_layout(ph::PipelineStage::TopOfPipe, {}, ph::PipelineStage::ComputeShader, ph::ResourceAccess::ShaderWrite, lut_view, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+        cmd.bind_compute_pipeline("transmittance");
+        VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
+            .add_storage_image("lut", lut_view)
+            .get();
+        cmd.bind_descriptor_set(set);
+        uint32_t dispatches_x = ANDROMEDA_TRANSMITTANCE_LUT_WIDTH / 16;
+        uint32_t dispatches_y = ANDROMEDA_TRANSMITTANCE_LUT_HEIGHT / 16;
+        vkCmdDispatch_Tracked(cmd, dispatches_x, dispatches_y, 1);
+        VkFence fence = ctx.create_fence();
+        compute.end_single_time(cmd, fence);
+        ctx.wait_for_fence(fence);
+        compute.free_single_time(cmd, thread);
+        LOG_WRITE(LogLevel::Debug, "Transmittance LUT created");
+    }, {});
 }
 
 ForwardPlusRenderer::~ForwardPlusRenderer() {

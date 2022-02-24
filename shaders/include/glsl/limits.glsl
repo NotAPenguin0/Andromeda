@@ -13,3 +13,6 @@
 
 // Since we use simple temporal denoise we don't need a lot of rays
 #define ANDROMEDA_SHADOW_RAYS 4
+
+#define ANDROMEDA_TRANSMITTANCE_LUT_WIDTH 256
+#define ANDROMEDA_TRANSMITTANCE_LUT_HEIGHT 64

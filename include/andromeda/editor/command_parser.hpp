@@ -91,12 +91,12 @@ template<>
 struct fmt::formatter<andromeda::editor::CommandParser::Argument> {
 
     // We do not support parsing
-    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) const {
         return ctx.begin();
     }
 
     template<typename FormatContext>
-    auto format(andromeda::editor::CommandParser::Argument const& arg, FormatContext& ctx) -> decltype(ctx.out()) {
+    auto format(andromeda::editor::CommandParser::Argument const& arg, FormatContext& ctx) const -> decltype(ctx.out()) {
         if (arg.optional) {
             return fmt::format_to(ctx.out(), "[{}]", arg.name);
         }
