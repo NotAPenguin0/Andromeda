@@ -5,6 +5,7 @@
 #include <andromeda/graphics/backend/tonemap.hpp>
 #include <andromeda/graphics/backend/debug_geometry.hpp>
 
+#include <GLFW/glfw3.h>
 
 #include <andromeda/util/memory.hpp>
 
@@ -127,16 +128,17 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightConte
     }
 
 
-    graph.add_pass(render_data.atmosphere.lut_update_pass(ifc, scene));
+//    graph.add_pass(render_data.atmosphere.lut_update_pass(viewport, ifc, scene));
     graph.add_pass(build_depth_pass(ctx, ifc, depth_attachments[viewport.index()], scene, vp.camera, render_data.transforms));
     graph.add_pass(light_cull(ifc, viewport, scene));
     graph.add_pass(shading(ifc, viewport, scene));
+    graph.add_pass(render_data.atmosphere.render_atmosphere_pass(viewport, ifc, color_attachments[viewport.index()], depth_attachments[viewport.index()], scene));
     graph.add_pass(build_average_luminance_pass(ctx, ifc, color_attachments[viewport.index()], viewport, scene, vp.average_luminance));
     graph.add_pass(build_tonemap_pass(ctx, color_attachments[viewport.index()], viewport.target(), render_data.msaa_samples, vp.average_luminance));
 }
 
 std::vector<std::string> ForwardPlusRenderer::debug_views(gfx::Viewport viewport) {
-    std::vector<std::string> result = {depth_attachments[viewport.index()], heatmaps[viewport.index()], shadow_history[viewport.index()]};
+    std::vector<std::string> result = { depth_attachments[viewport.index()], heatmaps[viewport.index()], shadow_history[viewport.index()] };
     return result;
 }
 
@@ -172,11 +174,15 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     //  - mat4 view
     //  - mat4 pv
     //  - vec3 position (aligned to vec4)
-    vp_data.camera = ifc.allocate_scratch_ubo(3 * sizeof(glm::mat4) + sizeof(glm::vec4));
+    vp_data.camera = ifc.allocate_scratch_ubo(6 * sizeof(glm::mat4) + sizeof(glm::vec4));
     std::memcpy(vp_data.camera.data, &camera.projection, sizeof(glm::mat4));
     std::memcpy(vp_data.camera.data + sizeof(glm::mat4), &camera.view, sizeof(glm::mat4));
     std::memcpy(vp_data.camera.data + 2 * sizeof(glm::mat4), &camera.proj_view, sizeof(glm::mat4));
-    std::memcpy(vp_data.camera.data + 3 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
+    std::memcpy(vp_data.camera.data + 3 * sizeof(glm::mat4), &camera.inv_projection, sizeof(glm::mat4));
+    std::memcpy(vp_data.camera.data + 4 * sizeof(glm::mat4), &camera.inv_view, sizeof(glm::mat4));
+    glm::mat4 view_rotation = glm::mat4(glm::mat3(camera.view));
+    std::memcpy(vp_data.camera.data + 5 * sizeof(glm::mat4), &view_rotation, sizeof(glm::mat4));
+    std::memcpy(vp_data.camera.data + 6 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
 
     // We can have at most MAX_LIGHTS in every tile, and there are ceil(W/TILE_SIZE) * ceil(H/TILE_SIZE) tiles, which gives us the size of the buffer
     vp_data.n_tiles_x = static_cast<uint32_t>(std::ceil((float) viewport.width() / ANDROMEDA_TILE_SIZE));
@@ -305,7 +311,28 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
 
             // Render the skybox (if there is one).
             if (env != scene.get_default_environment()) {
-                render_skybox(ctx, ifc, cmd, environment, scene.get_camera_info(viewport));
+                // Do not render skybox for now as we are using atmospheric scattering.
+//                render_skybox(ctx, ifc, cmd, environment, scene.get_camera_info(viewport));
+            }
+
+            {
+                // render atmosphere
+                cmd.bind_pipeline("atmosphere");
+                cmd.auto_viewport_scissor();
+
+                VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
+                    .add_uniform_buffer("camera", vp_data.camera)
+                    .get();
+                cmd.bind_descriptor_set(set);
+
+
+
+                glm::vec4 pc[1] = {
+                    scene.get_directional_lights()[0].direction_shadow
+                };
+                cmd.push_constants(ph::ShaderStage::Fragment, 0, 1 * sizeof(glm::vec4), pc);
+                // draw fullscreen quad
+                vkCmdDraw_Tracked(cmd, 6, 1, 0, 0);
             }
         })
         .get();

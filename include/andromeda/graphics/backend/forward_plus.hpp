@@ -60,7 +60,7 @@ private:
 
     // This structure owns buffers and storage images shared by the pipeline.
     struct RenderData {
-        explicit inline RenderData(gfx::Context& ctx) : accel_structure(ctx), atmosphere(ctx) {}
+        explicit inline RenderData(gfx::Context& ctx) : accel_structure(ctx), atmosphere(ctx, msaa_samples, msaa_sample_ratio) {}
 
         // Per-viewport render data, indexed by viewport ID.
         struct PerViewport {

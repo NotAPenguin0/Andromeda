@@ -113,6 +113,9 @@ void SceneDescription::add_viewport(gfx::Viewport const& vp, thread::LockedValue
 
     // Precompute projection-view matrix as its commonly used.
     info.proj_view = info.projection * info.view;
+    // Also precompute inverse matrices
+    info.inv_projection = glm::inverse(info.projection);
+    info.inv_view = glm::inverse(info.view);
 
     // Other values
     info.position = transform.position;

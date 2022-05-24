@@ -305,7 +305,6 @@ void main() {
         color += light_color;
     }
 
-
     // Add indirect light from the environment to the final color
     color += calculate_indirect_light(normal, albedo, ao, roughness, metallic);
 

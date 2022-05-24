@@ -74,6 +74,9 @@ public:
         glm::mat4 projection;
         glm::mat4 view;
         glm::mat4 proj_view;
+        // inverse of view and projection matrices
+        glm::mat4 inv_projection;
+        glm::mat4 inv_view;
 
         /**
          * @brief Near clipping plane.

@@ -1,0 +1,297 @@
+#version 450
+
+#include "include/glsl/common.glsl"
+#include "include/glsl/limits.glsl"
+
+// global size is 200x100
+layout(local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rgba32f) uniform writeonly image2D lut;
+layout(set = 0, binding = 1, rgba32f) uniform readonly image2D transmittance;
+
+layout(push_constant) uniform PC {
+    vec4 camera; // only the first 3 values are used.
+    vec4 sun_dir; // can allow for multiple suns later, this is temporary while i get things set up.
+    vec4 sun_light;
+} pc;
+
+// m -> km
+const float M_TO_KM = 0.001f;
+// km -> m
+const float KM_TO_M = 1000.0f;
+// earth parameters, all in km
+const float BOTTOM_RADIUS = 6360;
+const float TOP_RADIUS = 6460;
+
+const vec3 RAYLEIGH_SCATTERING = vec3(5.802, 13.558, 33.1);
+const vec3 MIE_SCATTERING = vec3(3.996);
+
+const vec3 RAYLEIGH_ABSORPTION = vec3(0.0);
+const vec3 MIE_ABSORPTION = vec3(4.40);
+
+const vec3 OZONE_SCATTERING = vec3(0.0);
+const vec3 OZONE_ABSORPTION = vec3(0.650, 1.881, 0.085);
+
+float tex_coord_from_unit_range(float x, uint size) {
+    return 0.5 / float(size) + x * (1.0 - 1.0 / float(size));
+}
+
+float unit_range_from_tex_coord(float u, uint size) {
+    return (u - 0.5 / float(size)) / (1.0 - 1.0 / float(size));
+}
+
+vec2 uv_to_sky_view_params(vec2 uv, float view_height) {
+    // todo: check if these parameters should not be 200, 100 (to match with actual size) -> this does make a lot more sense, but maybe these are long/lat based?
+    uv = vec2(unit_range_from_tex_coord(uv.x, 192), unit_range_from_tex_coord(uv.y, 108));
+    const float view_horizon = sqrt(view_height * view_height - BOTTOM_RADIUS * BOTTOM_RADIUS);
+    const float cos_beta = view_horizon / view_height;
+    const float beta = acos(cos_beta);
+    const float zenith_horizon_angle = PI - beta;
+
+    float view_zenith_cos_angle = 0.0;
+
+    if (uv.y < 0.5f) {
+        float coord = 2.0 * uv.y;
+        coord = 1.0 - coord;
+        // we'll use a nonlinear mapping to provide more detail near the horizon
+        coord *= coord;
+        coord = 1.0 - coord;
+        view_zenith_cos_angle = cos(zenith_horizon_angle * coord);
+    } else {
+        float coord = uv.y * 2.0 - 1.0;
+        coord *= coord; // nonlinear mapping
+        view_zenith_cos_angle = cos(zenith_horizon_angle + beta * coord);
+    }
+
+    float coord = uv.x;
+    coord *= coord;
+    float light_view_cos_angle = -(coord * 2.0 - 1.0);
+    return vec2(view_zenith_cos_angle, light_view_cos_angle);
+}
+
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
+
+Ray make_ray(vec3 o, vec3 d) {
+    Ray r;
+    r.origin = o;
+    r.direction = d;
+    return r;
+}
+
+float ray_sphere_nearest_intersection(vec3 center, float radius, Ray ray) {
+    vec3 oc = ray.origin - center;
+    float a = dot(ray.direction, ray.direction);
+    float b = 2.0 * dot(oc, ray.direction);
+    float c = dot(oc, oc) - radius * radius;
+    float discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        return -1.0;
+    }
+    else {
+        // https://discord.com/channels/318590007881236480/377557956775903232/974303087265185833
+        float D = sqrt(discriminant);
+        float t = (-b - D) / (2.0 * a);
+        if (t >= 0) return t;
+        else return (-b + D) / (2.0 * a);
+    }
+}
+
+// assumes sphere is at origin
+float ray_sphere_intersect(float radius, Ray ray) {
+    const float b = dot(ray.origin, ray.direction);
+    const float c = dot(ray.origin, ray.origin) - radius * radius;
+    float d = b * b - c;
+
+    if (d < 0.0) return -1.0;
+    d = sqrt(d);
+    if (-b - d > 0.0) return -b - d;
+    return -b + d;
+}
+
+
+// returns true if the ray intersected, false otherwise.
+// writes intersection position to the intersection paramter
+bool ray_atmosphere_intersect(vec3 position, vec3 direction, out vec3 intersection) {
+//    float t = ray_sphere_nearest_intersection(vec3(0, 0, 0), TOP_RADIUS, make_ray(position, direction));
+    float t = ray_sphere_intersect(TOP_RADIUS, make_ray(position, direction));
+    // no intersection
+    if (t < 0) return false;
+    intersection = position + t * direction; // *maybe* not accurate?
+    return true;
+}
+
+float rayleigh_density(float alt) {
+    return exp(-alt / (8.0));
+}
+
+float mie_density(float alt) {
+    return exp(-alt / (1.2));
+}
+
+float ozone_density(float alt) {
+    return max(0, 1 - abs(alt - 25.0) / (15.0));
+}
+
+// TODO: reuse functions
+
+float safe_sqrt(float x) {
+    return sqrt(max(x, 0));
+}
+
+float distance_to_top_atmosphere(float r, float mu) {
+    float discriminant = r * r * (mu * mu - 1.0) + TOP_RADIUS * TOP_RADIUS;
+    return max(-r * mu + safe_sqrt(discriminant), 0.0); // make sure returned value is >= 0
+}
+
+// Adapted from https://github.com/sebh/UnrealEngineSkyAtmosphere/blob/a0229bc5a008c83ee5df8c5b50d9bb3b9f6583fe/Resources/Bruneton17/functions.glsl#L402
+// r = view height
+// mu is sun cos zenith angle
+vec2 transmittance_lut_params(float r, float mu) {
+    // distance to top atmosphere boundary for a horizontal ray at ground level.
+    float H = safe_sqrt(TOP_RADIUS * TOP_RADIUS - BOTTOM_RADIUS * BOTTOM_RADIUS);
+    // Distance to the horizon.
+    float rho = safe_sqrt(r * r - BOTTOM_RADIUS * BOTTOM_RADIUS);
+
+    // distance to the top atmosphere boundary for the ray (r,mu), and its minimum
+    // and maximum values over all mu - obtained for (r,1) and (r,mu_horizon).
+    float d = distance_to_top_atmosphere(r, mu);
+    float d_min = TOP_RADIUS - r;
+    float d_max = rho + H;
+    float x_mu = (d - d_min) / (d_max - d_min);
+    float x_r = rho / H;
+    return vec2(x_mu, x_r);
+    // apparently in hillaire impl this is left out, so we will do this too for now.
+    return vec2(tex_coord_from_unit_range(x_mu, ANDROMEDA_TRANSMITTANCE_LUT_WIDTH), tex_coord_from_unit_range(x_r, ANDROMEDA_TRANSMITTANCE_LUT_HEIGHT));
+}
+
+vec2 r_mu_from_pos_dir(vec3 x, vec3 v) {
+    float r = length(x);
+    return vec2(r, v.x / r);
+}
+
+// https://omlc.org/classroom/ece532/class3/hg.html
+// TODO: replace with schlick approximation for faster computation
+float scattering_phase(vec3 v, vec3 l) {
+    const float g = 0.80; // todo: experiment with this value or make it a parameter. 0.80 is whats used in Hillaire.
+    const float cos_theta = -dot(l, v);
+    const float n = 1.0 - g * g;
+    const float d = 1.0 + g * g + 2.0 * g * cos_theta;
+    return n / (4.0 * PI * d * sqrt(d));
+}
+
+vec3 Transmittance(vec3 p, vec3 v) {
+    // r = height = length(x)
+    // mu = sun cos zenith angle
+    const float height = length(p);
+    const vec3 up = normalize(p); // p / height
+    const float angle = dot(v, up);
+    const vec2 uv = transmittance_lut_params(height, angle);
+    const ivec2 size = imageSize(transmittance).xy;
+    // TODO: change to sample, this means swapping to multi-pass model.
+    return imageLoad(transmittance, ivec2(uv * size)).rgb;
+}
+
+vec3 Transmittance_Points(vec3 c, vec3 p) {
+    return Transmittance(c, normalize(p - c));
+}
+
+float planet_shadow(vec3 p, vec3 v) {
+    const float planet_radius_offset = 0.01;
+    const vec3 up = normalize(p);
+    float t = ray_sphere_intersect(BOTTOM_RADIUS, make_ray(p, v));
+    if (t > 0.0) return 0.0f;
+    return 1.0f;
+}
+
+vec3 scattering_at_point(vec3 c, vec3 x, vec3 v, float t_atm) {
+    // scattering_coefficients(x) * for_each_light(T(c, x) * S(x, light_dir[i]) * p(v, light_dir[i]) * light_color[i])
+    // T is known from transmittance LUT.
+    // S(x, l) = Vis(l) * T(x, x + t_atm * l)
+    // p(v, l) = phase function
+
+    // light direction
+    const vec3 l = -normalize(pc.sun_dir.xyz);
+
+    // Transmittance
+    const vec3 T = Transmittance(x, l);
+
+    // scattering
+    const float altitude = length(x) - BOTTOM_RADIUS;
+    const vec3 s = rayleigh_density(altitude) * (RAYLEIGH_SCATTERING) + mie_density(altitude) * (MIE_SCATTERING);
+
+    // Shadowing
+    const float Vis = planet_shadow(x, l);
+    const vec3 T_S = Transmittance_Points(x, x + t_atm * l);
+    const vec3 S = Vis * T_S;
+
+    // Phase function
+    const float phase = scattering_phase(v, l);
+
+    // Light contribution
+    const vec3 E = pc.sun_light.xyz * pc.sun_light.w;
+
+    return s * (T * S * phase * E);
+}
+
+// evaluates the integral in the L(c, v) = ... equation from the Hillaire paper (eq. 1).
+// c is view position
+// v is view direction
+// p is the intersection point with the top of the atmosphere from c in direction v.
+vec3 evaluate_scattering(vec3 c, vec3 v, vec3 p) {
+    const float integration_distance = length(p - c);
+    const int NUM_SAMPLES = 512;
+    const float dt = integration_distance / float(NUM_SAMPLES);
+    const float t_atm = length(p);
+    vec3 result = vec3(0.0);
+
+    vec3 base = Transmittance(c, p - c);// + vec3(102, 172, 242) / 255.0f;
+
+    for (int i = 0; i < NUM_SAMPLES; ++i) {
+        float t = i * dt;
+        result += scattering_at_point(c, c + t * v, v, t_atm) * dt;
+    }
+    return result + base;
+}
+
+vec3 raymarch_sky(vec2 uv, float view_height) {
+    const vec2 params = uv_to_sky_view_params(uv, view_height);
+    const float view_zenith_cos_angle = params.x;
+    const float light_view_cos_angle = params.y;
+
+    // For the view position we don't care about x/z, and only care about the altitude we're viewing the planet at.
+    const vec3 view_pos = vec3(0, view_height, 0);
+
+    // compute view direction from parameters
+    const float view_zenith_sin_angle = sqrt(1 - view_zenith_cos_angle * view_zenith_cos_angle);
+    vec3 view_dir = normalize(vec3(
+        view_zenith_sin_angle * light_view_cos_angle,
+        view_zenith_sin_angle * sqrt(1.0 - light_view_cos_angle * light_view_cos_angle),
+        view_zenith_cos_angle));
+
+    // We now have c and v, the last parameter for solving the integral is p, the intersection point with the
+    // atmosphere boundary
+    vec3 atm_intersect = vec3(0.0);
+    if (!ray_atmosphere_intersect(view_pos, view_dir, atm_intersect)) {
+        // ray did not intersect atmosphere, return 0
+        return vec3(0, 0, 0);
+    }
+
+    // we can now actually raymarch the sky.
+    return evaluate_scattering(view_pos, view_dir, atm_intersect);
+}
+
+void main() {
+    const uvec2 size = imageSize(lut).xy;
+    const uvec2 pixel = gl_GlobalInvocationID.xy;
+    const vec2 uv = vec2(pixel) / vec2(size);
+
+    // camera position is given in meters initially, convert to km.
+    const vec3 cam_pos = pc.camera.xyz * M_TO_KM;
+    // this is now in km
+    const float view_height = length(cam_pos + vec3(0, BOTTOM_RADIUS, 0));
+    vec3 sky_view = raymarch_sky(uv, view_height);
+    imageStore(lut, ivec2(pixel), vec4(sky_view, 1.0));
+}

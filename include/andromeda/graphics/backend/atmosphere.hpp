@@ -13,17 +13,22 @@ public:
         ph::ImageView sky_view;
     };
 
-    explicit AtmosphereRendering(gfx::Context& ctx);
+    AtmosphereRendering(gfx::Context& ctx, VkSampleCountFlagBits samples, float sample_ratio);
     ~AtmosphereRendering();
 
-    ph::Pass lut_update_pass(ph::InFlightContext& ifc, gfx::SceneDescription const& scene);
+    ph::Pass lut_update_pass(gfx::Viewport const& vp, ph::InFlightContext& ifc, gfx::SceneDescription const& scene);
 
-    LUTs get_luts() const;
+    ph::Pass render_atmosphere_pass(gfx::Viewport const& vp, ph::InFlightContext& ifc, std::string_view output, std::string_view depth, gfx::SceneDescription const& scene);
+
+    [[nodiscard]] LUTs get_luts() const;
 private:
     gfx::Context& ctx;
 
     ph::RawImage transmittance;
     ph::ImageView transmittance_view;
+
+    ph::RawImage sky;
+    ph::ImageView sky_view;
 };
 
 }
