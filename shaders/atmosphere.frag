@@ -203,7 +203,9 @@ void main() {
     Atmosphere atm = make_earth_atmosphere();
 
     vec3 view_pos = relative_to_planet(atm, camera.position.xyz);
-    vec3 ray_origin = add_ray_offset(view_pos);
+//    vec3 ray_origin = add_ray_offset(view_pos);
+    float offset = 1e1;
+    vec3 ray_origin = vec3(0.0, 6371e3 + offset, 0.0);
     vec3 ray_direction = camera_ray_direction(UV);
     vec3 light_direction = pc.sun_dir.xyz;
 
