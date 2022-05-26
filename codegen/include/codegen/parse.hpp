@@ -15,10 +15,13 @@ struct FieldInfo {
     std::string type{};
     std::string tooltip{}; // Optional, empty string if not present.
 
+    bool no_limits = false;
+
     // Stringified versions of editor values. Empty strings if not present.
     std::string min{};
     std::string max{};
     std::string drag_speed{};
+    std::string format{};
 };
 
 // Stores information for a single component

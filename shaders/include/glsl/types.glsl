@@ -6,6 +6,7 @@
 
 #define vec4 glm::vec4
 #define vec3 glm::vec3
+#define vec2 glm::vec2
 #define mat4 glm::mat4
 
 namespace gpu {
@@ -45,10 +46,24 @@ struct CascadeMapInfo {
 #pragma pack(pop)
 #endif
 
+#ifdef __cplusplus
+#pragma pack(push, 1)
+#endif
+struct alignas(4 * sizeof(vec4)) Atmosphere {
+    vec4 radii_mie_albedo_g; // x = planet radius, y = atmosphere radius, z = mie albedo, w = mie asymmetry parameter (g)
+    vec4 rayleigh; // xyz = coefficients, w = scatter height
+    vec4 mie; // xyz = coefficients, w = scatter height
+    vec4 ozone_sun; // xyz = ozone coeff, w = sun intensity
+};
+#ifdef __cplusplus
+#pragma pack(pop)
+#endif
+
 #ifdef __cplusplus // C++, undefine and end namespace
 
 #undef vec4
 #undef vec3
+#undef vec2
 #undef mat4
 } // namespace gpu
 

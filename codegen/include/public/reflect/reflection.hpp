@@ -45,6 +45,8 @@ public:
         float max{};
 
         float drag_speed{};
+        // format string for displaying
+        const char* format = "";
     };
 
     field() = default;
@@ -144,6 +146,10 @@ public:
 
     float const& drag_speed() const {
         return values.drag_speed;
+    }
+
+    const char* format() const {
+        return values.format;
     }
 
 private:

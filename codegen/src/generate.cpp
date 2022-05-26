@@ -104,6 +104,11 @@ void generate_reflection_source(fs::path template_dir, fs::path output_dir, Pars
 //			field_data["type_id"] = std::to_string(find_type_id(data, it->type));
             field_data["tooltip"] = it->tooltip;
 
+            std::vector<std::string> field_flags{};
+            field_flags.push_back("none");
+            if (it->min.empty() && it->max.empty()) { field_flags.push_back("no_limits"); }
+            else if (it->no_limits) {field_flags.push_back("no_limits"); }
+
             // Default construct
             if (it->min.empty()) { field_data["min"] = "{}"; }
             else { field_data["min"] = it->min; }
@@ -114,14 +119,21 @@ void generate_reflection_source(fs::path template_dir, fs::path output_dir, Pars
             if (it->drag_speed.empty()) { field_data["drag_speed"] = "1.0f"; }
             else { field_data["drag_speed"] = it->drag_speed; }
 
+            field_data["format"] = it->format;
+            if (it->format.empty()) {
+                if (it->type == "glm::vec2" || it->type == "glm::vec3" || it->type == "glm::vec4" || it->type == "float") {
+                    field_data["format"] = "\"%.3f\"";
+                } else {
+                    field_data["format"] = "\"\"";
+                }
+            }
+
+
             if (it != comp.fields.end() - 1) { field_data["comma"] = ","; }
             else { field_data["comma"] = ""; }
 
-            std::vector<std::string> field_flags{};
-            mustache::data& flags_list = field_data["flags"] = mustache::data::type::list;
 
-            field_flags.push_back("none");
-            if (it->min.empty() && it->max.empty()) { field_flags.push_back("no_limits"); }
+            mustache::data& flags_list = field_data["flags"] = mustache::data::type::list;
 
             for (int i = 0; i < field_flags.size(); ++i) {
                 mustache::data flag_data{};

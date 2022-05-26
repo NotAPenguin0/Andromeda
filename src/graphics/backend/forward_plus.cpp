@@ -132,7 +132,6 @@ void ForwardPlusRenderer::render_scene(ph::RenderGraph& graph, ph::InFlightConte
     graph.add_pass(build_depth_pass(ctx, ifc, depth_attachments[viewport.index()], scene, vp.camera, render_data.transforms));
     graph.add_pass(light_cull(ifc, viewport, scene));
     graph.add_pass(shading(ifc, viewport, scene));
-    graph.add_pass(render_data.atmosphere.render_atmosphere_pass(viewport, ifc, color_attachments[viewport.index()], depth_attachments[viewport.index()], scene));
     graph.add_pass(build_average_luminance_pass(ctx, ifc, color_attachments[viewport.index()], viewport, scene, vp.average_luminance));
     graph.add_pass(build_tonemap_pass(ctx, color_attachments[viewport.index()], viewport.target(), render_data.msaa_samples, vp.average_luminance));
 }
@@ -310,30 +309,13 @@ ph::Pass ForwardPlusRenderer::shading(ph::InFlightContext& ifc, gfx::Viewport co
             }
 
             // Render the skybox (if there is one).
-            if (env != scene.get_default_environment()) {
-                // Do not render skybox for now as we are using atmospheric scattering.
-//                render_skybox(ctx, ifc, cmd, environment, scene.get_camera_info(viewport));
+            // TODO: possibly environment mapping from atmosphere?
+            if (env == scene.get_default_environment() || env == Handle<gfx::Environment>::none) {
+                render_data.atmosphere.render_atmosphere(viewport, cmd, ifc, vp_data.camera, scene);
+            } else {
+                render_skybox(ctx, ifc, cmd, environment, scene.get_camera_info(viewport));
             }
 
-            {
-                // render atmosphere
-                cmd.bind_pipeline("atmosphere");
-                cmd.auto_viewport_scissor();
-
-                VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
-                    .add_uniform_buffer("camera", vp_data.camera)
-                    .get();
-                cmd.bind_descriptor_set(set);
-
-
-
-                glm::vec4 pc[1] = {
-                    scene.get_directional_lights()[0].direction_shadow
-                };
-                cmd.push_constants(ph::ShaderStage::Fragment, 0, 1 * sizeof(glm::vec4), pc);
-                // draw fullscreen quad
-                vkCmdDraw_Tracked(cmd, 6, 1, 0, 0);
-            }
         })
         .get();
     return pass;

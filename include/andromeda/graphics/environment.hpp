@@ -1,6 +1,7 @@
 #pragma once
 
 #include <phobos/image.hpp>
+#include <glm/vec3.hpp>
 
 #include <andromeda/util/handle.hpp>
 

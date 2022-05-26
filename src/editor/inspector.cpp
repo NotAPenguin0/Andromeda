@@ -148,24 +148,24 @@ private:
 
     void do_display(float& value, meta::field<C> const& meta, const char* label) {
         if (meta.flags() & meta::field_flags::no_limits) {
-            dirty |= ImGui::DragFloat(label, &value, meta.drag_speed());
+            dirty |= ImGui::DragFloat(label, &value, meta.drag_speed(), 0.0f, 0.0f, meta.format());
         } else {
             if (meta.max() > meta.min()) {
-                dirty |= ImGui::DragFloat(label, &value, meta.drag_speed(), meta.min(), meta.max());
+                dirty |= ImGui::DragFloat(label, &value, meta.drag_speed(), meta.min(), meta.max(), meta.format());
             } else {
-                dirty |= ImGui::DragFloat(label, &value, meta.drag_speed(), meta.min());
+                dirty |= ImGui::DragFloat(label, &value, meta.drag_speed(), meta.min(), std::numeric_limits<float>::max(), meta.format());
             }
         }
     }
 
     void do_display(glm::vec3& value, meta::field<C> const& meta, const char* label) {
         if (meta.flags() & meta::field_flags::no_limits) {
-            dirty |= ImGui::DragFloat3(label, &value.x, meta.drag_speed());
+            dirty |= ImGui::DragFloat3(label, &value.x, meta.drag_speed(), 0.0f, 0.0f, meta.format());
         } else {
             if (meta.max() > meta.min()) {
-                dirty |= ImGui::DragFloat(label, &value.x, meta.drag_speed(), meta.min(), meta.max());
+                dirty |= ImGui::DragFloat3(label, &value.x, meta.drag_speed(), meta.min(), meta.max(), meta.format());
             } else {
-                dirty |= ImGui::DragFloat(label, &value.x, meta.drag_speed(), meta.min());
+                dirty |= ImGui::DragFloat3(label, &value.x, meta.drag_speed(), meta.min(), std::numeric_limits<float>::max(), meta.format());
             }
         }
     }

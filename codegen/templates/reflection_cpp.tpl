@@ -22,7 +22,8 @@ reflection_info<{{component}}> const& reflect<{{component}}>() {
             field<{{component}}>::editor_values {
                 .min = {{{min}}},
                 .max = {{{max}}},
-                .drag_speed = {{{drag_speed}}}
+                .drag_speed = {{{drag_speed}}},
+                .format = {{{format}}}
             }
             ){{comma}}
             {{/fields}}

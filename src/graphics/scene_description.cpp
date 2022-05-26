@@ -71,9 +71,17 @@ void SceneDescription::add_viewport(gfx::Viewport const& vp, thread::LockedValue
 
     // If an environment component is present, set the handle accordingly
     if (ecs->has_component<::andromeda::Environment>(camera)) {
-        info.environment = ecs->get_component<::andromeda::Environment>(camera).environment;
+        auto const& env = ecs->get_component<::andromeda::Environment>(camera);
+        info.environment = env.environment;
+
+        // copy over atmosphere settings since no environment was specified
+        if (env.environment == Handle<gfx::Environment>::none || env.environment == get_default_environment()) {
+            info.atmosphere.rayleigh = glm::vec4(env.rayleigh, env.rayleigh_height);
+            info.atmosphere.mie = glm::vec4(env.mie, env.mie_height);
+            info.atmosphere.radii_mie_albedo_g = glm::vec4(env.planet_radius, env.atmosphere_radius, env.mie_albedo, env.mie_g);
+            info.atmosphere.ozone_sun = glm::vec4(env.ozone, env.sun_intensity);
+        }
     }
-    // Once atmospheric scattering is added, the atmosphere data can be retrieved here
 
     // Postprocessing settings
     if (ecs->has_component<PostProcessingSettings>(camera)) {

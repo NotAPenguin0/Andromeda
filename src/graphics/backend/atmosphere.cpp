@@ -3,6 +3,7 @@
 namespace andromeda::gfx::backend {
 
 AtmosphereRendering::AtmosphereRendering(gfx::Context& ctx, VkSampleCountFlagBits samples, float sample_ratio) : ctx(ctx) {
+    /*
     {
         ph::ComputePipelineCreateInfo pci = ph::ComputePipelineBuilder::create(ctx, "transmittance")
             .set_shader("data/shaders/transmittance_lut.comp.spv", "main")
@@ -18,11 +19,11 @@ AtmosphereRendering::AtmosphereRendering(gfx::Context& ctx, VkSampleCountFlagBit
             .get();
         ctx.create_named_pipeline(std::move(pci));
     }
+     */
 
     {
         // TODO: Remove depth test as we want to add some sort of height fog to visible geometry.
         //       For now we will just render the atmosphere behind everything and ignore this.
-        // TODO: move
         // This pipeline will draw a full screen quad at depth == 1.0 to render it behind everything else.
         ph::PipelineCreateInfo pci = ph::PipelineBuilder::create(ctx, "atmosphere")
             .add_shader("data/shaders/atmosphere.vert.spv", "main", ph::ShaderStage::Vertex)
@@ -118,14 +119,27 @@ ph::Pass AtmosphereRendering::lut_update_pass(gfx::Viewport const& vp, ph::InFli
     return pass;
 }
 
-ph::Pass AtmosphereRendering::render_atmosphere_pass(const gfx::Viewport& vp, ph::InFlightContext& ifc, std::string_view output, std::string_view depth, const gfx::SceneDescription& scene) {
-    return ph::PassBuilder::create("atmosphere")
-        .add_attachment(output, ph::LoadOp::Load)
-        .add_depth_attachment(depth, ph::LoadOp::Load)
-        .execute([this, &scene, &vp, &ifc](ph::CommandBuffer& cmd) {
 
-        })
+void AtmosphereRendering::render_atmosphere(gfx::Viewport const& vp, ph::CommandBuffer& cmd, ph::InFlightContext& ifc, ph::BufferSlice camera, gfx::SceneDescription const& scene) {
+    // render atmosphere
+    cmd.bind_pipeline("atmosphere");
+    cmd.auto_viewport_scissor();
+
+    ph::TypedBufferSlice<gpu::Atmosphere> atmosphere = ifc.allocate_scratch_ubo(sizeof(gpu::Atmosphere));
+    std::memcpy(atmosphere.data, &scene.get_camera_info(vp).atmosphere, sizeof(gpu::Atmosphere));
+
+    VkDescriptorSet set = ph::DescriptorBuilder::create(ctx, cmd.get_bound_pipeline())
+        .add_uniform_buffer("camera", camera)
+        .add_uniform_buffer("atmosphere", atmosphere)
         .get();
+    cmd.bind_descriptor_set(set);
+
+    glm::vec4 pc[1] = {
+        scene.get_directional_lights()[0].direction_shadow
+    };
+    cmd.push_constants(ph::ShaderStage::Fragment, 0, 1 * sizeof(glm::vec4), pc);
+    // draw fullscreen quad
+    vkCmdDraw_Tracked(cmd, 6, 1, 0, 0);
 }
 
 auto AtmosphereRendering::get_luts() const -> LUTs {

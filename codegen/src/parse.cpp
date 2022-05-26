@@ -127,6 +127,21 @@ private:
                           << "editor::drag_speed(): expected one argument";
             }
         }
+
+        if (ent_has_attribute(entity, "editor::format")) {
+            cppast::cpp_attribute const& attribute = cppast::has_attribute(entity, "editor::format").value();
+            if (auto args = attribute.arguments(); args.has_value() && !args.value().empty()) {
+                // note that we do not need to remove the quotes here as they will be used as literal strings
+                field.format = args.value().front().spelling;
+            } else {
+                std::cout << "Parse error in component " << meta.name << " field " << field.name << ": "
+                          << "editor::format(): expected one argument";
+            }
+        }
+
+        if (ent_has_attribute(entity, "editor::no_limits")) {
+            field.no_limits = true;
+        }
     }
 };
 

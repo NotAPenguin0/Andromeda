@@ -104,6 +104,11 @@ public:
         Handle<gfx::Environment> environment;
 
         /**
+         * @brief If there is no environment map, these settings can be used to render an atmosphere instead
+         */
+        gpu::Atmosphere atmosphere;
+
+        /**
          * @brief Exposure parameter. Defined as log2(min_luminance)
          */
         float min_log_luminance;

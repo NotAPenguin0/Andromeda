@@ -2,6 +2,7 @@
 
 #include "include/glsl/common.glsl"
 #include "include/glsl/inputs.glsl"
+#include "include/glsl/types.glsl"
 
 // Shader adapted from https://www.shadertoy.com/view/stSGRy
 
@@ -11,8 +12,11 @@
 #define AS_MAIN_SAMPLES 16
 #define AS_TRANSMITTANCE_SAMPLES 8
 
-
 layout(location = 0) in vec2 UV;
+
+layout(set = 0, binding = 1) uniform AtmosphereSettings {
+    Atmosphere params;
+} atmosphere;
 
 layout(push_constant) uniform PC {
     vec4 sun_dir; // can allow for multiple suns later, this is temporary while i get things set up.
@@ -20,7 +24,8 @@ layout(push_constant) uniform PC {
 
 layout(location = 0) out vec4 Color;
 
-struct Atmosphere {
+// Nicer version of parameters found in types.glsl
+struct AtmosphereParameters {
     float planet_radius;
     float atmosphere_radius;
 
@@ -40,34 +45,27 @@ struct Atmosphere {
     float sun_illuminance;
 };
 
-Atmosphere make_earth_atmosphere() {
-    Atmosphere atm;
-    atm.planet_radius = 6371e3; // radius of the earth
-    atm.atmosphere_radius = 6471e3; // 100km high atmosphere
-
-    atm.rayleigh_coeff = vec3(5.8e-6, 13.3e-6, 33.31e-6);
-    atm.rayleigh_scatter_height = 8e3;
-
-    atm.mie_coeff = vec3(21e-6);
-    atm.mie_albedo = 0.9;
-    atm.mie_scatter_height = 1.2e3;
-    atm.mie_g = 0.8; // g parameter for phase function
-
-    atm.ozone_coeff = vec3(7.7295962e-7, 6.67717648e-7, 7.04931588e-8); // ozone absorption
-
-    atm.scatter_coeff = mat2x3(atm.rayleigh_coeff, atm.mie_coeff);
-
-    atm.extinction_coeff[0] = atm.rayleigh_coeff; // Rayleigh
-    atm.extinction_coeff[1] = atm.mie_coeff / atm.mie_albedo; // Mie
-    atm.extinction_coeff[2] = atm.ozone_coeff; // Ozone
-
-    atm.sun_illuminance = 22.0; // sun light intensity
-
-    return atm;
+AtmosphereParameters get_atmosphere_params(Atmosphere atm) {
+    AtmosphereParameters a;
+    a.planet_radius = atm.radii_mie_albedo_g.x;
+    a.atmosphere_radius = atm.radii_mie_albedo_g.y;
+    a.rayleigh_coeff = atm.rayleigh.xyz;
+    a.rayleigh_scatter_height = atm.rayleigh.w;
+    a.mie_coeff = atm.mie.xyz;
+    a.mie_scatter_height = atm.mie.w;
+    a.mie_albedo = atm.radii_mie_albedo_g.z;
+    a.mie_g = atm.radii_mie_albedo_g.w;
+    a.ozone_coeff = atm.ozone_sun.xyz;
+    a.sun_illuminance = atm.ozone_sun.w;
+    a.scatter_coeff = mat2x3(a.rayleigh_coeff, a.mie_coeff);
+    a.extinction_coeff[0] = a.rayleigh_coeff;
+    a.extinction_coeff[1] = a.mie_coeff / a.mie_albedo;
+    a.extinction_coeff[2] = a.ozone_coeff;
+    return a;
 }
 
 // get world position and convert to position relative to earth center
-vec3 relative_to_planet(Atmosphere atm, vec3 p) {
+vec3 relative_to_planet(AtmosphereParameters atm, vec3 p) {
     return vec3(0, p.y + atm.planet_radius, 0);
 }
 
@@ -113,7 +111,7 @@ float mie_phase(float cos_theta, float g) {
     return max(phase, 0.0);
 }
 
-vec3 get_densities(Atmosphere atm, float altitude) {
+vec3 get_densities(AtmosphereParameters atm, float altitude) {
     float rayleigh = exp(-altitude / atm.rayleigh_scatter_height);
     float mie = exp(-altitude / atm.mie_scatter_height);
     float ozone = exp(-max(0.0, (35e3 - altitude) - atm.atmosphere_radius) / 5e3) * exp(-max(0.0, (altitude - 35e3) - atm.atmosphere_radius) / 15e3);
@@ -122,7 +120,7 @@ vec3 get_densities(Atmosphere atm, float altitude) {
 }
 
 // light direction must be towards the light source, not away from it.
-vec3 compute_light_transmittance(Atmosphere atm, vec3 position, vec3 light_direction) {
+vec3 compute_light_transmittance(AtmosphereParameters atm, vec3 position, vec3 light_direction) {
     // get intersection with atmosphere
     vec2 atm_intersect = ray_sphere_intersection(position, light_direction, atm.atmosphere_radius);
     const float dt = atm_intersect.y / float(AS_TRANSMITTANCE_SAMPLES);
@@ -146,7 +144,7 @@ vec3 compute_light_transmittance(Atmosphere atm, vec3 position, vec3 light_direc
     return total_transmittance;
 }
 
-vec3 get_sky_color(Atmosphere atm, vec3 ray_origin, vec3 ray_direction, vec3 light_direction) {
+vec3 get_sky_color(AtmosphereParameters atm, vec3 ray_origin, vec3 ray_direction, vec3 light_direction) {
     // get intersection points with planet and atmosphere to determine step size.
     vec2 atm_intersect = ray_sphere_intersection(ray_origin, ray_direction, atm.atmosphere_radius);
     vec2 planet_intersect = ray_sphere_intersection(ray_origin, ray_direction, atm.planet_radius);
@@ -201,7 +199,7 @@ vec3 get_sky_color(Atmosphere atm, vec3 ray_origin, vec3 ray_direction, vec3 lig
 }
 
 void main() {
-    Atmosphere atm = make_earth_atmosphere();
+    AtmosphereParameters atm = get_atmosphere_params(atmosphere.params);
 
     vec3 view_pos = relative_to_planet(atm, camera.position.xyz);
     vec3 ray_origin = add_ray_offset(view_pos);
