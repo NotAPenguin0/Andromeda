@@ -154,7 +154,7 @@ public:
     void add_light(PointLight const& light, glm::vec3 const& position);
 
     /**
-     * @brief Register a directional light.
+     * @brief Register a directional light. Light direction will be away from the light.
      * @param light Reference to the DirectionalLight component.
      * @param rotation Rotation around the forward (0, 0, -1) axis of the entity. Used to compute light direction.
      */

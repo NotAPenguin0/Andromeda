@@ -101,14 +101,16 @@ float rayleigh_phase(float cos_theta) {
     return (3.0 / (16.0 * PI)) * (1.0 + cos_theta * cos_theta);
 }
 
-// uses shlick approximation. note that for large g values this becomes quite inaccurate.
-// (TODO: Switch to full henyey-greenstein when g > X ?)
+// cornette-shanks phase function
 float mie_phase(float cos_theta, float g) {
-    const float k = 1.55 * g - 0.55 * (g * g * g);
-    const float num = 1 - k * k;
-    const float d = 1 + k * cos_theta;
-    const float denom = 4 * PI * d * d;
-    return num / denom;
+    const float g_squared = g * g;
+    const float p1 = 3.0 * (1.0 - g_squared) * (1.0 / (PI * (2.0 + g_squared)));
+    const float p2 = (1.0 + (cos_theta * cos_theta)) * (1.0 / pow((1.0 + g_squared - 2.0 * g * cos_theta), 1.5));
+
+    float phase = (p1 * p2);
+    phase *= 0.25 / PI;
+
+    return max(phase, 0.0);
 }
 
 vec3 get_densities(Atmosphere atm, float altitude) {
@@ -119,6 +121,7 @@ vec3 get_densities(Atmosphere atm, float altitude) {
     return vec3(rayleigh, mie, ozone);
 }
 
+// light direction must be towards the light source, not away from it.
 vec3 compute_light_transmittance(Atmosphere atm, vec3 position, vec3 light_direction) {
     // get intersection with atmosphere
     vec2 atm_intersect = ray_sphere_intersection(position, light_direction, atm.atmosphere_radius);
@@ -137,8 +140,7 @@ vec3 compute_light_transmittance(Atmosphere atm, vec3 position, vec3 light_direc
         const vec3 air_mass = density * dt;
         const vec3 optical_depth = atm.extinction_coeff * air_mass;
         const vec3 transmittance = exp(-optical_depth);
-        total_transmittance += transmittance;
-
+        total_transmittance *= transmittance;
         ray_position += dr;
     }
     return total_transmittance;
@@ -191,8 +193,7 @@ vec3 get_sky_color(Atmosphere atm, vec3 ray_origin, vec3 ray_direction, vec3 lig
 
         // accumulate variables and move ray
         total_scattering += scattering_integral * total_transmittance;
-        total_transmittance += transmittance;
-
+        total_transmittance *= transmittance;
         ray_position += dr;
     }
 
@@ -203,13 +204,11 @@ void main() {
     Atmosphere atm = make_earth_atmosphere();
 
     vec3 view_pos = relative_to_planet(atm, camera.position.xyz);
-//    vec3 ray_origin = add_ray_offset(view_pos);
-    float offset = 1e1;
-    vec3 ray_origin = vec3(0.0, 6371e3 + offset, 0.0);
+    vec3 ray_origin = add_ray_offset(view_pos);
     vec3 ray_direction = camera_ray_direction(UV);
-    vec3 light_direction = pc.sun_dir.xyz;
+    // note that this shader expects light direction to be towards the light source instead of away from it
+    vec3 light_direction = -pc.sun_dir.xyz;
 
     vec3 color = get_sky_color(atm, ray_origin, ray_direction, light_direction);
-
     Color = vec4(color, 1.0);
 }
