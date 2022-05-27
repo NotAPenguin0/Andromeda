@@ -7,7 +7,6 @@
 // Shader adapted from https://www.shadertoy.com/view/stSGRy
 
 // TODO: Possibly move computations into look-up textures (see Hillaire). We'll only do this after the main atmosphere rendering is working.
-// TODO: Clean up code
 
 #define AS_MAIN_SAMPLES 16
 #define AS_TRANSMITTANCE_SAMPLES 8
@@ -66,20 +65,18 @@ AtmosphereParameters get_atmosphere_params(Atmosphere atm) {
 
 // get world position and convert to position relative to earth center
 vec3 relative_to_planet(AtmosphereParameters atm, vec3 p) {
-    return vec3(0, p.y + atm.planet_radius, 0);
+    return vec3(p.x, p.y + atm.planet_radius, p.z);
 }
 
 // Add a small offset to the atmosphere ray to avoid self-intersecting with planet.
-// TODO: tweak this value.
 vec3 add_ray_offset(vec3 p) {
     return p + vec3(0, 1e1, 0);
 }
 
-// todo: invert matrix on cpu instead
 vec3 camera_ray_direction(vec2 uv) {
     uv = uv * 2.0 - 1.0;
     vec4 target = camera.inv_projection * vec4(uv.x, uv.y, 1, 1);
-    return normalize(inverse(camera.view_rotation) * vec4(normalize(target.xyz), 0)).xyz;
+    return normalize(camera.inv_view_rotation * vec4(normalize(target.xyz), 0)).xyz;
 }
 
 vec2 ray_sphere_intersection(vec3 origin, vec3 direction, float radius) {

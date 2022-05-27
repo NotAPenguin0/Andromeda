@@ -1,0 +1,31 @@
+{
+  "Name": {
+    "name": "Main Camera"
+  },
+  "Transform": {
+    "position": [-3.0, 1.0, 0.0],
+    "rotation": [0.0, 0.0, -20.0],
+    "scale": [1.0, 1.0, 1.0]
+  },
+  "Camera": {
+    "fov": 90.0,
+    "near": 0.1,
+    "far": 100.0
+  },
+  "Environment": {
+    "planet_radius": 6371000.0,
+    "atmosphere_radius": 6471000.0,
+    "rayleigh": [0.0000058, 0.0000133, 0.00003331],
+    "rayleigh_height": 8000.0,
+    "mie": [0.000021, 0.000021, 0.000021],
+    "mie_albedo": 0.9,
+    "mie_height": 1200.0,
+    "mie_g": 0.8,
+    "ozone": [0.00000077295962, 0.000000667717648, 0.0000000704931588],
+    "sun_intensity": 22.0
+  },
+  "PostProcessingSettings": {
+    "min_log_luminance": -2.0,
+    "max_log_luminance": 10.0
+  }
+}

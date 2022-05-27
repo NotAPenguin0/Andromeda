@@ -1,0 +1,20 @@
+{
+  "Name": {
+    "name": "Sun Light"
+  },
+  "Transform": {
+    "position": [0.0, 0.0, 0.0],
+    "rotation": [60.0, 0.0, 0.0],
+    "scale": [1.0, 1.0, 1.0]
+  },
+  "DirectionalLight": {
+    "color": [1.0, 1.0, 1.0],
+    "intensity": 10.0,
+    "casts_shadows": true
+  },
+  "PointLight": {
+    "intensity": 10.0,
+    "radius": 20.0,
+    "casts_shadows": true
+  }
+}

@@ -173,7 +173,7 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     //  - mat4 view
     //  - mat4 pv
     //  - vec3 position (aligned to vec4)
-    vp_data.camera = ifc.allocate_scratch_ubo(6 * sizeof(glm::mat4) + sizeof(glm::vec4));
+    vp_data.camera = ifc.allocate_scratch_ubo(7 * sizeof(glm::mat4) + sizeof(glm::vec4));
     std::memcpy(vp_data.camera.data, &camera.projection, sizeof(glm::mat4));
     std::memcpy(vp_data.camera.data + sizeof(glm::mat4), &camera.view, sizeof(glm::mat4));
     std::memcpy(vp_data.camera.data + 2 * sizeof(glm::mat4), &camera.proj_view, sizeof(glm::mat4));
@@ -181,7 +181,9 @@ void ForwardPlusRenderer::create_render_data(ph::InFlightContext& ifc, gfx::View
     std::memcpy(vp_data.camera.data + 4 * sizeof(glm::mat4), &camera.inv_view, sizeof(glm::mat4));
     glm::mat4 view_rotation = glm::mat4(glm::mat3(camera.view));
     std::memcpy(vp_data.camera.data + 5 * sizeof(glm::mat4), &view_rotation, sizeof(glm::mat4));
-    std::memcpy(vp_data.camera.data + 6 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
+    glm::mat4 inv_view_rotation = glm::inverse(view_rotation);
+    std::memcpy(vp_data.camera.data + 6 * sizeof(glm::mat4), &inv_view_rotation, sizeof(glm::mat4));
+    std::memcpy(vp_data.camera.data + 7 * sizeof(glm::mat4), &camera.position, sizeof(glm::vec3));
 
     // We can have at most MAX_LIGHTS in every tile, and there are ceil(W/TILE_SIZE) * ceil(H/TILE_SIZE) tiles, which gives us the size of the buffer
     vp_data.n_tiles_x = static_cast<uint32_t>(std::ceil((float) viewport.width() / ANDROMEDA_TILE_SIZE));
