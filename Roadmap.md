@@ -19,7 +19,10 @@
 - [ ] Raytraced reflections
 - [ ] Fog
 - [ ] Water/fluid simulation
-- [ ] Atmospheric scattering
+- [X] Atmospheric scattering
+  - [X] Base implementation
+  - [ ] Move transmittance into lookup texture
+  - [ ] Additional UI changes (allow setting sun, possibly multiple suns)
 - [ ] Vertex pulling instead of vertex attributes
 - [ ] Put all meshes in a single large VkBuffer
 - [ ] Terrain system
@@ -28,8 +31,9 @@
   - Rebuild TLAS every frame
   - Rebuild BLAS only when needed
 - [ ] Support different vertex formats so shading doesn't break on ex. powerplant.
-- [ ] Improve soft shadow sampling
-- [ ] Denoise shadows
+- [X] Improve soft shadow sampling
+  - [ ] Fix final few bugs
+- [X] Denoise shadows
 
 ## Asset pipeline
 
@@ -49,7 +53,6 @@
 - [ ] Remove STB as it doesn't support DDS.
 - [ ] Move away from assimp and create own loader
 - [ ] Possibly create smart model splitter that splits meshes by locality to improve raytracing performance.
-- 
 
 ## UI/Editor
 
@@ -62,6 +65,7 @@
 - [ ] Project system
   - [ ] Scene serialization
 - [ ] Object picking in editor
+- [ ] Integration of Python/Lua or even custom scripting language
 
 ## Small tweaks and patches
 
